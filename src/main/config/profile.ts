@@ -10,6 +10,7 @@ import yaml from 'yaml'
 import { defaultProfile } from '../utils/template'
 import { subStorePort } from '../resolve/server'
 import { join } from 'path'
+import { app } from 'electron'
 
 let profileConfig: IProfileConfig // profile.yaml
 
@@ -134,7 +135,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
         }
         res = await axios.get(urlObj.toString(), {
           headers: {
-            'User-Agent': userAgent || 'clash.meta'
+            'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
           },
           responseType: 'text'
         })
@@ -148,7 +149,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
               }
             : false,
           headers: {
-            'User-Agent': userAgent || 'clash.meta'
+            'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
           },
           responseType: 'text'
         })

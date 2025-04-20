@@ -70,7 +70,7 @@
   "mihomo.restart": "Перезапустить ядро",
   "mihomo.memory": "Использование памяти",
   "mihomo.userAgent": "User Agent подписки",
-  "mihomo.userAgentPlaceholder": "По умолчанию: clash.meta",
+  "mihomo.userAgentPlaceholder": "По умолчанию: mihomo.party/v{{version}} (clash.meta)",
   "mihomo.delayTest.url": "URL теста задержки",
   "mihomo.delayTest.urlPlaceholder": "По умолчанию: http://www.gstatic.com/generate_204",
   "mihomo.delayTest.concurrency": "Параллельность теста задержки",

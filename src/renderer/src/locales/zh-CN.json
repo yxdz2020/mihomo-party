@@ -70,7 +70,7 @@
   "mihomo.restart": "重启内核",
   "mihomo.memory": "内存使用",
   "mihomo.userAgent": "订阅 User Agent",
-  "mihomo.userAgentPlaceholder": "默认：clash.meta",
+  "mihomo.userAgentPlaceholder": "默认：mihomo.party/v{{version}} (clash.meta)",
   "mihomo.delayTest.url": "延迟测试 URL",
   "mihomo.delayTest.urlPlaceholder": "默认：http://www.gstatic.com/generate_204",
   "mihomo.delayTest.concurrency": "延迟测试并发数",

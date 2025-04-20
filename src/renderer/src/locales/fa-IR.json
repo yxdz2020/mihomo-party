@@ -67,7 +67,7 @@
   "settings.links.telegram": "گروه تلگرام",
   "settings.title": "تنظیمات برنامه",
   "mihomo.userAgent": "User Agent اشتراک",
-  "mihomo.userAgentPlaceholder": "پیش‌فرض: clash.meta",
+  "mihomo.userAgentPlaceholder": "پیش‌فرض: mihomo.party/v{{version}} (clash.meta)",
   "mihomo.title": "تنظیمات هسته",
   "mihomo.restart": "راه‌اندازی مجدد هسته",
   "mihomo.memory": "مصرف حافظه",
