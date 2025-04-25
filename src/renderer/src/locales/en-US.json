@@ -226,6 +226,8 @@
   "actions.reset.title": "Reset App",
   "actions.reset.button": "Reset App",
   "actions.reset.tooltip": "Delete all configurations and restore the app to its initial state",
+  "actions.reset.confirm.title": "Confirm Reset",
+  "actions.reset.confirm.content": "Are you sure you want to reset the app and delete all configurations? Only reset the app when it is not working properly. Your all subscriptions, overrides, and scripts will be lost!",
   "actions.heapSnapshot.title": "Create Heap Snapshot",
   "actions.heapSnapshot.button": "Create Heap Snapshot",
   "actions.heapSnapshot.tooltip": "Create a heap snapshot of the main process for memory issue debugging",

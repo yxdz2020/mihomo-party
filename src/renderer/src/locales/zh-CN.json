@@ -226,6 +226,8 @@
   "actions.reset.title": "重置软件",
   "actions.reset.button": "重置软件",
   "actions.reset.tooltip": "删除所有配置，将软件恢复初始状态",
+  "actions.reset.confirm.title": "确认重置",
+  "actions.reset.confirm.content": "您确定要重置删除所有配置，将软件恢复初始状态吗？只有软件运行不正常的时候才需重置，您的所有订阅、覆写、脚本将全部丢失！",
   "actions.heapSnapshot.title": "创建堆快照",
   "actions.heapSnapshot.button": "创建堆快照",
   "actions.heapSnapshot.tooltip": "创建主进程堆快照，用于排查内存问题",

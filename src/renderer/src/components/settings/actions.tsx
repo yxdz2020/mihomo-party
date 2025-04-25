@@ -14,6 +14,7 @@ import { version } from '@renderer/utils/init'
 import { IoIosHelpCircle } from 'react-icons/io'
 import { getDriver } from '@renderer/App'
 import { useTranslation } from 'react-i18next'
+import BaseConfirmModal from '../base/base-confirm-modal'
 
 const Actions: React.FC = () => {
   const { t } = useTranslation()
@@ -21,6 +22,7 @@ const Actions: React.FC = () => {
   const [changelog, setChangelog] = useState('')
   const [openUpdate, setOpenUpdate] = useState(false)
   const [checkingUpdate, setCheckingUpdate] = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
 
   return (
     <>
@@ -29,6 +31,18 @@ const Actions: React.FC = () => {
           onClose={() => setOpenUpdate(false)}
           version={newVersion}
           changelog={changelog}
+        />
+      )}
+      {showResetConfirm && (
+        <BaseConfirmModal
+          isOpen={showResetConfirm}
+          title={t('actions.reset.confirm.title')}
+          content={t('actions.reset.confirm.content')}
+          onCancel={() => setShowResetConfirm(false)}
+          onConfirm={() => {
+            resetAppConfig()
+            setShowResetConfirm(false)
+          }}
         />
       )}
       <SettingCard>
@@ -75,7 +89,7 @@ const Actions: React.FC = () => {
           }
           divider
         >
-          <Button size="sm" onPress={resetAppConfig}>
+          <Button size="sm" onPress={() => setShowResetConfirm(true)}>
             {t('actions.reset.button')}
           </Button>
         </SettingItem>
