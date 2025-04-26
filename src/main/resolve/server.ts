@@ -1,12 +1,6 @@
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { Worker } from 'worker_threads'
-import {
-  dataDir,
-  mihomoWorkDir,
-  resourcesFilesDir,
-  subStoreDir,
-  substoreLogPath
-} from '../utils/dirs'
+import { dataDir, mihomoWorkDir, subStoreDir, substoreLogPath } from '../utils/dirs'
 import subStoreIcon from '../../../resources/subStoreIcon.png?asset'
 import { createWriteStream, existsSync, mkdirSync } from 'fs'
 import { writeFile, rm, cp } from 'fs/promises'
@@ -17,10 +11,6 @@ import { nativeImage } from 'electron'
 import express from 'express'
 import axios from 'axios'
 import AdmZip from 'adm-zip'
-import { promisify } from 'util'
-import { execFile } from 'child_process'
-import { platform } from 'os'
-import { is } from '@electron-toolkit/utils'
 
 export let pacPort: number
 export let subStorePort: number
@@ -87,7 +77,7 @@ export async function startSubStoreFrontendServer(): Promise<void> {
   await stopSubStoreFrontendServer()
   subStoreFrontendPort = await findAvailablePort(14122)
   const app = express()
-  app.use(express.static(path.join(resourcesFilesDir(), 'sub-store-frontend')))
+  app.use(express.static(path.join(mihomoWorkDir(), 'sub-store-frontend')))
   subStoreFrontendServer = app.listen(subStoreFrontendPort, subStoreHost)
 }
 
@@ -128,7 +118,7 @@ export async function startSubStoreBackendServer(): Promise<void> {
       SUB_STORE_MMDB_COUNTRY_PATH: path.join(mihomoWorkDir(), 'country.mmdb'),
       SUB_STORE_MMDB_ASN_PATH: path.join(mihomoWorkDir(), 'ASN.mmdb')
     }
-    subStoreBackendWorker = new Worker(path.join(resourcesFilesDir(), 'sub-store.bundle.js'), {
+    subStoreBackendWorker = new Worker(path.join(mihomoWorkDir(), 'sub-store.bundle.js'), {
       env: useProxyInSubStore
         ? {
             ...env,
@@ -151,10 +141,9 @@ export async function stopSubStoreBackendServer(): Promise<void> {
 
 export async function downloadSubStore(): Promise<void> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
-  const frontendDir = path.join(resourcesFilesDir(), 'sub-store-frontend')
-  const backendPath = path.join(resourcesFilesDir(), 'sub-store.bundle.js')
+  const frontendDir = path.join(mihomoWorkDir(), 'sub-store-frontend')
+  const backendPath = path.join(mihomoWorkDir(), 'sub-store.bundle.js')
   const tempDir = path.join(dataDir(), 'temp')
-  const execFilePromise = promisify(execFile)
 
   try {
     // 创建临时目录
@@ -195,28 +184,12 @@ export async function downloadSubStore(): Promise<void> {
     // 先解压到临时目录
     const zip = new AdmZip(Buffer.from(frontendRes.data))
     zip.extractAllTo(tempDir, true)
-
-    if (platform() === 'linux' && !is.dev) {
-      try {
-        const bashCmd = [
-          `cp "${tempBackendPath}" "${backendPath}"`,
-          `rm -rf "${frontendDir}"`,
-          `mkdir -p "${frontendDir}"`,
-          `cp -r "${tempFrontendDir}"/* "${frontendDir}/"`
-        ].join(' && ')
-        await execFilePromise('pkexec', ['bash', '-c', bashCmd])
-      } catch (error) {
-        console.error('substore.downloadFailed:', error)
-        throw error
-      }
-    } else {
-      await cp(tempBackendPath, backendPath)
-      if (existsSync(frontendDir)) {
-        await rm(frontendDir, { recursive: true })
-      }
-      mkdirSync(frontendDir, { recursive: true })
-      await cp(path.join(tempDir, 'dist'), frontendDir, { recursive: true })
+    await cp(tempBackendPath, backendPath)
+    if (existsSync(frontendDir)) {
+      await rm(frontendDir, { recursive: true })
     }
+    mkdirSync(frontendDir, { recursive: true })
+    await cp(path.join(tempDir, 'dist'), frontendDir, { recursive: true })
     await rm(tempDir, { recursive: true })
   } catch (error) {
     console.error('substore.downloadFailed:', error)

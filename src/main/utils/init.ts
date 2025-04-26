@@ -22,7 +22,7 @@ import {
   defaultProfileConfig
 } from './template'
 import yaml from 'yaml'
-import { mkdir, writeFile, copyFile, rm, readdir } from 'fs/promises'
+import { mkdir, writeFile,rm, readdir, cp } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import {
@@ -88,13 +88,13 @@ async function initConfig(): Promise<void> {
 async function initFiles(): Promise<void> {
   const copy = async (file: string): Promise<void> => {
     const targetPath = path.join(mihomoWorkDir(), file)
-    const testTargrtPath = path.join(mihomoTestDir(), file)
+    const testTargetPath = path.join(mihomoTestDir(), file)
     const sourcePath = path.join(resourcesFilesDir(), file)
     if (!existsSync(targetPath) && existsSync(sourcePath)) {
-      await copyFile(sourcePath, targetPath)
+      await cp(sourcePath, targetPath, { recursive: true })
     }
-    if (!existsSync(testTargrtPath) && existsSync(sourcePath)) {
-      await copyFile(sourcePath, testTargrtPath)
+    if (!existsSync(testTargetPath) && existsSync(sourcePath)) {
+      await cp(sourcePath, testTargetPath, { recursive: true })
     }
   }
   await Promise.all([
@@ -102,7 +102,9 @@ async function initFiles(): Promise<void> {
     copy('geoip.metadb'),
     copy('geoip.dat'),
     copy('geosite.dat'),
-    copy('ASN.mmdb')
+    copy('ASN.mmdb'),
+    copy('sub-store.bundle.js'),
+    copy('sub-store-frontend')
   ])
 }
 
