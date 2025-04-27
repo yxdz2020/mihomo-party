@@ -50,15 +50,10 @@ const ProxyProvider: React.FC = () => {
   const providers = useMemo(() => {
     if (!data) return []
     return Object.values(data.providers)
-      .filter(provider => 'subscriptionInfo' in provider)
+      .filter((provider) => provider.vehicleType !== 'Compatible')
       .sort((a, b) => {
-        if (a.vehicleType === 'File' && b.vehicleType !== 'File') {
-          return -1
-        }
-        if (a.vehicleType !== 'File' && b.vehicleType === 'File') {
-          return 1
-        }
-        return 0
+        const order = { File: 1, Inline: 2, HTTP: 3 }
+        return (order[a.vehicleType] || 4) - (order[b.vehicleType] || 4)
       })
   }, [data])
   const [updating, setUpdating] = useState(Array(providers.length).fill(false))
