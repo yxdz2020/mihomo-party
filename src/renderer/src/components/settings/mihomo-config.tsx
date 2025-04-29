@@ -129,6 +129,7 @@ const MihomoConfig: React.FC = () => {
           size="sm"
           selectedKeys={new Set([proxyCols])}
           aria-label={t('mihomo.proxyColumns.title')}
+          disallowEmptySelection={true}
           onSelectionChange={async (v) => {
             await patchAppConfig({ proxyCols: v.currentKey as 'auto' | '1' | '2' | '3' | '4' })
           }}
@@ -147,6 +148,7 @@ const MihomoConfig: React.FC = () => {
             className="w-[150px]"
             size="sm"
             selectedKeys={new Set([mihomoCpuPriority])}
+            disallowEmptySelection={true}
             onSelectionChange={async (v) => {
               try {
                 await patchAppConfig({

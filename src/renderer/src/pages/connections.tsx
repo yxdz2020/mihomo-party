@@ -236,6 +236,7 @@ const Connections: React.FC = () => {
             className="w-[180px] min-w-[131px]"
             aria-label={t('connections.orderBy')}
             selectedKeys={new Set([connectionOrderBy])}
+            disallowEmptySelection={true}
             onSelectionChange={async (v) => {
               await patchAppConfig({
                 connectionOrderBy: v.currentKey as

@@ -193,6 +193,7 @@ const GeneralConfig: React.FC = () => {
             selectionMode="multiple"
             selectedKeys={new Set(envType)}
             aria-label={t('settings.envType')}
+            disallowEmptySelection={true}
             onSelectionChange={async (v) => {
               try {
                 await patchAppConfig({
@@ -389,6 +390,7 @@ const GeneralConfig: React.FC = () => {
               size="sm"
               selectedKeys={new Set([customTheme])}
               aria-label={t('settings.selectTheme')}
+              disallowEmptySelection={true}
               onSelectionChange={async (v) => {
                 try {
                   await patchAppConfig({ customTheme: v.currentKey as string })
