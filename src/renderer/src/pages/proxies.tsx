@@ -22,25 +22,16 @@ import { includesIgnoreCase } from '@renderer/utils/includes'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useTranslation } from 'react-i18next'
 
-const SCROLL_POSITION_KEY = 'proxy_scroll_position'
 const GROUP_EXPAND_STATE_KEY = 'proxy_group_expand_state'
-const SCROLL_DEBOUNCE_TIME = 200
-const RENDER_DELAY = 100
 
-// 自定义 hook 用于管理滚动位置和展开状态
+// 自定义 hook 用于管理展开状态
 const useProxyState = (groups: IMihomoMixedGroup[]): {
   virtuosoRef: React.RefObject<GroupedVirtuosoHandle>;
   isOpen: boolean[];
   setIsOpen: React.Dispatch<React.SetStateAction<boolean[]>>;
-  scrollPosition: number;
   onScroll: (e: React.UIEvent<HTMLElement>) => void;
-  isManualScroll: React.RefObject<boolean>;
 } => {
   const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
-  const [scrollPosition, setScrollPosition] = useState<number>(0)
-  const scrollTimerRef = useRef<NodeJS.Timeout>()
-  const isManualScroll = useRef<boolean>(false)
-  const lastGroupsLength = useRef<number>(0)
   
   // 初始化展开状态
   const [isOpen, setIsOpen] = useState<boolean[]>(() => {
@@ -62,91 +53,13 @@ const useProxyState = (groups: IMihomoMixedGroup[]): {
     }
   }, [isOpen])
 
-  // 清理定时器
-  useEffect(() => {
-    return () => {
-      if (scrollTimerRef.current) {
-        clearTimeout(scrollTimerRef.current)
-      }
-    }
-  }, [])
-
-  // 恢复滚动位置
-  useEffect(() => {
-    if (groups.length > 0) {
-      try {
-        const savedPosition = localStorage.getItem(SCROLL_POSITION_KEY)
-        if (savedPosition) {
-          const position = parseInt(savedPosition)
-          if (!isNaN(position) && position >= 0) {
-            // 记录当前组长度以便跟踪变化
-            lastGroupsLength.current = groups.length
-            
-            // 设置标志位避免循环触发滚动
-            isManualScroll.current = true;
-            
-            // 延迟一点时间确保DOM已更新
-            const timer = setTimeout(() => {
-              virtuosoRef.current?.scrollTo({ 
-                top: position,
-                behavior: 'auto' // 使用auto以避免平滑滚动引起的额外视觉效果
-              })
-              
-              // 延迟恢复标志位
-              setTimeout(() => {
-                isManualScroll.current = false;
-              }, 200);
-            }, RENDER_DELAY)
-            return () => clearTimeout(timer)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to restore scroll position:', error)
-      }
-    }
-  }, [groups])
-
-  // 数据刷新时保持滚动位置
-  useEffect(() => {
-    if (groups.length > 0 && scrollPosition > 0 && !isManualScroll.current) {
-      // 只在数据刷新时恢复位置，不是手动滚动触发的
-      const timer = setTimeout(() => {
-        virtuosoRef.current?.scrollTo({ top: scrollPosition, behavior: 'auto' })
-      }, 50)
-      return () => clearTimeout(timer)
-    }
-  }, [groups, scrollPosition])
-
-  const saveScrollPosition = useCallback((position: number) => {
-    try {
-      localStorage.setItem(SCROLL_POSITION_KEY, position.toString())
-    } catch (error) {
-      console.error('Failed to save scroll position:', error)
-    }
-  }, [])
-
   return {
     virtuosoRef,
     isOpen,
     setIsOpen,
-    scrollPosition,
-    onScroll: useCallback((e: React.UIEvent<HTMLElement>) => {
-      const position = (e.target as HTMLElement).scrollTop
-      isManualScroll.current = true // 标记这是手动滚动
-      setScrollPosition(position)
-      
-      // 清理之前的定时器
-      if (scrollTimerRef.current) {
-        clearTimeout(scrollTimerRef.current)
-      }
-      
-      // 使用防抖来减少存储频率
-      scrollTimerRef.current = setTimeout(() => {
-        saveScrollPosition(position)
-        isManualScroll.current = false // 重置标记
-      }, SCROLL_DEBOUNCE_TIME)
-    }, [saveScrollPosition]),
-    isManualScroll
+    onScroll: useCallback((_e: React.UIEvent<HTMLElement>) => {
+      // 空实现，不再保存滚动位置
+    }, [])
   }
 }
 
@@ -165,7 +78,7 @@ const Proxies: React.FC = () => {
   } = appConfig || {}
   
   const [cols, setCols] = useState(1)
-  const { virtuosoRef, isOpen, setIsOpen, onScroll, scrollPosition, isManualScroll } = useProxyState(groups)
+  const { virtuosoRef, isOpen, setIsOpen, onScroll } = useProxyState(groups)
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
   const { groupCounts, allProxies } = useMemo(() => {
@@ -200,63 +113,13 @@ const Proxies: React.FC = () => {
     return { groupCounts, allProxies }
   }, [groups, isOpen, proxyDisplayOrder, cols, searchValue])
 
-  // 界面选项(如显示模式、排序方式)变化时恢复滚动位置
-  useEffect(() => {
-    if (groups.length > 0) {
-      try {
-        const savedPosition = localStorage.getItem(SCROLL_POSITION_KEY)
-        if (savedPosition) {
-          const position = parseInt(savedPosition)
-          if (!isNaN(position) && position > 0) {
-            // 设置标志位避免循环触发滚动
-            isManualScroll.current = true;
-            
-            // 延迟一点时间确保DOM已更新
-            const timer = setTimeout(() => {
-              virtuosoRef.current?.scrollTo({
-                top: position,
-                behavior: 'auto'
-              })
-              
-              // 延迟恢复标志位
-              setTimeout(() => {
-                isManualScroll.current = false;
-              }, 200);
-            }, 100)
-            return () => clearTimeout(timer)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to restore scroll position after UI change:', error)
-      }
-    }
-  }, [proxyDisplayMode, proxyDisplayOrder])
-
   const onChangeProxy = useCallback(async (group: string, proxy: string): Promise<void> => {
-    // 保存当前滚动位置以便切换后恢复
-    const currentPosition = scrollPosition;
-    
     await mihomoChangeProxy(group, proxy)
     if (autoCloseConnection) {
       await mihomoCloseAllConnections()
     }
     mutate()
-    
-    // 设置标志位，表明这是程序控制的滚动，防止触发useEffect中的滚动
-    isManualScroll.current = true;
-    
-    setTimeout(() => {
-      virtuosoRef.current?.scrollTo({ 
-        top: currentPosition,
-        behavior: 'auto' // 使用auto避免出现平滑滚动导致的额外视觉抖动
-      })
-      
-      // 延迟恢复标志位，确保滚动事件处理完成
-      setTimeout(() => {
-        isManualScroll.current = false;
-      }, 200);
-    }, 150) // 增加延迟让DOM有足够的时间更新
-  }, [autoCloseConnection, mutate, virtuosoRef, scrollPosition])
+  }, [autoCloseConnection, mutate])
 
   const onProxyDelay = useCallback(async (proxy: string, url?: string): Promise<IMihomoDelay> => {
     return await mihomoProxyDelay(proxy, url)
@@ -327,7 +190,7 @@ const Proxies: React.FC = () => {
     handleResize() // 初始化
     window.addEventListener('resize', handleResize)
     
-    return () => {
+    return (): void => {
       window.removeEventListener('resize', handleResize)
     }
   }, [calcCols])
@@ -394,11 +257,9 @@ const Proxies: React.FC = () => {
             ref={virtuosoRef}
             groupCounts={groupCounts}
             onScroll={onScroll}
-            initialTopMostItemIndex={scrollPosition > 0 ? undefined : 0}
-            defaultItemHeight={80} // 设置默认高度减少跳动
-            increaseViewportBy={{ top: 300, bottom: 300 }} // 扩大可视区域减少闪烁
-            overscan={500} // 增加预渲染区域
-            // 使用稳定的key减少不必要的重新渲染
+            defaultItemHeight={80}
+            increaseViewportBy={{ top: 300, bottom: 300 }}
+            overscan={500}
             computeItemKey={(index, groupIndex) => {
               let innerIndex = index
               groupCounts.slice(0, groupIndex).forEach((count) => {
