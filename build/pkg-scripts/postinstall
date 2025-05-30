@@ -1,9 +1,17 @@
 #!/bin/sh
 set -e
 
+# 设置日志文件
+LOG_FILE="/tmp/mihomo-party-install.log"
+exec > "$LOG_FILE" 2>&1
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+}
+
 # 检查 root 权限
 if [ "$EUID" -ne 0 ]; then
-    echo "Please run as root"
+    log "Error: Please run as root"
     exit 1
 fi
 
@@ -13,63 +21,88 @@ if [[ $2 == *".app" ]]; then
 else
     APP_PATH="$2/Mihomo Party.app"
 fi
+
 HELPER_PATH="/Library/PrivilegedHelperTools/party.mihomo.helper"
 LAUNCH_DAEMON="/Library/LaunchDaemons/party.mihomo.helper.plist"
 
-# 设置核心文件权限
-chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo"
-chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
-chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo"
-chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
+log "Starting installation..."
 
-# 创建目录并复制 helper
-mkdir -p /Library/PrivilegedHelperTools
-if [ ! -f "$APP_PATH/Contents/Resources/files/party.mihomo.helper" ]; then
-    echo "Helper file not found"
+# 创建目录并设置权限
+log "Creating directories and setting permissions..."
+mkdir -p "/Library/PrivilegedHelperTools"
+chmod 755 "/Library/PrivilegedHelperTools"
+chown root:wheel "/Library/PrivilegedHelperTools"
+
+# 设置核心文件权限
+log "Setting core file permissions..."
+if [ -f "$APP_PATH/Contents/Resources/sidecar/mihomo" ]; then
+    chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo"
+    chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo"
+    log "Set permissions for mihomo"
+else
+    log "Warning: mihomo binary not found at $APP_PATH/Contents/Resources/sidecar/mihomo"
+fi
+
+if [ -f "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha" ]; then
+    chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
+    chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
+    log "Set permissions for mihomo-alpha"
+else
+    log "Warning: mihomo-alpha binary not found at $APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
+fi
+
+# 复制 helper 工具
+log "Installing helper tool..."
+if [ -f "$APP_PATH/Contents/Resources/files/party.mihomo.helper" ]; then
+    cp -f "$APP_PATH/Contents/Resources/files/party.mihomo.helper" "$HELPER_PATH"
+    chown root:wheel "$HELPER_PATH"
+    chmod 544 "$HELPER_PATH"
+    log "Helper tool installed successfully"
+else
+    log "Error: Helper file not found at $APP_PATH/Contents/Resources/files/party.mihomo.helper"
     exit 1
 fi
 
-cp "$APP_PATH/Contents/Resources/files/party.mihomo.helper" "$HELPER_PATH"
-chown root:wheel "$HELPER_PATH"
-chmod 544 "$HELPER_PATH"
-
 # 创建并配置 LaunchDaemon
-mkdir -p /Library/LaunchDaemons
+log "Configuring LaunchDaemon..."
+mkdir -p "/Library/LaunchDaemons"
 cat << EOF > "$LAUNCH_DAEMON"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-        <key>Label</key>
-        <string>party.mihomo.helper</string>
-        <key>AssociatedBundleIdentifiers</key>
-        <string>party.mihomo.app</string>
-        <key>KeepAlive</key>
-        <true/>
-        <key>Program</key>
-        <string>${HELPER_PATH}</string>
-        <key>StandardErrorPath</key>
-        <string>/tmp/party.mihomo.helper.err</string>
-        <key>StandardOutPath</key>
-        <string>/tmp/party.mihomo.helper.log</string>
-    </dict>
+    <key>Label</key>
+    <string>party.mihomo.helper</string>
+    <key>AssociatedBundleIdentifiers</key>
+    <string>party.mihomo.app</string>
+    <key>KeepAlive</key>
+    <true/>
+    <key>Program</key>
+    <string>${HELPER_PATH}</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/party.mihomo.helper.err</string>
+    <key>StandardOutPath</key>
+    <string>/tmp/party.mihomo.helper.log</string>
+</dict>
 </plist>
 EOF
 
 chown root:wheel "$LAUNCH_DAEMON"
 chmod 644 "$LAUNCH_DAEMON"
+log "LaunchDaemon configured"
 
 # 加载并启动服务
-launchctl unload "$LAUNCH_DAEMON" || true
+log "Loading and starting service..."
+launchctl unload "$LAUNCH_DAEMON" 2>/dev/null || true
 if ! launchctl load "$LAUNCH_DAEMON"; then
-    echo "Failed to load helper service"
+    log "Error: Failed to load helper service"
     exit 1
 fi
 
 if ! launchctl start party.mihomo.helper; then
-    echo "Failed to start helper service"
+    log "Error: Failed to start helper service"
     exit 1
 fi
 
-echo "Installation completed successfully"
+log "Installation completed successfully"
 exit 0
