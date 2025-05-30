@@ -52,9 +52,7 @@ pkg:
   background:
     alignment: bottomleft
     file: build/background.png
-  preinstallScript: build/pkg-scripts/preinstall
-  postinstallScript: build/pkg-scripts/postinstall
-  scripts: "/build/pkg-scripts"
+  scripts: build/pkg-scripts
 linux:
   desktop:
     Name: Mihomo Party
