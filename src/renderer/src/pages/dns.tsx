@@ -142,9 +142,6 @@ const DNS: React.FC = () => {
             className="app-nodrag"
             color="primary"
             onPress={() => {
-              const hostsObject = Object.fromEntries(
-                values.hosts.map(({ domain, value }) => [domain, value])
-              )
               const dnsConfig = {
                 ipv6: values.ipv6,
                 'fake-ip-range': values.fakeIPRange,
@@ -165,10 +162,13 @@ const DNS: React.FC = () => {
                   values.nameserverPolicy.map(({ domain, value }) => [domain, value])
                 )
               }
-              onSave({
-                dns: dnsConfig,
-                hosts: hostsObject
-              })
+              const result = { dns: dnsConfig }
+              if (values.useHosts) {
+                result['hosts'] = Object.fromEntries(
+                  values.hosts.map(({ domain, value }) => [domain, value])
+                )
+              }
+              onSave(result)
             }}
           >
             {t('common.save')}
