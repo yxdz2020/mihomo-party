@@ -60,6 +60,7 @@ const ProfileItem: React.FC<Props> = (props) => {
   const [selecting, setSelecting] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const {
     attributes,
     listeners,
@@ -143,6 +144,12 @@ const ProfileItem: React.FC<Props> = (props) => {
     }
   }
 
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDropdownOpen(true)
+  }
+
   useEffect(() => {
     if (isDragging) {
       setTimeout(() => {
@@ -154,6 +161,8 @@ const ProfileItem: React.FC<Props> = (props) => {
       }, 200)
     }
   }, [isDragging])
+
+
 
   return (
     <div
@@ -173,6 +182,7 @@ const ProfileItem: React.FC<Props> = (props) => {
           updateProfileItem={updateProfileItem}
         />
       )}
+      
       <Card
         as="div"
         fullWidth
@@ -184,6 +194,7 @@ const ProfileItem: React.FC<Props> = (props) => {
             setSelecting(false)
           })
         }}
+        onContextMenu={handleContextMenu}
         className={`${isCurrent ? 'bg-primary' : ''} ${selecting ? 'blur-sm' : ''}`}
       >
         <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
@@ -218,7 +229,10 @@ const ProfileItem: React.FC<Props> = (props) => {
                   </Tooltip>
                 )}
 
-                <Dropdown>
+                <Dropdown
+                  isOpen={dropdownOpen}
+                  onOpenChange={setDropdownOpen}
+                >
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
                       <IoMdMore
