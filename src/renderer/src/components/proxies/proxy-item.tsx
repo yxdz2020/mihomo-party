@@ -1,6 +1,7 @@
 import { Button, Card, CardBody } from '@heroui/react'
 import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
-import React, { useMemo, useState } from 'react'
+import React from 'react'
+import { useMemo, useState } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
 
@@ -12,11 +13,12 @@ interface Props {
   group: IMihomoMixedGroup
   onSelect: (group: string, proxy: string) => void
   selected: boolean
+  isGroupTesting?: boolean
 }
 
 const ProxyItem: React.FC<Props> = (props) => {
   const { t } = useTranslation()
-  const { mutateProxies, proxyDisplayMode, group, proxy, selected, onSelect, onProxyDelay } = props
+  const { mutateProxies, proxyDisplayMode, group, proxy, selected, onSelect, onProxyDelay, isGroupTesting = false } = props
 
   const delay = useMemo(() => {
     if (proxy.history.length > 0) {
@@ -26,6 +28,9 @@ const ProxyItem: React.FC<Props> = (props) => {
   }, [proxy])
 
   const [loading, setLoading] = useState(false)
+
+  const isLoading = loading || isGroupTesting
+  
   function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
     if (delay === -1) return 'primary'
     if (delay === 0) return 'danger'
@@ -106,7 +111,7 @@ const ProxyItem: React.FC<Props> = (props) => {
               <Button
                 isIconOnly
                 title={proxy.type}
-                isLoading={loading}
+                isLoading={isLoading}
                 color={delayColor(delay)}
                 onPress={onDelay}
                 variant="light"
@@ -144,11 +149,11 @@ const ProxyItem: React.FC<Props> = (props) => {
             <Button
               isIconOnly
               title={proxy.type}
-              isLoading={loading}
+              isLoading={isLoading}
               color={delayColor(delay)}
               onPress={onDelay}
               variant="light"
-              className="h-[24px] text-sm px-2 relative w-min whitespace-nowrap"
+              className="h-full text-sm px-2 relative w-min whitespace-nowrap"
             >
               <div className="w-full h-full flex items-center justify-end">
                 {delayText(delay)}

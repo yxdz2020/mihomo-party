@@ -29,7 +29,6 @@ const useProxyState = (groups: IMihomoMixedGroup[]): {
   virtuosoRef: React.RefObject<GroupedVirtuosoHandle>;
   isOpen: boolean[];
   setIsOpen: React.Dispatch<React.SetStateAction<boolean[]>>;
-  onScroll: (e: React.UIEvent<HTMLElement>) => void;
 } => {
   const virtuosoRef = useRef<GroupedVirtuosoHandle>(null)
   
@@ -56,10 +55,7 @@ const useProxyState = (groups: IMihomoMixedGroup[]): {
   return {
     virtuosoRef,
     isOpen,
-    setIsOpen,
-    onScroll: useCallback((_e: React.UIEvent<HTMLElement>) => {
-      // 空实现，不再保存滚动位置
-    }, [])
+    setIsOpen
   }
 }
 
@@ -78,8 +74,9 @@ const Proxies: React.FC = () => {
   } = appConfig || {}
   
   const [cols, setCols] = useState(1)
-  const { virtuosoRef, isOpen, setIsOpen, onScroll } = useProxyState(groups)
+  const { virtuosoRef, isOpen, setIsOpen } = useProxyState(groups)
   const [delaying, setDelaying] = useState(Array(groups.length).fill(false))
+  const [proxyDelaying, setProxyDelaying] = useState<Record<string, boolean>>({})
   const [searchValue, setSearchValue] = useState(Array(groups.length).fill(''))
   const { groupCounts, allProxies } = useMemo(() => {
     const groupCounts: number[] = []
@@ -139,6 +136,16 @@ const Proxies: React.FC = () => {
       return newDelaying
     })
 
+    // 本组测试状态
+    const groupProxies = allProxies[index]
+    setProxyDelaying((prev) => {
+      const newProxyDelaying = { ...prev }
+      groupProxies.forEach(proxy => {
+        newProxyDelaying[proxy.name] = true
+      })
+      return newProxyDelaying
+    })
+
     try {
       // 限制并发数量
       const result: Promise<void>[] = []
@@ -150,6 +157,12 @@ const Proxies: React.FC = () => {
           } catch {
             // ignore
           } finally {
+            // 立即更新状态
+            setProxyDelaying((prev) => {
+              const newProxyDelaying = { ...prev }
+              delete newProxyDelaying[proxy.name]
+              return newProxyDelaying
+            })
             mutate()
           }
         })
@@ -168,6 +181,14 @@ const Proxies: React.FC = () => {
         const newDelaying = [...prev]
         newDelaying[index] = false
         return newDelaying
+      })
+      // 状态清理
+      setProxyDelaying((prev) => {
+        const newProxyDelaying = { ...prev }
+        groupProxies.forEach(proxy => {
+          delete newProxyDelaying[proxy.name]
+        })
+        return newProxyDelaying
       })
     }
   }, [allProxies, groups, delayTestConcurrency, mutate])
@@ -256,7 +277,6 @@ const Proxies: React.FC = () => {
           <GroupedVirtuoso
             ref={virtuosoRef}
             groupCounts={groupCounts}
-            onScroll={onScroll}
             defaultItemHeight={80}
             increaseViewportBy={{ top: 300, bottom: 300 }}
             overscan={500}
@@ -434,6 +454,7 @@ const Proxies: React.FC = () => {
                           allProxies[groupIndex][innerIndex * cols + i]?.name ===
                           groups[groupIndex].now
                         }
+                        isGroupTesting={!!proxyDelaying[allProxies[groupIndex][innerIndex * cols + i].name]}
                       />
                     )
                   })}
