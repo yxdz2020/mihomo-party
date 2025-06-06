@@ -52,7 +52,6 @@ pkg:
   background:
     alignment: bottomleft
     file: build/background.png
-  scripts: build/pkg-scripts
 linux:
   desktop:
     Name: Mihomo Party
