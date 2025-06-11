@@ -68,7 +68,8 @@ export function setNativeTheme(theme: 'system' | 'light' | 'dark'): void {
   nativeTheme.themeSource = theme
 }
 
-const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
+function getElevateTaskXml(): string {
+  return `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <Triggers />
   <Principals>
@@ -104,10 +105,11 @@ const elevateTaskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Actions>
 </Task>
 `
+}
 
 export function createElevateTask(): void {
   const taskFilePath = path.join(taskDir(), `mihomo-party-run.xml`)
-  writeFileSync(taskFilePath, Buffer.from(`\ufeff${elevateTaskXml}`, 'utf-16le'))
+  writeFileSync(taskFilePath, Buffer.from(`\ufeff${getElevateTaskXml()}`, 'utf-16le'))
   copyFileSync(
     path.join(resourcesFilesDir(), 'mihomo-party-run.exe'),
     path.join(taskDir(), 'mihomo-party-run.exe')

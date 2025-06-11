@@ -7,7 +7,8 @@ import path from 'path'
 
 const appName = 'mihomo-party'
 
-const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
+function getTaskXml(): string {
+  return `<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <Triggers>
     <LogonTrigger>
@@ -48,6 +49,7 @@ const taskXml = `<?xml version="1.0" encoding="UTF-16"?>
   </Actions>
 </Task>
 `
+}
 
 export async function checkAutoRun(): Promise<boolean> {
   if (process.platform === 'win32') {
@@ -80,7 +82,7 @@ export async function enableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
     const taskFilePath = path.join(taskDir(), `${appName}.xml`)
-    await writeFile(taskFilePath, Buffer.from(`\ufeff${taskXml}`, 'utf-16le'))
+    await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml()}`, 'utf-16le'))
     await execPromise(
       `%SystemRoot%\\System32\\schtasks.exe /create /tn "${appName}" /xml "${taskFilePath}" /f`
     )

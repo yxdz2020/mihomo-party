@@ -18,7 +18,13 @@ export function dataDir(): string {
 }
 
 export function taskDir(): string {
-  const dir = path.join(app.getPath('userData'), 'tasks')
+  const userDataDir = app.getPath('userData')
+  // 确保 userData 目录存在
+  if (!existsSync(userDataDir)) {
+    mkdirSync(userDataDir, { recursive: true })
+  }
+  
+  const dir = path.join(userDataDir, 'tasks')
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
   }
