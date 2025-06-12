@@ -401,7 +401,7 @@ const Mihomo: React.FC = () => {
                       <Input
                         size="sm"
                         fullWidth
-                        placeholder="IP 段"
+                        placeholder={t('mihomo.ipSegment.placeholder')}
                         value={ipcidr || ''}
                         onValueChange={(v) => {
                           if (index === lanAllowedIpsInput.length) {
@@ -451,7 +451,7 @@ const Mihomo: React.FC = () => {
                       <Input
                         size="sm"
                         fullWidth
-                        placeholder="IP 段"
+                        placeholder={t('mihomo.username.placeholder')}
                         value={ipcidr || ''}
                         onValueChange={(v) => {
                           if (index === lanDisallowedIpsInput.length) {
