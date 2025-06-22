@@ -19,6 +19,7 @@
   "common.prev": "قبلی",
   "common.done": "انجام شد",
   "common.notification.restartRequired": "برای اعمال تغییرات نیاز به راه‌اندازی مجدد است",
+  "common.notification.systemProxyEnabled": "پراکسی سیستم فعال شد",
   "common.notification.systemProxyDisabled": "پراکسی سیستم غیرفعال شد",
   "common.notification.tunEnabled": "TUN فعال شد",
   "common.notification.tunDisabled": "TUN غیرفعال شد",

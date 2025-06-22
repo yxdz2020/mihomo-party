@@ -19,6 +19,7 @@
   "common.prev": "Previous",
   "common.done": "Done",
   "common.notification.restartRequired": "Restart required for changes to take effect",
+  "common.notification.systemProxyEnabled": "System proxy enabled",
   "common.notification.systemProxyDisabled": "System proxy disabled",
   "common.notification.tunEnabled": "TUN enabled",
   "common.notification.tunDisabled": "TUN disabled",

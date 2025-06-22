@@ -19,6 +19,7 @@
   "common.prev": "Назад",
   "common.done": "Готово",
   "common.notification.restartRequired": "Требуется перезапуск для применения изменений",
+  "common.notification.systemProxyEnabled": "Системный прокси включен",
   "common.notification.systemProxyDisabled": "Системный прокси отключен",
   "common.notification.tunEnabled": "TUN включен",
   "common.notification.tunDisabled": "TUN отключен",
