@@ -10,8 +10,10 @@ import { createTray, hideDockIcon, showDockIcon } from './resolve/tray'
 import { init } from './utils/init'
 import { join } from 'path'
 import { initShortcut } from './resolve/shortcut'
-import { execSync, spawn } from 'child_process'
+import { execSync, spawn, exec } from 'child_process'
 import { createElevateTask } from './sys/misc'
+import { promisify } from 'util'
+import { stat } from 'fs/promises'
 import { initProfileUpdater } from './core/profileUpdater'
 import { existsSync, writeFileSync } from 'fs'
 import { exePath, taskDir } from './utils/dirs'
@@ -21,6 +23,29 @@ import { showFloatingWindow } from './resolve/floatingWindow'
 import iconv from 'iconv-lite'
 import { initI18n } from '../shared/i18n'
 import i18next from 'i18next'
+
+async function fixUserDataPermissions(): Promise<void> {
+  if (process.platform !== 'darwin') return
+
+  const userDataPath = app.getPath('userData')
+  if (!existsSync(userDataPath)) return
+
+  try {
+    const stats = await stat(userDataPath)
+    const currentUid = process.getuid?.() || 0
+
+    if (stats.uid === 0 && currentUid !== 0) {
+      const execPromise = promisify(exec)
+      const username = process.env.USER || process.env.LOGNAME
+      if (username) {
+        await execPromise(`chown -R "${username}:staff" "${userDataPath}"`)
+        await execPromise(`chmod -R u+rwX "${userDataPath}"`)
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
 
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
@@ -59,11 +84,26 @@ if (process.platform === 'win32' && !is.dev && !process.argv.includes('noadmin')
   }
 }
 
-const gotTheLock = app.requestSingleInstanceLock()
-
-if (!gotTheLock) {
-  app.quit()
+async function initApp(): Promise<void> {
+  await fixUserDataPermissions()
 }
+
+initApp()
+  .then(() => {
+    const gotTheLock = app.requestSingleInstanceLock()
+
+    if (!gotTheLock) {
+      app.quit()
+    }
+  })
+  .catch(() => {
+    // ignore permission fix errors
+    const gotTheLock = app.requestSingleInstanceLock()
+
+    if (!gotTheLock) {
+      app.quit()
+    }
+  })
 
 export function customRelaunch(): void {
   const script = `while kill -0 ${process.pid} 2>/dev/null; do

@@ -151,4 +151,23 @@ else
 fi
 
 log "Installation completed successfully"
+
+# Fix user data directory permissions
+log "Fixing user data directory permissions..."
+for user_home in /Users/*; do
+    if [ -d "$user_home" ] && [ "$(basename "$user_home")" != "Shared" ] && [ "$(basename "$user_home")" != ".localized" ]; then
+        username=$(basename "$user_home")
+        user_data_dir="$user_home/Library/Application Support/mihomo-party"
+
+        if [ -d "$user_data_dir" ]; then
+            current_owner=$(stat -f "%Su" "$user_data_dir" 2>/dev/null || echo "unknown")
+            if [ "$current_owner" = "root" ]; then
+                log "Fixing ownership for user: $username"
+                chown -R "$username:staff" "$user_data_dir" 2>/dev/null || true
+                chmod -R u+rwX "$user_data_dir" 2>/dev/null || true
+            fi
+        fi
+    fi
+done
+
 exit 0
