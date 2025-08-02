@@ -79,6 +79,22 @@ export async function mihomoGroupDelay(group: string, url?: string): Promise<IMi
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoGroupDelay', group, url))
 }
 
+export async function mihomoSmartGroupWeights(groupName: string): Promise<Record<string, number>> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoSmartGroupWeights', groupName))
+}
+
+export async function mihomoSmartFlushCache(configName?: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('mihomoSmartFlushCache', configName))
+}
+
+export async function showDetailedError(title: string, message: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showDetailedError', title, message))
+}
+
+export async function getSmartOverrideContent(): Promise<string | null> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getSmartOverrideContent'))
+}
+
 export async function patchMihomoConfig(patch: Partial<IMihomoConfig>): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('patchMihomoConfig', patch))
 }

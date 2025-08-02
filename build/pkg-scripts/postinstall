@@ -51,6 +51,14 @@ else
     log "Warning: mihomo-alpha binary not found at $APP_PATH/Contents/Resources/sidecar/mihomo-alpha"
 fi
 
+if [ -f "$APP_PATH/Contents/Resources/sidecar/mihomo-smart" ]; then
+    chown root:admin "$APP_PATH/Contents/Resources/sidecar/mihomo-smart"
+    chmod +s "$APP_PATH/Contents/Resources/sidecar/mihomo-smart"
+    log "Set permissions for mihomo-smart"
+else
+    log "Warning: mihomo-smart binary not found at $APP_PATH/Contents/Resources/sidecar/mihomo-smart"
+fi
+
 # 复制 helper 工具
 log "Installing helper tool..."
 if [ -f "$APP_PATH/Contents/Resources/files/party.mihomo.helper" ]; then

@@ -1,4 +1,4 @@
-import { Button, Divider, Input, Select, SelectItem, Switch } from '@heroui/react'
+import { Button, Divider, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -6,13 +6,14 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { platform } from '@renderer/utils/init'
 import { FaNetworkWired } from 'react-icons/fa'
-import { IoMdCloudDownload } from 'react-icons/io'
+import { IoMdCloudDownload, IoMdInformationCircleOutline } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import {
   mihomoUpgrade,
   restartCore,
   startSubStoreBackendServer,
-  triggerSysProxy
+  triggerSysProxy,
+  showDetailedError
 } from '@renderer/utils/ipc'
 import React, { useState } from 'react'
 import InterfaceModal from '@renderer/components/mihomo/interface-modal'
@@ -21,7 +22,8 @@ import { useTranslation } from 'react-i18next'
 
 const CoreMap = {
   mihomo: 'mihomo.stableVersion',
-  'mihomo-alpha': 'mihomo.alphaVersion'
+  'mihomo-alpha': 'mihomo.alphaVersion',
+  'mihomo-smart': 'mihomo.smartVersion'
 }
 
 const Mihomo: React.FC = () => {
@@ -29,6 +31,11 @@ const Mihomo: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     core = 'mihomo',
+    enableSmartCore = true,
+    enableSmartOverride = true,
+    smartCoreUseLightGBM = false,
+    smartCoreCollectData = false,
+    smartCoreStrategy = 'sticky-sessions',
     maxLogDays = 7,
     sysProxy,
     disableLoopbackDetector,
@@ -82,7 +89,14 @@ const Mihomo: React.FC = () => {
       await patchAppConfig({ [key]: value })
       await restartCore()
     } catch (e) {
-      alert(e)
+      const errorMessage = e instanceof Error ? e.message : String(e)
+      console.error('Core restart failed:', errorMessage)
+
+      if (errorMessage.includes('配置检查失败') || errorMessage.includes('Profile Check Failed')) {
+        await showDetailedError(t('mihomo.error.profileCheckFailed'), errorMessage)
+      } else {
+        alert(errorMessage)
+      }
     } finally {
       PubSub.publish('mihomo-core-changed')
     }
@@ -92,59 +106,184 @@ const Mihomo: React.FC = () => {
     <>
       {lanOpen && <InterfaceModal onClose={() => setLanOpen(false)} />}
       <BasePage title={t('mihomo.title')}>
+        {/* Smart 内核设置 */}
         <SettingCard>
-          <SettingItem
-            title={t('mihomo.coreVersion')}
-            actions={
-              <Button
+          <div className={`rounded-md border p-2 transition-all duration-200 ${
+            enableSmartCore
+              ? 'border-blue-300 bg-blue-50/30 dark:border-blue-700 dark:bg-blue-950/20'
+              : 'border-gray-300 bg-gray-50/30 dark:border-gray-600 dark:bg-gray-800/20'
+          }`}>
+            <SettingItem
+              title={t('mihomo.enableSmartCore')}
+              divider
+            >
+              <Switch
                 size="sm"
-                isIconOnly
-                title={t('mihomo.upgradeCore')}
-                variant="light"
-                isLoading={upgrading}
-                onPress={async () => {
-                  try {
-                    setUpgrading(true)
-                    await mihomoUpgrade()
-                    setTimeout(() => {
-                      PubSub.publish('mihomo-core-changed')
-                    }, 2000)
-                    if (platform !== 'win32') {
-                      new Notification(t('mihomo.coreAuthLost'), {
-                        body: t('mihomo.coreUpgradeSuccess')
-                      })
-                    }
-                  } catch (e) {
-                    if (typeof e === 'string' && e.includes('already using latest version')) {
-                      new Notification(t('mihomo.alreadyLatestVersion'))
-                    } else {
-                      alert(e)
-                    }
-                  } finally {
-                    setUpgrading(false)
+                isSelected={enableSmartCore}
+                color={enableSmartCore ? 'primary' : 'default'}
+                onValueChange={async (v) => {
+                  await patchAppConfig({ enableSmartCore: v })
+                  if (v && core !== 'mihomo-smart') {
+                    await handleConfigChangeWithRestart('core', 'mihomo-smart')
+                  } else if (!v && core === 'mihomo-smart') {
+                    await handleConfigChangeWithRestart('core', 'mihomo')
                   }
                 }}
+              />
+            </SettingItem>
+
+            {/* Smart 覆写开关 */}
+            {enableSmartCore && (
+              <SettingItem
+                title={
+                  <div className="flex items-center gap-2">
+                    <span>{t('mihomo.enableSmartOverride')}</span>
+                    <Tooltip
+                      content={t('mihomo.smartOverrideTooltip')}
+                      placement="top"
+                      className="max-w-xs"
+                    >
+                      <IoMdInformationCircleOutline className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-help" />
+                    </Tooltip>
+                  </div>
+                }
+                divider={core === 'mihomo-smart'}
               >
-                <IoMdCloudDownload className="text-lg" />
-              </Button>
-            }
-            divider
-          >
-            <Select
-              classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
-              className="w-[100px]"
-              size="sm"
-              aria-label={t('mihomo.selectCoreVersion')}
-              selectedKeys={new Set([core])}
-              disallowEmptySelection={true}
-              onSelectionChange={async (v) => {
-                handleConfigChangeWithRestart('core', v.currentKey as 'mihomo' | 'mihomo-alpha')
-              }}
+                <Switch
+                  size="sm"
+                  isSelected={enableSmartOverride}
+                  color="primary"
+                  onValueChange={async (v) => {
+                    await patchAppConfig({ enableSmartOverride: v })
+                    await restartCore()
+                  }}
+                />
+              </SettingItem>
+            )}
+
+            <SettingItem
+              title={t('mihomo.coreVersion')}
+              actions={
+                <Button
+                  size="sm"
+                  isIconOnly
+                  title={t('mihomo.upgradeCore')}
+                  variant="light"
+                  isLoading={upgrading}
+                  onPress={async () => {
+                    try {
+                      setUpgrading(true)
+                      await mihomoUpgrade()
+                      setTimeout(() => {
+                        PubSub.publish('mihomo-core-changed')
+                      }, 2000)
+                      if (platform !== 'win32') {
+                        new Notification(t('mihomo.coreAuthLost'), {
+                          body: t('mihomo.coreUpgradeSuccess')
+                        })
+                      }
+                    } catch (e) {
+                      if (typeof e === 'string' && e.includes('already using latest version')) {
+                        new Notification(t('mihomo.alreadyLatestVersion'))
+                      } else {
+                        alert(e)
+                      }
+                    } finally {
+                      setUpgrading(false)
+                    }
+                  }}
+                >
+                  <IoMdCloudDownload className="text-lg" />
+                </Button>
+              }
+              divider={enableSmartCore && core === 'mihomo-smart'}
             >
-              <SelectItem key="mihomo">{t(CoreMap['mihomo'])}</SelectItem>
-              <SelectItem key="mihomo-alpha">{t(CoreMap['mihomo-alpha'])}</SelectItem>
-            </Select>
-          </SettingItem>
+              <Select
+                classNames={{
+                  trigger: enableSmartCore
+                    ? 'data-[hover=true]:bg-blue-100 dark:data-[hover=true]:bg-blue-900/50'
+                    : 'data-[hover=true]:bg-default-200'
+                }}
+                className="w-[100px]"
+                size="sm"
+                aria-label={t('mihomo.selectCoreVersion')}
+                selectedKeys={new Set([core])}
+                disallowEmptySelection={true}
+                onSelectionChange={async (v) => {
+                  handleConfigChangeWithRestart('core', v.currentKey as 'mihomo' | 'mihomo-alpha' | 'mihomo-smart')
+                }}
+              >
+                {enableSmartCore ? (
+                  <SelectItem key="mihomo-smart">{t(CoreMap['mihomo-smart'])}</SelectItem>
+                ) : (
+                  <>
+                    <SelectItem key="mihomo">{t(CoreMap['mihomo'])}</SelectItem>
+                    <SelectItem key="mihomo-alpha">{t(CoreMap['mihomo-alpha'])}</SelectItem>
+                  </>
+                )}
+              </Select>
+            </SettingItem>
+
+            {/* Smart 内核配置项 */}
+            {enableSmartCore && core === 'mihomo-smart' && (
+              <>
+                <SettingItem
+                  title={t('mihomo.smartCoreUseLightGBM')}
+                  divider
+                >
+                  <Switch
+                    size="sm"
+                    color="primary"
+                    isSelected={smartCoreUseLightGBM}
+                    onValueChange={async (v) => {
+                      await patchAppConfig({ smartCoreUseLightGBM: v })
+                      await restartCore()
+                    }}
+                  />
+                </SettingItem>
+
+                <SettingItem
+                  title={t('mihomo.smartCoreCollectData')}
+                  divider
+                >
+                  <Switch
+                    size="sm"
+                    color="primary"
+                    isSelected={smartCoreCollectData}
+                    onValueChange={async (v) => {
+                      await patchAppConfig({ smartCoreCollectData: v })
+                      await restartCore()
+                    }}
+                  />
+                </SettingItem>
+
+                <SettingItem
+                  title={t('mihomo.smartCoreStrategy')}
+                >
+                  <Select
+                    classNames={{ trigger: 'data-[hover=true]:bg-blue-100 dark:data-[hover=true]:bg-blue-900/50' }}
+                    className="w-[150px]"
+                    size="sm"
+                    aria-label={t('mihomo.smartCoreStrategy')}
+                    selectedKeys={new Set([smartCoreStrategy])}
+                    disallowEmptySelection={true}
+                    onSelectionChange={async (v) => {
+                      const strategy = v.currentKey as 'sticky-sessions' | 'round-robin'
+                      await patchAppConfig({ smartCoreStrategy: strategy })
+                      await restartCore()
+                    }}
+                  >
+                    <SelectItem key="sticky-sessions">{t('mihomo.smartCoreStrategyStickySession')}</SelectItem>
+                    <SelectItem key="round-robin">{t('mihomo.smartCoreStrategyRoundRobin')}</SelectItem>
+                  </Select>
+                </SettingItem>
+              </>
+            )}
+          </div>
+        </SettingCard>
+
+        {/* 常规内核设置 */}
+        <SettingCard>
           <SettingItem title={t('mihomo.mixedPort')} divider>
             <div className="flex">
               {mixedPortInput !== mixedPort && (

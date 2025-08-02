@@ -16,7 +16,9 @@ import {
   mihomoUpgrade,
   mihomoUpgradeGeo,
   mihomoVersion,
-  patchMihomoConfig
+  patchMihomoConfig,
+  mihomoSmartGroupWeights,
+  mihomoSmartFlushCache
 } from '../core/mihomoApi'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
 import {
@@ -141,6 +143,13 @@ export function registerIpcMainHandlers(): void {
     ipcErrorWrapper(mihomoGroupDelay)(group, url)
   )
   ipcMain.handle('patchMihomoConfig', (_e, patch) => ipcErrorWrapper(patchMihomoConfig)(patch))
+  // Smart 内核 API
+  ipcMain.handle('mihomoSmartGroupWeights', (_e, groupName) =>
+    ipcErrorWrapper(mihomoSmartGroupWeights)(groupName)
+  )
+  ipcMain.handle('mihomoSmartFlushCache', (_e, configName) =>
+    ipcErrorWrapper(mihomoSmartFlushCache)(configName)
+  )
   ipcMain.handle('checkAutoRun', ipcErrorWrapper(checkAutoRun))
   ipcMain.handle('enableAutoRun', ipcErrorWrapper(enableAutoRun))
   ipcMain.handle('disableAutoRun', ipcErrorWrapper(disableAutoRun))
@@ -250,6 +259,18 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('copyEnv', (_e, type) => ipcErrorWrapper(copyEnv)(type))
   ipcMain.handle('alert', (_e, msg) => {
     dialog.showErrorBox('Mihomo Party', msg)
+  })
+  ipcMain.handle('showDetailedError', (_e, title, message) => {
+    dialog.showErrorBox(title, message)
+  })
+  ipcMain.handle('getSmartOverrideContent', async () => {
+    const { getOverrideItem } = await import('../config')
+    try {
+      const override = await getOverrideItem('smart-core-override')
+      return override?.file || null
+    } catch (error) {
+      return null
+    }
   })
   ipcMain.handle('resetAppConfig', resetAppConfig)
   ipcMain.handle('relaunchApp', () => {

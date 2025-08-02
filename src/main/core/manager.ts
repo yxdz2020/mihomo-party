@@ -15,7 +15,8 @@ import {
   getControledMihomoConfig,
   getProfileConfig,
   patchAppConfig,
-  patchControledMihomoConfig
+  patchControledMihomoConfig,
+  manageSmartOverride
 } from '../config'
 import { app, dialog, ipcMain, net } from 'electron'
 import {
@@ -83,6 +84,10 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   const { current } = await getProfileConfig()
   const { tun } = await getControledMihomoConfig()
   const corePath = mihomoCorePath(core)
+
+  // 管理 Smart 内核覆写配置
+  await manageSmartOverride()
+
   await generateProfile()
   await checkProfile()
   await stopCore()
@@ -249,15 +254,32 @@ async function checkProfile(): Promise<void> {
       mihomoTestDir()
     ], { env })
   } catch (error) {
+    console.error('Profile check failed:', error)
+
     if (error instanceof Error && 'stdout' in error) {
-      const { stdout } = error as { stdout: string }
+      const { stdout, stderr } = error as { stdout: string; stderr?: string }
+      console.log('Profile check stdout:', stdout)
+      console.log('Profile check stderr:', stderr)
+
       const errorLines = stdout
         .split('\n')
-        .filter((line) => line.includes('level=error'))
-        .map((line) => line.split('level=error')[1])
-      throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}:\n${errorLines.join('\n')}`)
+        .filter((line) => line.includes('level=error') || line.includes('error'))
+        .map((line) => {
+          if (line.includes('level=error')) {
+            return line.split('level=error')[1]?.trim() || line
+          }
+          return line.trim()
+        })
+        .filter(line => line.length > 0)
+
+      if (errorLines.length === 0) {
+        const allLines = stdout.split('\n').filter(line => line.trim().length > 0)
+        throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}:\n${allLines.join('\n')}`)
+      } else {
+        throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}:\n${errorLines.join('\n')}`)
+      }
     } else {
-      throw error
+      throw new Error(`${i18next.t('mihomo.error.profileCheckFailed')}: ${error}`)
     }
   }
 }

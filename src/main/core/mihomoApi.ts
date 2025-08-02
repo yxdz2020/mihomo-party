@@ -168,6 +168,21 @@ export const mihomoUpgrade = async (): Promise<void> => {
   return await instance.post('/upgrade')
 }
 
+// Smart 内核 API
+export const mihomoSmartGroupWeights = async (groupName: string): Promise<Record<string, number>> => {
+  const instance = await getAxios()
+  return await instance.get(`/group/${encodeURIComponent(groupName)}/weights`)
+}
+
+export const mihomoSmartFlushCache = async (configName?: string): Promise<void> => {
+  const instance = await getAxios()
+  if (configName) {
+    return await instance.post(`/cache/smart/flush/${encodeURIComponent(configName)}`)
+  } else {
+    return await instance.post('/cache/smart/flush')
+  }
+}
+
 export const startMihomoTraffic = async (): Promise<void> => {
   await mihomoTraffic()
 }

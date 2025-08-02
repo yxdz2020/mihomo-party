@@ -45,6 +45,31 @@ async function getLatestAlphaVersion() {
   }
 }
 
+/* ======= mihomo smart ======= */
+const MIHOMO_SMART_URL_PREFIX = `https://github.com/vernesong/mihomo/releases/download/Prerelease-Alpha`
+let MIHOMO_SMART_VERSION
+
+const MIHOMO_SMART_MAP = {
+  'win32-x64': 'mihomo-windows-amd64-v1-go120-alpha-smart',
+  'win32-ia32': 'mihomo-windows-386-go120-alpha-smart',
+  'win32-arm64': 'mihomo-windows-arm64-alpha-smart',
+  'darwin-x64': 'mihomo-darwin-amd64-v1-go120-alpha-smart',
+  'darwin-arm64': 'mihomo-darwin-arm64-alpha-smart',
+  'linux-x64': 'mihomo-linux-amd64-v1-go120-alpha-smart',
+  'linux-arm64': 'mihomo-linux-arm64-alpha-smart'
+}
+
+async function getLatestSmartVersion() {
+  try {
+    // Smart 内核版本
+    MIHOMO_SMART_VERSION = 'ca46a10'
+    console.log(`Using smart version: ${MIHOMO_SMART_VERSION}`)
+  } catch (error) {
+    console.error('Error with smart version:', error.message)
+    throw error
+  }
+}
+
 /* ======= mihomo release ======= */
 const MIHOMO_VERSION_URL =
   'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
@@ -87,6 +112,10 @@ if (!MIHOMO_ALPHA_MAP[`${platform}-${arch}`]) {
   throw new Error(`unsupported platform "${platform}-${arch}"`)
 }
 
+if (!MIHOMO_SMART_MAP[`${platform}-${arch}`]) {
+  throw new Error(`unsupported platform "${platform}-${arch}"`)
+}
+
 /**
  * core info
  */
@@ -123,13 +152,33 @@ function mihomo() {
     downloadURL
   }
 }
+
+function mihomoSmart() {
+  const name = MIHOMO_SMART_MAP[`${platform}-${arch}`]
+  const isWin = platform === 'win32'
+  const urlExt = isWin ? 'zip' : 'gz'
+  const downloadURL = `${MIHOMO_SMART_URL_PREFIX}/${name}-${MIHOMO_SMART_VERSION}.${urlExt}`
+  const exeFile = `${name}${isWin ? '.exe' : ''}`
+  const zipFile = `${name}-${MIHOMO_SMART_VERSION}.${urlExt}`
+
+  return {
+    name: 'mihomo-smart',
+    targetFile: `mihomo-smart${isWin ? '.exe' : ''}`,
+    exeFile,
+    zipFile,
+    downloadURL,
+    useProjectRoot: true // 标记需要使用项目根目录
+  }
+}
 /**
  * download sidecar and rename
  */
 async function resolveSidecar(binInfo) {
-  const { name, targetFile, zipFile, exeFile, downloadURL } = binInfo
+  const { name, targetFile, zipFile, exeFile, downloadURL, useProjectRoot } = binInfo
 
-  const sidecarDir = path.join(cwd, 'extra', 'sidecar')
+  // 对于 Smart 内核，使用项目根目录而不是 scripts 目录
+  const baseDir = useProjectRoot ? path.dirname(cwd) : cwd
+  const sidecarDir = path.join(baseDir, 'extra', 'sidecar')
   const sidecarPath = path.join(sidecarDir, targetFile)
 
   fs.mkdirSync(sidecarDir, { recursive: true })
@@ -360,6 +409,11 @@ const tasks = [
     func: () => getLatestReleaseVersion().then(() => resolveSidecar(mihomo())),
     retry: 5
   },
+  {
+    name: 'mihomo-smart',
+    func: () => getLatestSmartVersion().then(() => resolveSidecar(mihomoSmart())),
+    retry: 5
+  },
   { name: 'mmdb', func: resolveMmdb, retry: 5 },
   { name: 'metadb', func: resolveMetadb, retry: 5 },
   { name: 'geosite', func: resolveGeosite, retry: 5 },
@@ -432,7 +486,14 @@ async function runTask() {
       break
     } catch (err) {
       console.error(`[ERROR]: task::${task.name} try ${i} ==`, err.message)
-      if (i === task.retry - 1) throw err
+      if (i === task.retry - 1) {
+        if (task.optional) {
+          console.log(`[WARN]: Optional task::${task.name} failed, skipping...`)
+          break
+        } else {
+          throw err
+        }
+      }
     }
   }
   return runTask()

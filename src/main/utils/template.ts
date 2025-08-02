@@ -1,5 +1,10 @@
 export const defaultConfig: IAppConfig = {
   core: 'mihomo',
+  enableSmartCore: true,
+  enableSmartOverride: true,
+  smartCoreUseLightGBM: false,
+  smartCoreCollectData: false,
+  smartCoreStrategy: 'sticky-sessions',
   silentStart: false,
   appTheme: 'system',
   useWindowFrame: false,

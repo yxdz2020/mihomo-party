@@ -216,7 +216,12 @@ interface ISysProxyConfig {
 }
 
 interface IAppConfig {
-  core: 'mihomo' | 'mihomo-alpha'
+  core: 'mihomo' | 'mihomo-alpha' | 'mihomo-smart'
+  enableSmartCore: boolean
+  enableSmartOverride: boolean
+  smartCoreUseLightGBM: boolean
+  smartCoreCollectData: boolean
+  smartCoreStrategy: 'sticky-sessions' | 'round-robin'
   disableLoopbackDetector: boolean
   disableEmbedCA: boolean
   disableSystemCA: boolean
