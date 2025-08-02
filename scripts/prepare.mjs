@@ -46,27 +46,32 @@ async function getLatestAlphaVersion() {
 }
 
 /* ======= mihomo smart ======= */
+const MIHOMO_SMART_VERSION_URL =
+  'https://github.com/vernesong/mihomo/releases/download/Prerelease-Alpha/version.txt'
 const MIHOMO_SMART_URL_PREFIX = `https://github.com/vernesong/mihomo/releases/download/Prerelease-Alpha`
 let MIHOMO_SMART_VERSION
 
 const MIHOMO_SMART_MAP = {
-  'win32-x64': 'mihomo-windows-amd64-v1-go120-alpha-smart',
-  'win32-ia32': 'mihomo-windows-386-go120-alpha-smart',
-  'win32-arm64': 'mihomo-windows-arm64-alpha-smart',
-  'darwin-x64': 'mihomo-darwin-amd64-v1-go120-alpha-smart',
-  'darwin-arm64': 'mihomo-darwin-arm64-alpha-smart',
-  'linux-x64': 'mihomo-linux-amd64-v1-go120-alpha-smart',
-  'linux-arm64': 'mihomo-linux-arm64-alpha-smart'
+  'win32-x64': 'mihomo-windows-amd64-v2-go120',
+  'win32-ia32': 'mihomo-windows-386-go120',
+  'win32-arm64': 'mihomo-windows-arm64',
+  'darwin-x64': 'mihomo-darwin-amd64-v2-go120',
+  'darwin-arm64': 'mihomo-darwin-arm64',
+  'linux-x64': 'mihomo-linux-amd64-v2-go120',
+  'linux-arm64': 'mihomo-linux-arm64'
 }
 
 async function getLatestSmartVersion() {
   try {
-    // Smart 内核版本
-    MIHOMO_SMART_VERSION = 'ca46a10'
-    console.log(`Using smart version: ${MIHOMO_SMART_VERSION}`)
+    const response = await fetch(MIHOMO_SMART_VERSION_URL, {
+      method: 'GET'
+    })
+    let v = await response.text()
+    MIHOMO_SMART_VERSION = v.trim() // Trim to remove extra whitespaces
+    console.log(`Latest smart version: ${MIHOMO_SMART_VERSION}`)
   } catch (error) {
-    console.error('Error with smart version:', error.message)
-    throw error
+    console.error('Error fetching latest smart version:', error.message)
+    process.exit(1)
   }
 }
 
