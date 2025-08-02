@@ -171,19 +171,16 @@ function mihomoSmart() {
     targetFile: `mihomo-smart${isWin ? '.exe' : ''}`,
     exeFile,
     zipFile,
-    downloadURL,
-    useProjectRoot: true // 标记需要使用项目根目录
+    downloadURL
   }
 }
 /**
  * download sidecar and rename
  */
 async function resolveSidecar(binInfo) {
-  const { name, targetFile, zipFile, exeFile, downloadURL, useProjectRoot } = binInfo
+  const { name, targetFile, zipFile, exeFile, downloadURL } = binInfo
 
-  // 对于 Smart 内核，使用项目根目录而不是 scripts 目录
-  const baseDir = useProjectRoot ? path.dirname(cwd) : cwd
-  const sidecarDir = path.join(baseDir, 'extra', 'sidecar')
+  const sidecarDir = path.join(cwd, 'extra', 'sidecar')
   const sidecarPath = path.join(sidecarDir, targetFile)
 
   fs.mkdirSync(sidecarDir, { recursive: true })
