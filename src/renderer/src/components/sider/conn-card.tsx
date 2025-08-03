@@ -2,15 +2,28 @@ import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { FaCircleArrowDown, FaCircleArrowUp } from 'react-icons/fa6'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { IoLink } from 'react-icons/io5'
-import { useTheme } from 'next-themes'
+
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { platform } from '@renderer/utils/init'
-import { Area, AreaChart, ResponsiveContainer } from 'recharts'
+import { Line } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  ChartOptions,
+  ScriptableContext
+} from 'chart.js'
 import { useTranslation } from 'react-i18next'
+
+// 注册 Chart.js 组件
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler)
 
 let currentUpload: number | undefined = undefined
 let currentDownload: number | undefined = undefined
@@ -21,10 +34,9 @@ interface Props {
   iconOnly?: boolean
 }
 const ConnCard: React.FC<Props> = (props) => {
-  const { theme = 'system', systemTheme = 'dark' } = useTheme()
   const { iconOnly } = props
   const { appConfig } = useAppConfig()
-  const { showTraffic = false, connectionCardStatus = 'col-span-2', customTheme } = appConfig || {}
+  const { showTraffic = false, connectionCardStatus = 'col-span-2' } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/connections')
@@ -43,25 +55,69 @@ const ConnCard: React.FC<Props> = (props) => {
     id: 'connection'
   })
   const [series, setSeries] = useState(Array(10).fill(0))
-  const [chartColor, setChartColor] = useState('rgba(255,255,255)')
 
-  useEffect(() => {
-    setChartColor(
-      match
-        ? `hsla(${getComputedStyle(document.documentElement).getPropertyValue('--heroui-primary-foreground')})`
-        : `hsla(${getComputedStyle(document.documentElement).getPropertyValue('--heroui-foreground')})`
-    )
-  }, [theme, systemTheme, match])
+  // Chart.js 配置
+  const chartData = useMemo(() => {
+    return {
+      labels: Array(10).fill(''),
+      datasets: [
+        {
+          data: series,
+          fill: true,
+          backgroundColor: (context: ScriptableContext<'line'>) => {
+            const chart = context.chart
+            const { ctx, chartArea } = chart
+            if (!chartArea) {
+              return 'transparent'
+            }
 
-  useEffect(() => {
-    setTimeout(() => {
-      setChartColor(
-        match
-          ? `hsla(${getComputedStyle(document.documentElement).getPropertyValue('--heroui-primary-foreground')})`
-          : `hsla(${getComputedStyle(document.documentElement).getPropertyValue('--heroui-foreground')})`
-      )
-    }, 200)
-  }, [customTheme])
+            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom)
+
+            // 颜色处理
+            const isMatch = location.pathname.includes('/connections')
+            const baseColor = isMatch ? '6, 182, 212' : '161, 161, 170' // primary vs foreground 的近似 RGB 值
+
+            gradient.addColorStop(0, `rgba(${baseColor}, 0.8)`)
+            gradient.addColorStop(1, `rgba(${baseColor}, 0)`)
+            return gradient
+          },
+          borderColor: 'transparent',
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          tension: 0.4
+        }
+      ]
+    }
+  }, [series, location.pathname])
+
+  const chartOptions: ChartOptions<'line'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false
+      }
+    },
+    scales: {
+      x: {
+        display: false
+      },
+      y: {
+        display: false
+      }
+    },
+    elements: {
+      line: {
+        borderWidth: 0
+      }
+    },
+    interaction: {
+      intersect: false
+    },
+    animation: {
+      duration: 0
+    }
+  }
 
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   useEffect(() => {
@@ -168,30 +224,9 @@ const ConnCard: React.FC<Props> = (props) => {
               </h3>
             </CardFooter>
           </Card>
-          <ResponsiveContainer
-            height="100%"
-            width="100%"
-            className="w-full h-full absolute top-0 left-0 pointer-events-none overflow-hidden rounded-[14px]"
-          >
-            <AreaChart
-              data={series.map((v) => ({ traffic: v }))}
-              margin={{ top: 50, right: 0, left: 0, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={chartColor} stopOpacity={0.8} />
-                  <stop offset="100%" stopColor={chartColor} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area
-                isAnimationActive={false}
-                type="monotone"
-                dataKey="traffic"
-                stroke="none"
-                fill="url(#gradient)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="w-full h-full absolute top-0 left-0 pointer-events-none overflow-hidden rounded-[14px]">
+            <Line data={chartData} options={chartOptions} />
+          </div>
         </>
       ) : (
         <Card

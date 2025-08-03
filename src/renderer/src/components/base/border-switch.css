@@ -1,5 +1,7 @@
 .border-switch {
-  input[type='checkbox'] {
-    width: 100%;
-  }
+  overflow: hidden;
+}
+
+.border-switch input[type='checkbox'] {
+  width: 100%;
 }
