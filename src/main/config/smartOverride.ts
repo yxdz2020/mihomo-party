@@ -114,16 +114,24 @@ function main(config) {
 
           // 处理字符串格式的规则
           const parts = rule.split(',').map(part => part.trim())
-          if (parts.length >= 3) {
+          if (parts.length >= 2) {
+            // 找到代理组名称的位置
             let targetIndex = -1
             let targetValue = ''
 
-            for (let i = 2; i < parts.length; i++) {
-              const part = parts[i]
-              if (!ruleParams.has(part)) {
-                targetIndex = i
-                targetValue = part
-                break
+            // 处理 MATCH 规则
+            if (parts[0] === 'MATCH' && parts.length === 2) {
+              targetIndex = 1
+              targetValue = parts[1]
+            } else if (parts.length >= 3) {
+              // 处理其他规则
+              for (let i = 2; i < parts.length; i++) {
+                const part = parts[i]
+                if (!ruleParams.has(part)) {
+                  targetIndex = i
+                  targetValue = part
+                  break
+                }
               }
             }
 
