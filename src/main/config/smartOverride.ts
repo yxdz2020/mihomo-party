@@ -38,7 +38,7 @@ function main(config) {
         console.log('[Smart Override] Found existing smart group:', group.name)
 
         if (!group['policy-priority']) {
-          group['policy-priority'] = 'Premium:0.9;SG:1.3'
+          group['policy-priority'] = ''  // policy-priority: <1 means lower priority, >1 means higher priority, the default is 1, pattern support regex and string
         }
         group.uselightgbm = ${useLightGBM}
         group.collectdata = ${collectData}
@@ -60,7 +60,7 @@ function main(config) {
         const smartGroup = {
           name: 'Smart Group',
           type: 'smart',
-          'policy-priority': 'Premium:0.9;SG:1.3',
+          'policy-priority': '',  // policy-priority: <1 means lower priority, >1 means higher priority, the default is 1, pattern support regex and string
           uselightgbm: ${useLightGBM},
           collectdata: ${collectData},
           strategy: '${strategy}',
