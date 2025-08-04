@@ -68,7 +68,7 @@ const ProxyItem: React.FC<Props> = (props) => {
             ? 'bg-primary/30 border-r-2 border-r-primary border-l-2 border-l-primary' 
             : 'bg-content2'
       }`}
-      radius="xs"
+      radius="sm"
     >
     <CardBody className="p-1">
       {proxyDisplayMode === 'full' ? (

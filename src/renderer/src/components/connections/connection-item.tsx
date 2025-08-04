@@ -39,7 +39,7 @@ const ConnectionItem: React.FC<Props> = (props) => {
                 <Chip
                   color={`${info.isActive ? 'primary' : 'danger'}`}
                   size="sm"
-                  radius="xs"
+                  radius="sm"
                   variant="dot"
                 >
                   {info.metadata.type}({info.metadata.network.toUpperCase()})
@@ -65,16 +65,16 @@ const ConnectionItem: React.FC<Props> = (props) => {
                 <Chip
                   className="flag-emoji text-ellipsis whitespace-nowrap overflow-hidden"
                   size="sm"
-                  radius="xs"
+                  radius="sm"
                   variant="bordered"
                 >
                   {info.chains[0]}
                 </Chip>
-                <Chip size="sm" radius="xs" variant="bordered">
+                <Chip size="sm" radius="sm" variant="bordered">
                   ↑ {calcTraffic(info.upload)} ↓ {calcTraffic(info.download)}
                 </Chip>
                 {info.uploadSpeed !== 0 || info.downloadSpeed !== 0 ? (
-                  <Chip color="primary" size="sm" radius="xs" variant="bordered">
+                  <Chip color="primary" size="sm" radius="sm" variant="bordered">
                     ↑ {calcTraffic(info.uploadSpeed || 0)}/s ↓ {calcTraffic(info.downloadSpeed || 0)}
                     /s
                   </Chip>

@@ -85,7 +85,7 @@ const Profiles: React.FC = () => {
               <div>
                 {sub.tag?.map((tag) => {
                   return (
-                    <Chip key={tag} size="sm" className="ml-1" radius="xs">
+                    <Chip key={tag} size="sm" className="ml-1" radius="sm">
                       {tag}
                     </Chip>
                   )
@@ -108,7 +108,7 @@ const Profiles: React.FC = () => {
               <div>
                 {sub.tag?.map((tag) => {
                   return (
-                    <Chip key={tag} size="sm" className="ml-1" radius="xs">
+                    <Chip key={tag} size="sm" className="ml-1" radius="sm">
                       {tag}
                     </Chip>
                   )

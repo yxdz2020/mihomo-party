@@ -324,7 +324,7 @@ const Proxies: React.FC = () => {
                             <Avatar
                               className="bg-transparent mr-2"
                               size="sm"
-                              radius="xs"
+                              radius="sm"
                               src={
                                 groups[index].icon.startsWith('<svg')
                                   ? `data:image/svg+xml;utf8,${groups[index].icon}`
