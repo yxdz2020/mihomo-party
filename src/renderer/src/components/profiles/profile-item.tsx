@@ -14,7 +14,7 @@ import {
 import { calcPercent, calcTraffic } from '@renderer/utils/calc'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from '@renderer/utils/dayjs'
-import React, { Key, useEffect, useMemo, useState } from 'react'
+import React, { Key, useMemo, useState } from 'react'
 import EditFileModal from './edit-file-modal'
 import EditInfoModal from './edit-info-modal'
 import { useSortable } from '@dnd-kit/sortable'
@@ -72,7 +72,8 @@ const ProfileItem: React.FC<Props> = (props) => {
     id: info.id
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-  const [disableSelect, setDisableSelect] = useState(false)
+  const [isActuallyDragging, setIsActuallyDragging] = useState(false)
+  const [clickStartPos, setClickStartPos] = useState<{ x: number; y: number } | null>(null)
 
   const menuItems: MenuItem[] = useMemo(() => {
     const list = [
@@ -150,19 +151,35 @@ const ProfileItem: React.FC<Props> = (props) => {
     setDropdownOpen(true)
   }
 
-  useEffect(() => {
-    if (isDragging) {
-      setTimeout(() => {
-        setDisableSelect(true)
-      }, 200)
-    } else {
-      setTimeout(() => {
-        setDisableSelect(false)
-      }, 200)
+  // 智能区分点击和拖拽的事件处理
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setClickStartPos({ x: e.clientX, y: e.clientY })
+    setIsActuallyDragging(false)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (clickStartPos) {
+      const dx = e.clientX - clickStartPos.x
+      const dy = e.clientY - clickStartPos.y
+      // 移动距离超过 5px 认为是拖拽
+      if (dx * dx + dy * dy > 25) {
+        setIsActuallyDragging(true)
+      }
     }
-  }, [isDragging])
+  }
 
+  const handleMouseUp = () => {
+    // 如果没有拖拽，则处理为点击事件
+    if (!isActuallyDragging && !isDragging && clickStartPos) {
+      setSelecting(true)
+      onPress().finally(() => {
+        setSelecting(false)
+      })
+    }
 
+    setClickStartPos(null)
+    setTimeout(() => setIsActuallyDragging(false), 100)
+  }
 
   return (
     <div
@@ -186,18 +203,19 @@ const ProfileItem: React.FC<Props> = (props) => {
       <Card
         as="div"
         fullWidth
-        isPressable
-        onPress={() => {
-          if (disableSelect) return
-          setSelecting(true)
-          onPress().finally(() => {
-            setSelecting(false)
-          })
-        }}
+        isPressable={false}
         onContextMenu={handleContextMenu}
-        className={`${isCurrent ? 'bg-primary' : ''} ${selecting ? 'blur-sm' : ''}`}
+        className={`${isCurrent ? 'bg-primary' : ''} ${selecting ? 'blur-sm' : ''} cursor-pointer`}
       >
-        <div ref={setNodeRef} {...attributes} {...listeners} className="w-full h-full">
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          className="w-full h-full"
+          onMouseDownCapture={handleMouseDown}
+          onMouseMoveCapture={handleMouseMove}
+          onMouseUpCapture={handleMouseUp}
+        >
           <CardBody className="pb-1">
             <div className="flex justify-between h-[32px]">
               <h3

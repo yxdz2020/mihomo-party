@@ -37,15 +37,21 @@ export async function getProfileItem(id: string | undefined): Promise<IProfileIt
 export async function changeCurrentProfile(id: string): Promise<void> {
   const config = await getProfileConfig()
   const current = config.current
+
+  if (current === id) {
+    return
+  }
+
   config.current = id
   await setProfileConfig(config)
+
   try {
     await restartCore()
   } catch (e) {
+    // 如果重启失败，恢复原来的配置
     config.current = current
-    throw e
-  } finally {
     await setProfileConfig(config)
+    throw e
   }
 }
 

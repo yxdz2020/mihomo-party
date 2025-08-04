@@ -71,13 +71,34 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
   }
 
   const changeCurrentProfile = async (id: string): Promise<void> => {
+    if (profileConfig?.current === id) {
+      return
+    }
+
+    // 乐观更新：立即更新 UI 状态，提供即时反馈
+    if (profileConfig) {
+      const optimisticUpdate = { ...profileConfig, current: id }
+      mutateProfileConfig(optimisticUpdate, false)
+    }
+
     try {
-      await change(id)
+      // 异步执行后台切换，不阻塞 UI
+      change(id).then(() => {
+        window.electron.ipcRenderer.send('updateTrayMenu')
+        mutateProfileConfig()
+      }).catch((e) => {
+        const errorMsg = e?.message || String(e)
+        // 处理 IPC 超时错误
+        if (errorMsg.includes('reply was never sent')) {
+          setTimeout(() => mutateProfileConfig(), 1000)
+        } else {
+          alert(`切换 Profile 失败: ${errorMsg}`)
+          mutateProfileConfig()
+        }
+      })
     } catch (e) {
-      alert(e)
-    } finally {
+      alert(`切换 Profile 失败: ${e}`)
       mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
     }
   }
 

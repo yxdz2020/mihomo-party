@@ -212,7 +212,12 @@ export async function restartCore(): Promise<void> {
   try {
     await startCore()
   } catch (e) {
-    dialog.showErrorBox(i18next.t('mihomo.error.coreStartFailed'), `${e}`)
+    // 记录错误到日志而不是显示阻塞对话框
+    await writeFile(logPath(), `[Manager]: restart core failed, ${e}\n`, {
+      flag: 'a'
+    })
+    // 重新抛出错误，让调用者处理
+    throw e
   }
 }
 
