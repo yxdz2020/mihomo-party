@@ -54,8 +54,9 @@ pkg:
     file: build/background.png
 linux:
   desktop:
-    Name: Mihomo Party
-    MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo'
+    entry:
+      Name: Mihomo Party
+      MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo'
   target:
     - deb
     - rpm

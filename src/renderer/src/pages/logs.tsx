@@ -109,7 +109,7 @@ const Logs: React.FC = () => {
         </div>
         <Divider />
       </div>
-      <div className="h-[calc(100vh-100px)] mt-[1px]">
+      <div className="h-[calc(100vh-100px)] mt-px">
         <Virtuoso
           ref={virtuosoRef}
           data={filteredLogs}

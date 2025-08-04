@@ -373,13 +373,13 @@ const App: React.FC = () => {
           setSiderWidthValue(e.clientX)
         }
       }}
-      className={`w-full h-[100vh] flex ${resizing ? 'cursor-ew-resize' : ''}`}
+      className={`w-full h-screen flex ${resizing ? 'cursor-ew-resize' : ''}`}
     >
       {siderWidthValue === narrowWidth ? (
         <div style={{ width: `${narrowWidth}px` }} className="side h-full">
           <div className="app-drag flex justify-center items-center z-40 bg-transparent h-[49px]">
             {platform !== 'darwin' && (
-              <MihomoIcon className="h-[32px] leading-[32px] text-lg mx-[1px]" />
+              <MihomoIcon className="h-[32px] leading-[32px] text-lg mx-px" />
             )}
             <UpdaterButton iconOnly={true} />
           </div>
@@ -417,7 +417,7 @@ const App: React.FC = () => {
               className={`flex justify-between p-2 ${!useWindowFrame && platform === 'darwin' ? 'ml-[60px]' : ''}`}
             >
               <div className="flex ml-1">
-                <MihomoIcon className="h-[32px] leading-[32px] text-lg mx-[1px]" />
+                <MihomoIcon className="h-[32px] leading-[32px] text-lg mx-px" />
                 <h3 className="text-lg font-bold leading-[32px]">ihomo Party</h3>
               </div>
               <UpdaterButton />

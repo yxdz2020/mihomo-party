@@ -642,7 +642,7 @@ const Mihomo: React.FC = () => {
               const [user, pass] = auth.split(':')
               return (
                 <div key={index} className="flex mb-2">
-                  <div className="flex-[4]">
+                  <div className="flex-4">
                     <Input
                       size="sm"
                       fullWidth
@@ -662,7 +662,7 @@ const Mihomo: React.FC = () => {
                     />
                   </div>
                   <span className="mx-2">:</span>
-                  <div className="flex-[6] flex">
+                  <div className="flex-6 flex">
                     <Input
                       size="sm"
                       fullWidth

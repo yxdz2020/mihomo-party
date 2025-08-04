@@ -264,7 +264,7 @@ const DNS: React.FC = () => {
               {[...values.nameserverPolicy, { domain: '', value: '' }].map(
                 ({ domain, value }, index) => (
                   <div key={index} className="flex mb-2">
-                    <div className="flex-[4]">
+                    <div className="flex-4">
                       <Input
                         size="sm"
                         fullWidth
@@ -281,7 +281,7 @@ const DNS: React.FC = () => {
                       />
                     </div>
                     <span className="mx-2">:</span>
-                    <div className="flex-[6] flex">
+                    <div className="flex-6 flex">
                       <Input
                         size="sm"
                         fullWidth
@@ -332,7 +332,7 @@ const DNS: React.FC = () => {
             <h3 className="mb-2">{t('dns.customHosts.list')}</h3>
             {[...values.hosts, { domain: '', value: '' }].map(({ domain, value }, index) => (
               <div key={index} className="flex mb-2">
-                <div className="flex-[4]">
+                <div className="flex-4">
                   <Input
                     size="sm"
                     fullWidth
@@ -349,7 +349,7 @@ const DNS: React.FC = () => {
                   />
                 </div>
                 <span className="mx-2">:</span>
-                <div className="flex-[6] flex">
+                <div className="flex-6 flex">
                   <Input
                     size="sm"
                     fullWidth
