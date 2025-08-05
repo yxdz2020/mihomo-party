@@ -56,7 +56,12 @@ import {
   subStoreFrontendPort,
   subStorePort
 } from '../resolve/server'
-import { manualGrantCorePermition, quitWithoutCore, restartCore } from '../core/manager'
+import {
+  quitWithoutCore,
+  restartCore,
+  checkTunPermissions,
+  grantTunPermissions
+} from '../core/manager'
 import { triggerSysProxy } from '../sys/sysproxy'
 import { checkUpdate, downloadAndInstallUpdate } from '../resolve/autoUpdater'
 import {
@@ -185,7 +190,9 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('restartCore', ipcErrorWrapper(restartCore))
   ipcMain.handle('startMonitor', (_e, detached) => ipcErrorWrapper(startMonitor)(detached))
   ipcMain.handle('triggerSysProxy', (_e, enable) => ipcErrorWrapper(triggerSysProxy)(enable))
-  ipcMain.handle('manualGrantCorePermition', () => ipcErrorWrapper(manualGrantCorePermition)())
+
+  ipcMain.handle('checkTunPermissions', () => ipcErrorWrapper(checkTunPermissions)())
+  ipcMain.handle('grantTunPermissions', () => ipcErrorWrapper(grantTunPermissions)())
   ipcMain.handle('getFilePath', (_e, ext) => getFilePath(ext))
   ipcMain.handle('readTextFile', (_e, filePath) => ipcErrorWrapper(readTextFile)(filePath))
   ipcMain.handle('getRuntimeConfigStr', ipcErrorWrapper(getRuntimeConfigStr))

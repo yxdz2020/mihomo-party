@@ -10,15 +10,12 @@ import { createTray, hideDockIcon, showDockIcon } from './resolve/tray'
 import { init } from './utils/init'
 import { join } from 'path'
 import { initShortcut } from './resolve/shortcut'
-import { execSync, spawn, exec } from 'child_process'
-import { createElevateTask } from './sys/misc'
+import { spawn, exec } from 'child_process'
 import { promisify } from 'util'
 import { stat } from 'fs/promises'
 import { initProfileUpdater } from './core/profileUpdater'
-import { existsSync, writeFileSync } from 'fs'
-import { exePath, taskDir } from './utils/dirs'
-import path from 'path'
-import iconv from 'iconv-lite'
+import { existsSync } from 'fs'
+import { exePath } from './utils/dirs'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
 import { initI18n } from '../shared/i18n'
@@ -69,37 +66,6 @@ async function fixUserDataPermissions(): Promise<void> {
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
 
-// Windows 管理员权限检查（仅在生产模式下）
-if (process.platform === 'win32' && !is.dev && !process.argv.includes('noadmin')) {
-  try {
-    createElevateTask()
-  } catch (createError) {
-    try {
-      if (process.argv.slice(1).length > 0) {
-        writeFileSync(path.join(taskDir(), 'param.txt'), process.argv.slice(1).join(' '))
-      } else {
-        writeFileSync(path.join(taskDir(), 'param.txt'), 'empty')
-      }
-      if (!existsSync(path.join(taskDir(), 'mihomo-party-run.exe'))) {
-        throw new Error('mihomo-party-run.exe not found')
-      } else {
-        execSync('%SystemRoot%\\System32\\schtasks.exe /run /tn mihomo-party-run')
-      }
-    } catch (e) {
-      let createErrorStr = `${createError}`
-      let eStr = `${e}`
-      try {
-        createErrorStr = iconv.decode((createError as { stderr: Buffer }).stderr, 'gbk')
-        eStr = iconv.decode((e as { stderr: Buffer }).stderr, 'gbk')
-      } catch {
-        // ignore
-      }
-      showSafeErrorBox('common.error.adminRequired', `${createErrorStr}\n${eStr}`)
-    } finally {
-      app.exit()
-    }
-  }
-}
 
 async function initApp(): Promise<void> {
   await fixUserDataPermissions()

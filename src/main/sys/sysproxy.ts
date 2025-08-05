@@ -167,7 +167,7 @@ async function requestSocketRecreation(): Promise<void> {
     const { promisify } = require('util')
     const execPromise = promisify(exec)
     
-    // Use osascript with administrator privileges (same pattern as manualGrantCorePermition)
+    // Use osascript with administrator privileges (same pattern as grantTunPermissions)
     const shell = `pkill -USR1 -f party.mihomo.helper`
     const command = `do shell script "${shell}" with administrator privileges`
     await execPromise(`osascript -e '${command}'`)

@@ -3,7 +3,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import BorderSwitch from '@renderer/components/base/border-swtich'
 import { TbDeviceIpadHorizontalBolt } from 'react-icons/tb'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { restartCore } from '@renderer/utils/ipc'
+import { restartCore, checkTunPermissions, grantTunPermissions } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import React from 'react'
@@ -38,6 +38,26 @@ const TunSwitcher: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const onChange = async (enable: boolean): Promise<void> => {
     if (enable) {
+      // 检查TUN权限
+      try {
+        const hasPermissions = await checkTunPermissions()
+        if (!hasPermissions) {
+          const confirmed = confirm(t('tun.permissions.required'))
+          if (confirmed) {
+            try {
+              await grantTunPermissions()
+            } catch (error) {
+              alert(t('tun.permissions.failed') + ': ' + error)
+              return
+            }
+          } else {
+            return
+          }
+        }
+      } catch (error) {
+        console.warn('Permission check failed:', error)
+      }
+
       await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
     } else {
       await patchControledMihomoConfig({ tun: { enable } })

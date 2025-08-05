@@ -1,4 +1,4 @@
-import { exec, execFile, execSync, spawn } from 'child_process'
+import { exec, execFile, spawn } from 'child_process'
 import { app, dialog, nativeTheme, shell } from 'electron'
 import { readFile } from 'fs/promises'
 import path from 'path'
@@ -9,11 +9,8 @@ import {
   mihomoCorePath,
   overridePath,
   profilePath,
-  resourcesDir,
-  resourcesFilesDir,
-  taskDir
+  resourcesDir
 } from '../utils/dirs'
-import { copyFileSync, writeFileSync } from 'fs'
 
 export function getFilePath(ext: string[]): string[] | undefined {
   return dialog.showOpenDialogSync({
@@ -68,56 +65,7 @@ export function setNativeTheme(theme: 'system' | 'light' | 'dark'): void {
   nativeTheme.themeSource = theme
 }
 
-function getElevateTaskXml(): string {
-  return `<?xml version="1.0" encoding="UTF-16"?>
-<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-  <Triggers />
-  <Principals>
-    <Principal id="Author">
-      <LogonType>InteractiveToken</LogonType>
-      <RunLevel>HighestAvailable</RunLevel>
-    </Principal>
-  </Principals>
-  <Settings>
-    <MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy>
-    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
-    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
-    <AllowHardTerminate>false</AllowHardTerminate>
-    <StartWhenAvailable>false</StartWhenAvailable>
-    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
-    <IdleSettings>
-      <StopOnIdleEnd>false</StopOnIdleEnd>
-      <RestartOnIdle>false</RestartOnIdle>
-    </IdleSettings>
-    <AllowStartOnDemand>true</AllowStartOnDemand>
-    <Enabled>true</Enabled>
-    <Hidden>false</Hidden>
-    <RunOnlyIfIdle>false</RunOnlyIfIdle>
-    <WakeToRun>false</WakeToRun>
-    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
-    <Priority>3</Priority>
-  </Settings>
-  <Actions Context="Author">
-    <Exec>
-      <Command>"${path.join(taskDir(), `mihomo-party-run.exe`)}"</Command>
-      <Arguments>"${exePath()}"</Arguments>
-    </Exec>
-  </Actions>
-</Task>
-`
-}
 
-export function createElevateTask(): void {
-  const taskFilePath = path.join(taskDir(), `mihomo-party-run.xml`)
-  writeFileSync(taskFilePath, Buffer.from(`\ufeff${getElevateTaskXml()}`, 'utf-16le'))
-  copyFileSync(
-    path.join(resourcesFilesDir(), 'mihomo-party-run.exe'),
-    path.join(taskDir(), 'mihomo-party-run.exe')
-  )
-  execSync(
-    `%SystemRoot%\\System32\\schtasks.exe /create /tn "mihomo-party-run" /xml "${taskFilePath}" /f`
-  )
-}
 
 export function resetAppConfig(): void {
   if (process.platform === 'win32') {

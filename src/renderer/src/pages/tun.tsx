@@ -3,7 +3,7 @@ import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { manualGrantCorePermition, restartCore, setupFirewall } from '@renderer/utils/ipc'
+import { grantTunPermissions, restartCore, setupFirewall } from '@renderer/utils/ipc'
 import { platform } from '@renderer/utils/init'
 import React, { Key, useState } from 'react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -129,7 +129,7 @@ const Tun: React.FC = () => {
                 color="primary"
                 onPress={async () => {
                   try {
-                    await manualGrantCorePermition()
+                    await grantTunPermissions()
                     new Notification(t('tun.notifications.coreAuthSuccess'))
                     await restartCore()
                   } catch (e) {

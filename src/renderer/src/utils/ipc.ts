@@ -227,8 +227,14 @@ export async function triggerSysProxy(enable: boolean): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('triggerSysProxy', enable))
 }
 
-export async function manualGrantCorePermition(): Promise<void> {
-  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('manualGrantCorePermition'))
+
+
+export async function checkTunPermissions(): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkTunPermissions'))
+}
+
+export async function grantTunPermissions(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('grantTunPermissions'))
 }
 
 export async function getFilePath(ext: string[]): Promise<string[] | undefined> {

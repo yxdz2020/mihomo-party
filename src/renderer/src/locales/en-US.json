@@ -316,6 +316,8 @@
   "tun.notifications.coreAuthSuccess": "Core Authorization Successful",
   "tun.notifications.firewallResetSuccess": "Firewall Reset Successful",
   "tun.error.tunPermissionDenied": "TUN interface start failed, please try to manually grant core permissions",
+  "tun.permissions.required": "TUN mode requires administrator privileges. Grant permissions now?",
+  "tun.permissions.failed": "Permission authorization failed",
   "dns.title": "DNS Settings",
   "dns.enable": "Enable DNS",
   "dns.enhancedMode.title": "Domain Mapping Mode",

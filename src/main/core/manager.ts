@@ -290,22 +290,63 @@ async function checkProfile(): Promise<void> {
   }
 }
 
-export async function manualGrantCorePermition(): Promise<void> {
+/**
+ * 检查TUN模式所需的权限
+ * @returns Promise<boolean> 是否有足够权限
+ */
+export async function checkTunPermissions(): Promise<boolean> {
+  const { core = 'mihomo' } = await getAppConfig()
+  const corePath = mihomoCorePath(core)
+
+  try {
+    if (process.platform === 'win32') {
+      const execPromise = promisify(exec)
+      try {
+        await execPromise('net session')
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    if (process.platform === 'darwin' || process.platform === 'linux') {
+      // Unix系统检查核心文件是否有setuid权限
+      const { stat } = await import('fs/promises')
+      const stats = await stat(corePath)
+      return (stats.mode & 0o4000) !== 0 && stats.uid === 0
+    }
+  } catch {
+    return false
+  }
+
+  return false
+}
+
+/**
+ * 为TUN模式获取必要的权限
+ */
+export async function grantTunPermissions(): Promise<void> {
   const { core = 'mihomo' } = await getAppConfig()
   const corePath = mihomoCorePath(core)
   const execPromise = promisify(exec)
   const execFilePromise = promisify(execFile)
+
   if (process.platform === 'darwin') {
     const shell = `chown root:admin ${corePath.replace(' ', '\\\\ ')}\nchmod +sx ${corePath.replace(' ', '\\\\ ')}`
     const command = `do shell script "${shell}" with administrator privileges`
     await execPromise(`osascript -e '${command}'`)
   }
+
   if (process.platform === 'linux') {
     await execFilePromise('pkexec', [
       'bash',
       '-c',
       `chown root:root "${corePath}" && chmod +sx "${corePath}"`
     ])
+  }
+
+  if (process.platform === 'win32') {
+    throw new Error('Windows platform requires running as administrator')
   }
 }
 

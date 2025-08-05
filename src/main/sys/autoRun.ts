@@ -1,4 +1,5 @@
-import { exePath, homeDir, taskDir } from '../utils/dirs'
+import { exePath, homeDir } from '../utils/dirs'
+import { tmpdir } from 'os'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
 import { exec } from 'child_process'
 import { existsSync } from 'fs'
@@ -19,7 +20,7 @@ function getTaskXml(): string {
   <Principals>
     <Principal id="Author">
       <LogonType>InteractiveToken</LogonType>
-      <RunLevel>HighestAvailable</RunLevel>
+      <RunLevel>LeastPrivilege</RunLevel>
     </Principal>
   </Principals>
   <Settings>
@@ -43,8 +44,7 @@ function getTaskXml(): string {
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"${path.join(taskDir(), `mihomo-party-run.exe`)}"</Command>
-      <Arguments>"${exePath()}"</Arguments>
+      <Command>"${exePath()}"</Command>
     </Exec>
   </Actions>
 </Task>
@@ -81,7 +81,7 @@ export async function checkAutoRun(): Promise<boolean> {
 export async function enableAutoRun(): Promise<void> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
-    const taskFilePath = path.join(taskDir(), `${appName}.xml`)
+    const taskFilePath = path.join(tmpdir(), `${appName}.xml`)
     await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml()}`, 'utf-16le'))
     await execPromise(
       `%SystemRoot%\\System32\\schtasks.exe /create /tn "${appName}" /xml "${taskFilePath}" /f`
