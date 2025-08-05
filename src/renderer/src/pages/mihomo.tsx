@@ -207,7 +207,11 @@ const Mihomo: React.FC = () => {
                 className="w-[100px]"
                 size="sm"
                 aria-label={t('mihomo.selectCoreVersion')}
-                selectedKeys={new Set([core])}
+                selectedKeys={new Set([
+                  enableSmartCore
+                    ? 'mihomo-smart'
+                    : (core === 'mihomo-smart' ? 'mihomo' : core)
+                ])}
                 disallowEmptySelection={true}
                 onSelectionChange={async (v) => {
                   handleConfigChangeWithRestart('core', v.currentKey as 'mihomo' | 'mihomo-alpha' | 'mihomo-smart')
