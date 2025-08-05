@@ -5,7 +5,7 @@ import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
-import { restartCore } from '@renderer/utils/ipc'
+import { restartCore, patchMihomoConfig } from '@renderer/utils/ipc'
 import React, { Key, ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -16,6 +16,7 @@ const DNS: React.FC = () => {
   const { nameserverPolicy, useNameserverPolicy } = appConfig || {}
   const { dns, hosts } = controledMihomoConfig || {}
   const {
+    enable = true,
     ipv6 = false,
     'fake-ip-range': fakeIPRange = '198.18.0.1/16',
     'fake-ip-filter': fakeIPFilter = [
@@ -40,6 +41,7 @@ const DNS: React.FC = () => {
   } = dns || {}
   const [changed, setChanged] = useState(false)
   const [values, originSetValues] = useState({
+    enable,
     ipv6,
     useHosts,
     enhancedMode,
@@ -126,6 +128,7 @@ const DNS: React.FC = () => {
     try {
       setChanged(false)
       await patchControledMihomoConfig(patch)
+      await patchMihomoConfig(patch)
       await restartCore()
     } catch (e) {
       alert(e)
@@ -143,6 +146,7 @@ const DNS: React.FC = () => {
             color="primary"
             onPress={() => {
               const dnsConfig = {
+                enable: values.enable,
                 ipv6: values.ipv6,
                 'fake-ip-range': values.fakeIPRange,
                 'fake-ip-filter': values.fakeIPFilter,
@@ -177,6 +181,15 @@ const DNS: React.FC = () => {
       }
     >
       <SettingCard>
+        <SettingItem title={t('dns.enable')} divider>
+          <Switch
+            size="sm"
+            isSelected={values.enable}
+            onValueChange={(v) => {
+              setValues({ ...values, enable: v })
+            }}
+          />
+        </SettingItem>
         <SettingItem title={t('dns.enhancedMode.title')} divider>
           <Tabs
             size="sm"

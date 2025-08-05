@@ -101,7 +101,6 @@
   "mihomo.cpuPriority.low": "低",
   "mihomo.workDir.title": "不同订阅使用独立工作目录",
   "mihomo.workDir.tooltip": "启用后可避免不同订阅中存在相同名称的代理组时发生冲突",
-  "mihomo.controlDns": "控制 DNS 设置",
   "mihomo.controlSniff": "控制域名嗅探",
   "mihomo.autoCloseConnection": "自动关闭连接",
   "mihomo.pauseSSID.title": "指定 WiFi SSID 直连",
@@ -216,7 +215,7 @@
   "sider.cards.override": "覆写",
   "sider.cards.connections": "连接",
   "sider.cards.core": "内核设置",
-  "sider.cards.dns": "DNS",
+  "sider.cards.dns": "DNS覆写",
   "sider.cards.sniff": "域名嗅探",
   "sider.cards.logs": "日志",
   "sider.cards.substore": "Sub-Store",
@@ -316,6 +315,7 @@
   "tun.notifications.firewallResetSuccess": "防火墙重设成功",
   "tun.error.tunPermissionDenied": "虚拟网卡启动失败，请尝试手动授予内核权限",
   "dns.title": "DNS 设置",
+  "dns.enable": "启用 DNS",
   "dns.enhancedMode.title": "域名映射模式",
   "dns.enhancedMode.fakeIp": "虚假 IP",
   "dns.enhancedMode.redirHost": "真实 IP",
@@ -513,7 +513,7 @@
   "guide.override.title": "覆写",
   "guide.override.description": "Mihomo Party 提供强大的覆写功能，可以对您导入的订阅配置进行个性化修改，如添加规则、自定义代理组等，您可以直接导入别人写好的覆写文件，也可以自己动手编写，<b>编辑好覆写文件一定要记得在需要覆写的订阅上启用</b>，覆写文件的语法请参考 <a href=\"https://mihomo.party/docs/guide/override\" target=\"_blank\">官方文档</a>",
   "guide.dns.title": "DNS",
-  "guide.dns.description": "软件默认接管了内核的 DNS 设置，如果您需要使用订阅配置中的 DNS 设置，可以到应用设置中关闭\"接管 DNS 设置\"，域名嗅探同理",
+  "guide.dns.description": "软件默认使用应用的 DNS 设置覆盖订阅配置，如果您需要使用订阅配置中的 DNS 设置，请关闭此功能，域名嗅探同理",
   "guide.end.title": "教程结束",
   "guide.end.description": "现在您已经了解了软件的基本用法，导入您的订阅开始使用吧，祝您使用愉快！\n您还可以加入我们的官方 <a href=\"https://t.me/mihomo_party_group\" target=\"_blank\">Telegram 群组</a> 获取最新资讯"
 }

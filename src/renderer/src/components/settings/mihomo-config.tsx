@@ -16,7 +16,6 @@ const MihomoConfig: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const {
     diffWorkDir = false,
-    controlDns = true,
     controlSniff = true,
     delayTestConcurrency,
     delayTestTimeout,
@@ -193,21 +192,7 @@ const MihomoConfig: React.FC = () => {
           }}
         />
       </SettingItem>
-      <SettingItem title={t('mihomo.controlDns')} divider>
-        <Switch
-          size="sm"
-          isSelected={controlDns}
-          onValueChange={async (v) => {
-            try {
-              await patchAppConfig({ controlDns: v })
-              await patchControledMihomoConfig({})
-              await restartCore()
-            } catch (e) {
-              alert(e)
-            }
-          }}
-        />
-      </SettingItem>
+
       <SettingItem title={t('mihomo.controlSniff')} divider>
         <Switch
           size="sm"
