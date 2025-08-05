@@ -151,34 +151,45 @@ const ProfileItem: React.FC<Props> = (props) => {
     setDropdownOpen(true)
   }
 
-  // 智能区分点击和拖拽的事件处理
   const handleMouseDown = (e: React.MouseEvent) => {
-    setClickStartPos({ x: e.clientX, y: e.clientY })
-    setIsActuallyDragging(false)
+    if (e.button === 0) {
+      setClickStartPos({ x: e.clientX, y: e.clientY })
+      setIsActuallyDragging(false)
+    }
   }
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (clickStartPos) {
-      const dx = e.clientX - clickStartPos.x
-      const dy = e.clientY - clickStartPos.y
-      // 移动距离超过 5px 认为是拖拽
-      if (dx * dx + dy * dy > 25) {
-        setIsActuallyDragging(true)
-      }
+    if (!clickStartPos) return
+
+    const dx = e.clientX - clickStartPos.x
+    const dy = e.clientY - clickStartPos.y
+    if (dx * dx + dy * dy > 25) {
+      setIsActuallyDragging(true)
     }
   }
 
-  const handleMouseUp = () => {
-    // 如果没有拖拽，则处理为点击事件
-    if (!isActuallyDragging && !isDragging && clickStartPos) {
-      setSelecting(true)
-      onPress().finally(() => {
-        setSelecting(false)
-      })
+  const handleMouseUp = (e: React.MouseEvent) => {
+    const cleanup = () => {
+      setClickStartPos(null)
+      setTimeout(() => setIsActuallyDragging(false), 100)
     }
 
-    setClickStartPos(null)
-    setTimeout(() => setIsActuallyDragging(false), 100)
+    // 只处理左键点击
+    if (e.button !== 0) return cleanup()
+
+    // 检查功能按钮点击
+    const target = e.target as Element
+    if (target?.closest('button, [role="menu"], [role="menuitem"], [data-slot="trigger"]')) {
+      return cleanup()
+    }
+
+    // 处理卡片选中
+    if (!isActuallyDragging && !isDragging && clickStartPos) {
+      setSelecting(true)
+      onPress().finally(() => setSelecting(false))
+    }
+
+    cleanup()
   }
 
   return (
@@ -212,9 +223,9 @@ const ProfileItem: React.FC<Props> = (props) => {
           {...attributes}
           {...listeners}
           className="w-full h-full"
-          onMouseDownCapture={handleMouseDown}
-          onMouseMoveCapture={handleMouseMove}
-          onMouseUpCapture={handleMouseUp}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
         >
           <CardBody className="pb-1">
             <div className="flex justify-between h-[32px]">
@@ -252,7 +263,12 @@ const ProfileItem: React.FC<Props> = (props) => {
                   onOpenChange={setDropdownOpen}
                 >
                   <DropdownTrigger>
-                    <Button isIconOnly size="sm" variant="light" color="default">
+                    <Button
+                      isIconOnly
+                      size="sm"
+                      variant="light"
+                      color="default"
+                    >
                       <IoMdMore
                         color="default"
                         className={`text-[24px] ${isCurrent ? 'text-primary-foreground' : 'text-foreground'}`}
