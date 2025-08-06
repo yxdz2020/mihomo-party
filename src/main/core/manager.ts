@@ -350,6 +350,60 @@ export async function grantTunPermissions(): Promise<void> {
   }
 }
 
+// Windows 管理员权限
+
+export async function checkAdminPrivileges(): Promise<boolean> {
+  if (process.platform !== 'win32') {
+    return true
+  }
+
+  try {
+    const execPromise = promisify(exec)
+    await execPromise('net session')
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function requestAdminPrivileges(): Promise<void> {
+  if (process.platform !== 'win32') {
+    throw new Error('This function is only available on Windows')
+  }
+
+  const execPromise = promisify(exec)
+  const exePath = process.execPath
+  const args = process.argv.slice(1)
+
+  try {
+    const escapedExePath = exePath.replace(/'/g, "''")
+    const escapedArgs = args.map(arg => `'${arg.replace(/'/g, "''")}'`).join(', ')
+
+    let command: string
+    if (args.length > 0) {
+      command = `powershell -WindowStyle Hidden -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList ${escapedArgs} -Verb RunAs"`
+    } else {
+      command = `powershell -WindowStyle Hidden -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
+    }
+
+    console.log('Requesting admin privileges with command:', command)
+
+    await execPromise(command, { windowsHide: true })
+
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    const { app } = await import('electron')
+    app.quit()
+  } catch (error) {
+    console.error('Admin privilege request failed:', error)
+    throw new Error(`Failed to request admin privileges: ${error}`)
+  }
+}
+
+export async function manualGrantCorePermition(): Promise<void> {
+  return grantTunPermissions()
+}
+
 export async function getDefaultDevice(): Promise<string> {
   const execPromise = promisify(exec)
   const { stdout: deviceOut } = await execPromise(`route -n get default`)

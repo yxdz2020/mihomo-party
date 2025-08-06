@@ -60,7 +60,10 @@ import {
   quitWithoutCore,
   restartCore,
   checkTunPermissions,
-  grantTunPermissions
+  grantTunPermissions,
+  manualGrantCorePermition,
+  checkAdminPrivileges,
+  requestAdminPrivileges
 } from '../core/manager'
 import { triggerSysProxy } from '../sys/sysproxy'
 import { checkUpdate, downloadAndInstallUpdate } from '../resolve/autoUpdater'
@@ -190,6 +193,9 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('restartCore', ipcErrorWrapper(restartCore))
   ipcMain.handle('startMonitor', (_e, detached) => ipcErrorWrapper(startMonitor)(detached))
   ipcMain.handle('triggerSysProxy', (_e, enable) => ipcErrorWrapper(triggerSysProxy)(enable))
+  ipcMain.handle('manualGrantCorePermition', () => ipcErrorWrapper(manualGrantCorePermition)())
+  ipcMain.handle('checkAdminPrivileges', () => ipcErrorWrapper(checkAdminPrivileges)())
+  ipcMain.handle('requestAdminPrivileges', () => ipcErrorWrapper(requestAdminPrivileges)())
 
   ipcMain.handle('checkTunPermissions', () => ipcErrorWrapper(checkTunPermissions)())
   ipcMain.handle('grantTunPermissions', () => ipcErrorWrapper(grantTunPermissions)())

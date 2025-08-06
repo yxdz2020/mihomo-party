@@ -3,7 +3,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import BorderSwitch from '@renderer/components/base/border-swtich'
 import { TbDeviceIpadHorizontalBolt } from 'react-icons/tb'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { restartCore, checkTunPermissions, grantTunPermissions } from '@renderer/utils/ipc'
+import { restartCore } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import React from 'react'
@@ -38,24 +38,40 @@ const TunSwitcher: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const onChange = async (enable: boolean): Promise<void> => {
     if (enable) {
-      // 检查TUN权限
-      try {
-        const hasPermissions = await checkTunPermissions()
-        if (!hasPermissions) {
-          const confirmed = confirm(t('tun.permissions.required'))
-          if (confirmed) {
-            try {
-              await grantTunPermissions()
-            } catch (error) {
-              alert(t('tun.permissions.failed') + ': ' + error)
+      // Windows下检查管理员权限
+      if (window.electron.process.platform === 'win32') {
+        try {
+          const isAdmin = await window.electron.ipcRenderer.invoke('checkAdminPrivileges')
+          if (!isAdmin) {
+            const confirmed = confirm(t('tun.permissions.required'))
+            if (confirmed) {
+              try {
+                const notification = new Notification(t('tun.permissions.requesting'))
+
+                await window.electron.ipcRenderer.invoke('requestAdminPrivileges')
+                notification.close()
+                return
+              } catch (error) {
+                console.error('Failed to request admin privileges:', error)
+                alert(t('tun.permissions.failed') + ': ' + error)
+                return
+              }
+            } else {
               return
             }
-          } else {
-            return
           }
+        } catch (error) {
+          console.warn('Admin check failed:', error)
         }
-      } catch (error) {
-        console.warn('Permission check failed:', error)
+      }
+
+      // macOS/Linux 获取权限
+      if (window.electron.process.platform !== 'win32') {
+        try {
+          await window.electron.ipcRenderer.invoke('manualGrantCorePermition')
+        } catch (error) {
+          console.warn('Permission grant failed:', error)
+        }
       }
 
       await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })

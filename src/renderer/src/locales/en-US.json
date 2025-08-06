@@ -318,6 +318,8 @@
   "tun.error.tunPermissionDenied": "TUN interface start failed, please try to manually grant core permissions",
   "tun.permissions.required": "TUN mode requires administrator privileges. Grant permissions now?",
   "tun.permissions.failed": "Permission authorization failed",
+  "tun.permissions.windowsRestart": "On Windows, you need to restart the application as administrator to use TUN mode",
+  "tun.permissions.requesting": "Requesting administrator privileges, please click 'Yes' in the UAC dialog...",
   "dns.title": "DNS Settings",
   "dns.enable": "Enable DNS",
   "dns.enhancedMode.title": "Domain Mapping Mode",

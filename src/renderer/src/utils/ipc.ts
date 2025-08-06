@@ -237,6 +237,10 @@ export async function grantTunPermissions(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('grantTunPermissions'))
 }
 
+export async function manualGrantCorePermition(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('manualGrantCorePermition'))
+}
+
 export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getFilePath', ext))
 }
