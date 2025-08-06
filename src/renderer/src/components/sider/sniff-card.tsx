@@ -2,7 +2,7 @@ import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import BorderSwitch from '@renderer/components/base/border-swtich'
 import { RiScan2Fill } from 'react-icons/ri'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { patchMihomoConfig } from '@renderer/utils/ipc'
+import { restartCore } from '@renderer/utils/ipc'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -15,15 +15,13 @@ interface Props {
 }
 const SniffCard: React.FC<Props> = (props) => {
   const { t } = useTranslation()
-  const { appConfig } = useAppConfig()
+  const { appConfig, patchAppConfig } = useAppConfig()
   const { iconOnly } = props
   const { sniffCardStatus = 'col-span-1', controlSniff = true } = appConfig || {}
   const location = useLocation()
   const navigate = useNavigate()
   const match = location.pathname.includes('/sniffer')
-  const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-  const { sniffer } = controledMihomoConfig || {}
-  const { enable } = sniffer || {}
+  const { patchControledMihomoConfig } = useControledMihomoConfig()
   const {
     attributes,
     listeners,
@@ -35,14 +33,19 @@ const SniffCard: React.FC<Props> = (props) => {
     id: 'sniff'
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-  const onChange = async (enable: boolean): Promise<void> => {
-    await patchControledMihomoConfig({ sniffer: { enable } })
-    await patchMihomoConfig({ sniffer: { enable } })
+  const onChange = async (controlSniff: boolean): Promise<void> => {
+    try {
+      await patchAppConfig({ controlSniff })
+      await patchControledMihomoConfig({})
+      await restartCore()
+    } catch (e) {
+      alert(e)
+    }
   }
 
   if (iconOnly) {
     return (
-      <div className={`${sniffCardStatus} ${!controlSniff ? 'hidden' : ''} flex justify-center`}>
+      <div className={`${sniffCardStatus} flex justify-center`}>
         <Tooltip content={t('sider.cards.sniff')} placement="right">
           <Button
             size="sm"
@@ -68,7 +71,7 @@ const SniffCard: React.FC<Props> = (props) => {
         transition,
         zIndex: isDragging ? 'calc(infinity)' : undefined
       }}
-      className={`${sniffCardStatus} ${!controlSniff ? 'hidden' : ''} sniff-card`}
+      className={`${sniffCardStatus} sniff-card`}
     >
       <Card
         fullWidth
@@ -91,8 +94,8 @@ const SniffCard: React.FC<Props> = (props) => {
               />
             </Button>
             <BorderSwitch
-              isShowBorder={match && enable}
-              isSelected={enable}
+              isShowBorder={match && controlSniff}
+              isSelected={controlSniff}
               onValueChange={onChange}
             />
           </div>

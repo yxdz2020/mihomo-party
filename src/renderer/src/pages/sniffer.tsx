@@ -13,6 +13,7 @@ const Sniffer: React.FC = () => {
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { sniffer } = controledMihomoConfig || {}
   const {
+    enable = true,
     'parse-pure-ip': parsePureIP = true,
     'force-dns-mapping': forceDNSMapping = true,
     'override-destination': overrideDestination = false,
@@ -59,6 +60,15 @@ const Sniffer: React.FC = () => {
     try {
       setChanged(false)
       await patchControledMihomoConfig(patch)
+      await restartCore()
+    } catch (e) {
+      alert(e)
+    }
+  }
+
+  const onEnableChange = async (enable: boolean): Promise<void> => {
+    try {
+      await patchControledMihomoConfig({ sniffer: { enable } })
       await restartCore()
     } catch (e) {
       alert(e)
@@ -146,6 +156,13 @@ const Sniffer: React.FC = () => {
       }
     >
       <SettingCard>
+        <SettingItem title={t('sniffer.enable')} divider>
+          <Switch
+            size="sm"
+            isSelected={enable}
+            onValueChange={onEnableChange}
+          />
+        </SettingItem>
         <SettingItem title={t('sniffer.overrideDestination')} divider>
           <Switch
             size="sm"
