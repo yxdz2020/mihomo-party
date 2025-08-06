@@ -3,7 +3,8 @@ import BasePage from '@renderer/components/base/base-page'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
-import { restartCore } from '@renderer/utils/ipc'
+import { useAppConfig } from '@renderer/hooks/use-app-config'
+import { restartCore, patchMihomoConfig } from '@renderer/utils/ipc'
 import React, { ReactNode, useState } from 'react'
 import { MdDeleteForever } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +12,8 @@ import { useTranslation } from 'react-i18next'
 const Sniffer: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
+  const { appConfig } = useAppConfig()
+  const { controlSniff = true } = appConfig || {}
   const { sniffer } = controledMihomoConfig || {}
   const {
     enable = true,
@@ -42,6 +45,7 @@ const Sniffer: React.FC = () => {
   } = sniffer || {}
   const [changed, setChanged] = useState(false)
   const [values, originSetValues] = useState({
+    enable,
     parsePureIP,
     forceDNSMapping,
     overrideDestination,
@@ -60,16 +64,11 @@ const Sniffer: React.FC = () => {
     try {
       setChanged(false)
       await patchControledMihomoConfig(patch)
-      await restartCore()
-    } catch (e) {
-      alert(e)
-    }
-  }
 
-  const onEnableChange = async (enable: boolean): Promise<void> => {
-    try {
-      await patchControledMihomoConfig({ sniffer: { enable } })
-      await restartCore()
+      if (controlSniff) {
+        await patchMihomoConfig(patch)
+        await restartCore()
+      }
     } catch (e) {
       alert(e)
     }
@@ -140,17 +139,20 @@ const Sniffer: React.FC = () => {
             onPress={() =>
               onSave({
                 sniffer: {
+                  enable: values.enable,
                   'parse-pure-ip': values.parsePureIP,
                   'force-dns-mapping': values.forceDNSMapping,
                   'override-destination': values.overrideDestination,
                   sniff: values.sniff,
                   'skip-domain': values.skipDomain,
-                  'force-domain': values.forceDomain
+                  'force-domain': values.forceDomain,
+                  'skip-dst-address': values.skipDstAddress,
+                  'skip-src-address': values.skipSrcAddress
                 }
               })
             }
           >
-            {t('common.save')}
+            {controlSniff ? t('common.save') : t('sniffer.saveOnly')}
           </Button>
         )
       }
@@ -159,8 +161,10 @@ const Sniffer: React.FC = () => {
         <SettingItem title={t('sniffer.enable')} divider>
           <Switch
             size="sm"
-            isSelected={enable}
-            onValueChange={onEnableChange}
+            isSelected={values.enable}
+            onValueChange={(v) => {
+              setValues({ ...values, enable: v })
+            }}
           />
         </SettingItem>
         <SettingItem title={t('sniffer.overrideDestination')} divider>

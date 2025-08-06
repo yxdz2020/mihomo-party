@@ -13,7 +13,7 @@ const DNS: React.FC = () => {
   const { t } = useTranslation()
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
   const { appConfig, patchAppConfig } = useAppConfig()
-  const { nameserverPolicy, useNameserverPolicy } = appConfig || {}
+  const { nameserverPolicy, useNameserverPolicy, controlDns = true } = appConfig || {}
   const { dns, hosts } = controledMihomoConfig || {}
   const {
     enable = true,
@@ -128,8 +128,10 @@ const DNS: React.FC = () => {
     try {
       setChanged(false)
       await patchControledMihomoConfig(patch)
-      await patchMihomoConfig(patch)
-      await restartCore()
+      if (controlDns) {
+        await patchMihomoConfig(patch)
+        await restartCore()
+      }
     } catch (e) {
       alert(e)
     }
@@ -175,7 +177,7 @@ const DNS: React.FC = () => {
               onSave(result)
             }}
           >
-            {t('common.save')}
+            {controlDns ? t('common.save') : t('dns.saveOnly')}
           </Button>
         )
       }
