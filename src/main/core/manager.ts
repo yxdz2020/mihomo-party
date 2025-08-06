@@ -361,24 +361,34 @@ export async function restartAsAdmin(): Promise<void> {
     throw new Error('This function is only available on Windows')
   }
 
-  const execPromise = promisify(exec)
   const exePath = process.execPath
   const args = process.argv.slice(1)
+  const restartArgs = [...args, '--admin-restart-for-tun']
 
   try {
-    const restartArgs = [...args, '--admin-restart-for-tun']
+    // 处理路径和参数的引号
     const escapedExePath = exePath.replace(/'/g, "''")
-    const escapedArgs = restartArgs.map(arg => `'${arg.replace(/'/g, "''")}'`).join(', ')
+    const argsString = restartArgs.map(arg => arg.replace(/'/g, "''")).join("', '")
 
     let command: string
     if (restartArgs.length > 0) {
-      command = `powershell -WindowStyle Hidden -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList ${escapedArgs} -Verb RunAs"`
+      command = `powershell -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
     } else {
-      command = `powershell -WindowStyle Hidden -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
+      command = `powershell -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
     }
 
     console.log('Restarting as administrator with command:', command)
-    await execPromise(command, { windowsHide: true })
+
+    // 执行PowerShell命令
+    exec(command, { windowsHide: true }, (error, _stdout, stderr) => {
+      if (error) {
+        console.error('PowerShell execution error:', error)
+        console.error('stderr:', stderr)
+      } else {
+        console.log('PowerShell command executed successfully')
+      }
+    })
+
     await new Promise(resolve => setTimeout(resolve, 1500))
 
     const { app } = await import('electron')
