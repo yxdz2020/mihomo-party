@@ -18,11 +18,30 @@ import { initProfileUpdater } from './core/profileUpdater'
 import { existsSync, writeFileSync } from 'fs'
 import { exePath, taskDir } from './utils/dirs'
 import path from 'path'
+import iconv from 'iconv-lite'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
-import iconv from 'iconv-lite'
 import { initI18n } from '../shared/i18n'
 import i18next from 'i18next'
+
+// 错误处理
+function showSafeErrorBox(titleKey: string, message: string): void {
+  let title: string
+  try {
+    title = i18next.t(titleKey)
+    if (!title || title === titleKey) throw new Error('Translation not ready')
+  } catch {
+    const isZh = app.getLocale().startsWith('zh')
+    const fallbacks: Record<string, { zh: string; en: string }> = {
+      'common.error.initFailed': { zh: '应用初始化失败', en: 'Application initialization failed' },
+      'mihomo.error.coreStartFailed': { zh: '内核启动出错', en: 'Core start failed' },
+      'profiles.error.importFailed': { zh: '配置导入失败', en: 'Profile import failed' },
+      'common.error.adminRequired': { zh: '需要管理员权限', en: 'Administrator privileges required' }
+    }
+    title = fallbacks[titleKey] ? (isZh ? fallbacks[titleKey].zh : fallbacks[titleKey].en) : (isZh ? '错误' : 'Error')
+  }
+  dialog.showErrorBox(title, message)
+}
 
 async function fixUserDataPermissions(): Promise<void> {
   if (process.platform !== 'darwin') return
@@ -50,6 +69,7 @@ async function fixUserDataPermissions(): Promise<void> {
 let quitTimeout: NodeJS.Timeout | null = null
 export let mainWindow: BrowserWindow | null = null
 
+// Windows 管理员权限检查（仅在生产模式下）
 if (process.platform === 'win32' && !is.dev && !process.argv.includes('noadmin')) {
   try {
     createElevateTask()
@@ -74,10 +94,7 @@ if (process.platform === 'win32' && !is.dev && !process.argv.includes('noadmin')
       } catch {
         // ignore
       }
-      dialog.showErrorBox(
-        i18next.t('common.error.adminRequired'),
-        `${i18next.t('common.error.adminRequired')}\n${createErrorStr}\n${eStr}`
-      )
+      showSafeErrorBox('common.error.adminRequired', `${createErrorStr}\n${eStr}`)
     } finally {
       app.exit()
     }
@@ -171,6 +188,9 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('party.mihomo.app')
 
   try {
+    // 首先等待初始化完成，确保配置文件和目录都已创建
+    await initPromise
+
     const appConfig = await getAppConfig()
     // 如果配置中没有语言设置，则使用系统语言
     if (!appConfig.language) {
@@ -179,9 +199,8 @@ app.whenReady().then(async () => {
       appConfig.language = systemLanguage
     }
     await initI18n({ lng: appConfig.language })
-    await initPromise
   } catch (e) {
-    dialog.showErrorBox(i18next.t('common.error.initFailed'), `${e}`)
+    showSafeErrorBox('common.error.initFailed', `${e}`)
     app.quit()
   }
   try {
@@ -190,7 +209,7 @@ app.whenReady().then(async () => {
       await initProfileUpdater()
     })
   } catch (e) {
-    dialog.showErrorBox(i18next.t('mihomo.error.coreStartFailed'), `${e}`)
+    showSafeErrorBox('mihomo.error.coreStartFailed', `${e}`)
   }
   try {
     await startMonitor()
@@ -242,7 +261,7 @@ async function handleDeepLink(url: string): Promise<void> {
         new Notification({ title: i18next.t('profiles.notification.importSuccess') }).show()
         break
       } catch (e) {
-        dialog.showErrorBox(i18next.t('profiles.error.importFailed'), `${url}\n${e}`)
+        showSafeErrorBox('profiles.error.importFailed', `${url}\n${e}`)
       }
     }
   }

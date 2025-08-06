@@ -39,6 +39,7 @@ import os from 'os'
 import { createWriteStream, existsSync } from 'fs'
 import { uploadRuntimeConfig } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
+import { safeShowErrorBox } from '../utils/init'
 import i18next from '../../shared/i18n'
 
 chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', async () => {
@@ -46,7 +47,7 @@ chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', as
     await stopCore(true)
     await startCore()
   } catch (e) {
-    dialog.showErrorBox(i18next.t('mihomo.error.coreStartFailed'), `${e}`)
+    safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
   }
 })
 
@@ -228,7 +229,7 @@ export async function keepCoreAlive(): Promise<void> {
       await writeFile(path.join(dataDir(), 'core.pid'), child.pid.toString())
     }
   } catch (e) {
-    dialog.showErrorBox(i18next.t('mihomo.error.coreStartFailed'), `${e}`)
+    safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
   }
 }
 
