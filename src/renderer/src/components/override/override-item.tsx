@@ -10,7 +10,7 @@ import {
 } from '@heroui/react'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from '@renderer/utils/dayjs'
-import React, { Key, useEffect, useMemo, useState } from 'react'
+import React, { Key, useMemo, useState } from 'react'
 import EditFileModal from './edit-file-modal'
 import EditInfoModal from './edit-info-modal'
 import { useSortable } from '@dnd-kit/sortable'
@@ -54,7 +54,7 @@ const OverrideItem: React.FC<Props> = (props) => {
     id: info.id
   })
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-  const [disableOpen, setDisableOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const menuItems: MenuItem[] = useMemo(() => {
     const list = [
       {
@@ -124,17 +124,13 @@ const OverrideItem: React.FC<Props> = (props) => {
     }
   }
 
-  useEffect(() => {
-    if (isDragging) {
-      setTimeout(() => {
-        setDisableOpen(true)
-      }, 200)
-    } else {
-      setTimeout(() => {
-        setDisableOpen(false)
-      }, 200)
-    }
-  }, [isDragging])
+
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDropdownOpen(true)
+  }
 
   return (
     <div
@@ -164,13 +160,21 @@ const OverrideItem: React.FC<Props> = (props) => {
       <Card
         as="div"
         fullWidth
-        isPressable
-        onPress={() => {
-          if (disableOpen) return
+        className="cursor-pointer"
+        onContextMenu={handleContextMenu}
+        onDoubleClick={(e) => {
+          if ((e.target as Element)?.closest('button, [role="menu"], [role="menuitem"]')) {
+            return
+          }
           setOpenFileEditor(true)
         }}
       >
-        <div ref={setNodeRef} {...attributes} {...listeners} className="h-full w-full">
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          className="h-full w-full"
+        >
           <CardBody>
             <div className="flex justify-between h-[32px]">
               <h3
@@ -206,7 +210,10 @@ const OverrideItem: React.FC<Props> = (props) => {
                   </Button>
                 )}
 
-                <Dropdown>
+                <Dropdown
+                  isOpen={dropdownOpen}
+                  onOpenChange={setDropdownOpen}
+                >
                   <DropdownTrigger>
                     <Button isIconOnly size="sm" variant="light" color="default">
                       <IoMdMore color="default" className={`text-[24px]`} />
