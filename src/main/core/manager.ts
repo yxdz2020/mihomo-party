@@ -18,7 +18,7 @@ import {
   patchControledMihomoConfig,
   manageSmartOverride
 } from '../config'
-import { app, dialog, ipcMain, net } from 'electron'
+import { app, ipcMain, net } from 'electron'
 import {
   startMihomoTraffic,
   startMihomoConnections,
@@ -290,10 +290,6 @@ async function checkProfile(): Promise<void> {
   }
 }
 
-/**
- * 检查TUN模式所需的权限
- * @returns Promise<boolean> 是否有足够权限
- */
 export async function checkTunPermissions(): Promise<boolean> {
   const { core = 'mihomo' } = await getAppConfig()
   const corePath = mihomoCorePath(core)
@@ -310,7 +306,6 @@ export async function checkTunPermissions(): Promise<boolean> {
     }
 
     if (process.platform === 'darwin' || process.platform === 'linux') {
-      // Unix系统检查核心文件是否有setuid权限
       const { stat } = await import('fs/promises')
       const stats = await stat(corePath)
       return (stats.mode & 0o4000) !== 0 && stats.uid === 0
@@ -322,9 +317,6 @@ export async function checkTunPermissions(): Promise<boolean> {
   return false
 }
 
-/**
- * 为TUN模式获取必要的权限
- */
 export async function grantTunPermissions(): Promise<void> {
   const { core = 'mihomo' } = await getAppConfig()
   const corePath = mihomoCorePath(core)
@@ -350,8 +342,6 @@ export async function grantTunPermissions(): Promise<void> {
   }
 }
 
-// Windows 管理员权限
-
 export async function checkAdminPrivileges(): Promise<boolean> {
   if (process.platform !== 'win32') {
     return true
@@ -366,7 +356,7 @@ export async function checkAdminPrivileges(): Promise<boolean> {
   }
 }
 
-export async function requestAdminPrivileges(): Promise<void> {
+export async function restartAsAdmin(): Promise<void> {
   if (process.platform !== 'win32') {
     throw new Error('This function is only available on Windows')
   }
@@ -376,27 +366,101 @@ export async function requestAdminPrivileges(): Promise<void> {
   const args = process.argv.slice(1)
 
   try {
+    const restartArgs = [...args, '--admin-restart-for-tun']
     const escapedExePath = exePath.replace(/'/g, "''")
-    const escapedArgs = args.map(arg => `'${arg.replace(/'/g, "''")}'`).join(', ')
+    const escapedArgs = restartArgs.map(arg => `'${arg.replace(/'/g, "''")}'`).join(', ')
 
     let command: string
-    if (args.length > 0) {
+    if (restartArgs.length > 0) {
       command = `powershell -WindowStyle Hidden -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList ${escapedArgs} -Verb RunAs"`
     } else {
       command = `powershell -WindowStyle Hidden -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
     }
 
-    console.log('Requesting admin privileges with command:', command)
-
+    console.log('Restarting as administrator with command:', command)
     await execPromise(command, { windowsHide: true })
-
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 1500))
 
     const { app } = await import('electron')
     app.quit()
   } catch (error) {
-    console.error('Admin privilege request failed:', error)
-    throw new Error(`Failed to request admin privileges: ${error}`)
+    console.error('Failed to restart as administrator:', error)
+    throw new Error(`Failed to restart as administrator: ${error}`)
+  }
+}
+
+
+
+export async function checkMihomoCorePermissions(): Promise<boolean> {
+  const { core = 'mihomo' } = await getAppConfig()
+  const corePath = mihomoCorePath(core)
+
+  try {
+    if (process.platform === 'win32') {
+      // Windows权限检查
+      return await checkAdminPrivileges()
+    }
+
+    if (process.platform === 'darwin' || process.platform === 'linux') {
+      const { stat } = await import('fs/promises')
+      const stats = await stat(corePath)
+      return (stats.mode & 0o4000) !== 0 && stats.uid === 0
+    }
+  } catch {
+    return false
+  }
+
+  return false
+}
+
+// TUN模式获取权限
+export async function requestTunPermissions(): Promise<void> {
+  if (process.platform === 'win32') {
+    await restartAsAdmin()
+  } else {
+    const hasPermissions = await checkMihomoCorePermissions()
+    if (!hasPermissions) {
+      await grantTunPermissions()
+    }
+  }
+}
+
+export async function checkAdminRestartForTun(): Promise<void> {
+  if (process.argv.includes('--admin-restart-for-tun')) {
+    console.log('Detected admin restart for TUN mode, auto-enabling TUN...')
+
+    try {
+      if (process.platform === 'win32') {
+        const hasAdminPrivileges = await checkAdminPrivileges()
+        if (hasAdminPrivileges) {
+          await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } })
+          await restartCore()
+
+          console.log('TUN mode auto-enabled after admin restart')
+
+          const { mainWindow } = await import('../index')
+          mainWindow?.webContents.send('controledMihomoConfigUpdated')
+          ipcMain.emit('updateTrayMenu')
+        } else {
+          console.warn('Admin restart detected but no admin privileges found')
+        }
+      }
+    } catch (error) {
+      console.error('Failed to auto-enable TUN after admin restart:', error)
+    }
+  } else if (process.platform === 'win32') {
+    try {
+      const hasAdminPrivileges = await checkAdminPrivileges()
+      const { tun } = await getControledMihomoConfig()
+
+      if (hasAdminPrivileges && !tun?.enable) {
+        console.log('Running with admin privileges but TUN is disabled')
+        const { mainWindow } = await import('../index')
+        mainWindow?.webContents.send('adminPrivilegesDetected', { tunEnabled: false })
+      }
+    } catch (error) {
+      console.error('Failed to check admin privileges on startup:', error)
+    }
   }
 }
 

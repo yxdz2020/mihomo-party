@@ -19,7 +19,7 @@ import { mainWindow, showMainWindow, triggerMainWindow } from '..'
 import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
 import { triggerSysProxy } from '../sys/sysproxy'
-import { quitWithoutCore, restartCore, checkTunPermissions, grantTunPermissions, checkAdminPrivileges, requestAdminPrivileges } from '../core/manager'
+import { quitWithoutCore, restartCore, checkMihomoCorePermissions, requestTunPermissions, restartAsAdmin } from '../core/manager'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 import { t } from 'i18next'
 
@@ -178,42 +178,33 @@ export const buildContextMenu = async (): Promise<Menu> => {
         const enable = item.checked
         try {
           if (enable) {
-            // Windows 管理员权限
-            if (process.platform === 'win32') {
-              try {
-                const isAdmin = await checkAdminPrivileges()
-                if (!isAdmin) {
-                  try {
-                    await requestAdminPrivileges()
-                    return
-                  } catch (error) {
-                    console.error('Failed to request admin privileges:', error)
-                    item.checked = false
-                    ipcMain.emit('updateTrayMenu')
-                    return
-                  }
-                }
-              } catch (error) {
-                console.warn('Admin check failed:', error)
-              }
-            }
+            // 检查权限
+            try {
+              const hasPermissions = await checkMihomoCorePermissions()
 
-            if (process.platform !== 'win32') {
-              try {
-                const hasPermissions = await checkTunPermissions()
-                if (!hasPermissions) {
+              if (!hasPermissions) {
+                if (process.platform === 'win32') {
                   try {
-                    await grantTunPermissions()
+                    await restartAsAdmin()
                   } catch (error) {
-                    console.error('Failed to grant TUN permissions:', error)
+                    console.error('Failed to restart as admin from tray:', error)
+                    item.checked = false
+                    ipcMain.emit('updateTrayMenu')
+                    return
+                  }
+                } else {
+                  try {
+                    await requestTunPermissions()
+                  } catch (error) {
+                    console.error('Failed to grant TUN permissions from tray:', error)
                     item.checked = false
                     ipcMain.emit('updateTrayMenu')
                     return
                   }
                 }
-              } catch (error) {
-                console.warn('Permission check failed:', error)
               }
+            } catch (error) {
+              console.warn('Permission check failed in tray:', error)
             }
 
             await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })

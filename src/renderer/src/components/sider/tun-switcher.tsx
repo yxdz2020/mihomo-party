@@ -38,40 +38,40 @@ const TunSwitcher: React.FC<Props> = (props) => {
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   const onChange = async (enable: boolean): Promise<void> => {
     if (enable) {
-      // Windows下检查管理员权限
-      if (window.electron.process.platform === 'win32') {
-        try {
-          const isAdmin = await window.electron.ipcRenderer.invoke('checkAdminPrivileges')
-          if (!isAdmin) {
+      try {
+        // 检查内核权限
+        const hasPermissions = await window.electron.ipcRenderer.invoke('checkMihomoCorePermissions')
+
+        if (!hasPermissions) {
+          if (window.electron.process.platform === 'win32') {
             const confirmed = confirm(t('tun.permissions.required'))
             if (confirmed) {
               try {
-                const notification = new Notification(t('tun.permissions.requesting'))
-
-                await window.electron.ipcRenderer.invoke('requestAdminPrivileges')
+                const notification = new Notification(t('tun.permissions.restarting'))
+                await window.electron.ipcRenderer.invoke('restartAsAdmin')
                 notification.close()
                 return
               } catch (error) {
-                console.error('Failed to request admin privileges:', error)
+                console.error('Failed to restart as admin:', error)
                 alert(t('tun.permissions.failed') + ': ' + error)
                 return
               }
             } else {
               return
             }
+          } else {
+            // macOS/Linux下尝试自动获取权限
+            try {
+              await window.electron.ipcRenderer.invoke('requestTunPermissions')
+            } catch (error) {
+              console.warn('Permission grant failed:', error)
+              alert(t('tun.permissions.failed') + ': ' + error)
+              return
+            }
           }
-        } catch (error) {
-          console.warn('Admin check failed:', error)
         }
-      }
-
-      // macOS/Linux 获取权限
-      if (window.electron.process.platform !== 'win32') {
-        try {
-          await window.electron.ipcRenderer.invoke('manualGrantCorePermition')
-        } catch (error) {
-          console.warn('Permission grant failed:', error)
-        }
+      } catch (error) {
+        console.warn('Permission check failed:', error)
       }
 
       await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })

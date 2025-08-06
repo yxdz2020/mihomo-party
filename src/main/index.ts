@@ -3,7 +3,7 @@ import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
 import { app, shell, BrowserWindow, Menu, dialog, Notification, powerMonitor } from 'electron'
 import { addProfileItem, getAppConfig, patchAppConfig } from './config'
-import { quitWithoutCore, startCore, stopCore } from './core/manager'
+import { quitWithoutCore, startCore, stopCore, checkAdminRestartForTun } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import icon from '../../resources/icon.png?asset'
 import { createTray, hideDockIcon, showDockIcon } from './resolve/tray'
@@ -173,6 +173,8 @@ app.whenReady().then(async () => {
     const [startPromise] = await startCore()
     startPromise.then(async () => {
       await initProfileUpdater()
+      // 上次是否为了开启 TUN 而重启
+      await checkAdminRestartForTun()
     })
   } catch (e) {
     showSafeErrorBox('mihomo.error.coreStartFailed', `${e}`)
