@@ -26,9 +26,23 @@ let runtimeConfig: IMihomoConfig
 
 export async function generateProfile(): Promise<void> {
   const { current } = await getProfileConfig()
-  const { diffWorkDir = false } = await getAppConfig()
+  const { diffWorkDir = false, controlDns = true, controlSniff = true, useNameserverPolicy } = await getAppConfig()
   const currentProfile = await overrideProfile(current, await getProfile(current))
-  const controledMihomoConfig = await getControledMihomoConfig()
+  let controledMihomoConfig = await getControledMihomoConfig()
+
+  // 根据开关状态过滤控制配置
+  controledMihomoConfig = { ...controledMihomoConfig }
+  if (!controlDns) {
+    delete controledMihomoConfig.dns
+    delete controledMihomoConfig.hosts
+  }
+  if (!controlSniff) {
+    delete controledMihomoConfig.sniffer
+  }
+  if (!useNameserverPolicy) {
+    delete controledMihomoConfig?.dns?.['nameserver-policy']
+  }
+
   const profile = deepMerge(currentProfile, controledMihomoConfig)
   // 确保可以拿到基础日志信息
   // 使用 debug 可以调试内核相关问题 `debug/pprof`
