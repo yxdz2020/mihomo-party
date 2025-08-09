@@ -9,58 +9,94 @@ import { buildContextMenu, showTrayIcon } from './tray'
 export let floatingWindow: BrowserWindow | null = null
 
 async function createFloatingWindow(): Promise<void> {
-  const floatingWindowState = windowStateKeeper({
-    file: 'floating-window-state.json'
-  })
-  const { customTheme = 'default.css' } = await getAppConfig()
-  floatingWindow = new BrowserWindow({
-    width: 120,
-    height: 42,
-    x: floatingWindowState.x,
-    y: floatingWindowState.y,
-    show: false,
-    frame: false,
-    alwaysOnTop: true,
-    resizable: false,
-    transparent: true,
-    skipTaskbar: true,
-    minimizable: false,
-    maximizable: false,
-    fullscreenable: false,
-    closable: false,
-    webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      spellcheck: false,
-      sandbox: false
+  try {
+    const floatingWindowState = windowStateKeeper({
+      file: 'floating-window-state.json'
+    })
+    const { customTheme = 'default.css' } = await getAppConfig()
+
+    const windowOptions: Electron.BrowserWindowConstructorOptions = {
+      width: 120,
+      height: 42,
+      x: floatingWindowState.x,
+      y: floatingWindowState.y,
+      show: false,
+      frame: false,
+      alwaysOnTop: true,
+      resizable: false,
+      transparent: true,
+      skipTaskbar: true,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      closable: false,
+      backgroundColor: '#00000000',
+      webPreferences: {
+        preload: join(__dirname, '../preload/index.js'),
+        spellcheck: false,
+        sandbox: false,
+        nodeIntegration: false,
+        contextIsolation: true
+      }
     }
-  })
-  floatingWindowState.manage(floatingWindow)
-  floatingWindow.on('ready-to-show', () => {
-    applyTheme(customTheme)
-    floatingWindow?.show()
-    floatingWindow?.setAlwaysOnTop(true, 'screen-saver')
-  })
-  floatingWindow.on('moved', () => {
-    if (floatingWindow) floatingWindowState.saveState(floatingWindow)
-  })
-  ipcMain.on('updateFloatingWindow', () => {
-    if (floatingWindow) {
-      floatingWindow?.webContents.send('controledMihomoConfigUpdated')
-      floatingWindow?.webContents.send('appConfigUpdated')
+
+    // windows 添加兼容性处理
+    if (process.platform === 'win32') {
+      windowOptions.hasShadow = false
+      windowOptions.webPreferences!.offscreen = false
     }
-  })
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    floatingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/floating.html`)
-  } else {
-    floatingWindow.loadFile(join(__dirname, '../renderer/floating.html'))
+
+    floatingWindow = new BrowserWindow(windowOptions)
+    floatingWindowState.manage(floatingWindow)
+
+    floatingWindow.webContents.on('render-process-gone', (_, details) => {
+      console.error('Floating window render process gone:', details.reason)
+      floatingWindow = null
+    })
+
+    floatingWindow.on('ready-to-show', () => {
+      try {
+        applyTheme(customTheme)
+        floatingWindow?.show()
+        floatingWindow?.setAlwaysOnTop(true, 'screen-saver')
+      } catch (error) {
+        console.error('Error in floating window ready-to-show:', error)
+      }
+    })
+
+    floatingWindow.on('moved', () => {
+      if (floatingWindow) floatingWindowState.saveState(floatingWindow)
+    })
+    ipcMain.on('updateFloatingWindow', () => {
+      if (floatingWindow) {
+        floatingWindow?.webContents.send('controledMihomoConfigUpdated')
+        floatingWindow?.webContents.send('appConfigUpdated')
+      }
+    })
+
+    if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+      await floatingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/floating.html`)
+    } else {
+      await floatingWindow.loadFile(join(__dirname, '../renderer/floating.html'))
+    }
+  } catch (error) {
+    console.error('Failed to create floating window:', error)
+    floatingWindow = null
+    throw error
   }
 }
 
 export async function showFloatingWindow(): Promise<void> {
-  if (floatingWindow) {
-    floatingWindow.show()
-  } else {
-    createFloatingWindow()
+  try {
+    if (floatingWindow && !floatingWindow.isDestroyed()) {
+      floatingWindow.show()
+    } else {
+      await createFloatingWindow()
+    }
+  } catch (error) {
+    console.error('Failed to show floating window:', error)
+    await patchAppConfig({ showFloatingWindow: false })
+    throw error
   }
 }
 

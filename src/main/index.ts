@@ -195,7 +195,11 @@ app.whenReady().then(async () => {
   registerIpcMainHandlers()
   await createWindow()
   if (showFloating) {
-    showFloatingWindow()
+    try {
+      await showFloatingWindow()
+    } catch (error) {
+      console.error('Failed to create floating window on startup:', error)
+    }
   }
   if (!disableTray) {
     await createTray()
