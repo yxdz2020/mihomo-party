@@ -458,19 +458,37 @@ export async function checkAdminRestartForTun(): Promise<void> {
     } catch (error) {
       console.error('Failed to auto-enable TUN after admin restart:', error)
     }
-  } else if (process.platform === 'win32') {
-    try {
-      const hasAdminPrivileges = await checkAdminPrivileges()
-      const { tun } = await getControledMihomoConfig()
+  } else {
+    // 检查TUN配置与权限的匹配
+    await validateTunPermissionsOnStartup()
+  }
+}
 
-      if (hasAdminPrivileges && !tun?.enable) {
-        console.log('Running with admin privileges but TUN is disabled')
-        const { mainWindow } = await import('../index')
-        mainWindow?.webContents.send('adminPrivilegesDetected', { tunEnabled: false })
-      }
-    } catch (error) {
-      console.error('Failed to check admin privileges on startup:', error)
+export async function validateTunPermissionsOnStartup(): Promise<void> {
+  try {
+    const { tun } = await getControledMihomoConfig()
+
+    if (!tun?.enable) {
+      return
     }
+
+    const hasPermissions = await checkMihomoCorePermissions()
+
+    if (!hasPermissions) {
+      console.warn('TUN is enabled but insufficient permissions detected, auto-disabling TUN...')
+
+      await patchControledMihomoConfig({ tun: { enable: false } })
+
+      const { mainWindow } = await import('../index')
+      mainWindow?.webContents.send('controledMihomoConfigUpdated')
+      ipcMain.emit('updateTrayMenu')
+
+      console.log('TUN auto-disabled due to insufficient permissions')
+    } else {
+      console.log('TUN permissions validated successfully')
+    }
+  } catch (error) {
+    console.error('Failed to validate TUN permissions on startup:', error)
   }
 }
 
