@@ -12,7 +12,23 @@ on:
 permissions: write-all
 
 jobs:
+  cleanup-dev-release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Dev Release Assets
+        continue-on-error: true
+        run: |
+          # Delete the entire dev release to clean up old assets
+          curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/dev" || true
+
+          # Delete the dev tag
+          curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/dev" || true
   windows:
+    needs: [cleanup-dev-release]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -81,6 +97,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   windows7:
+    needs: [cleanup-dev-release]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -150,6 +168,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   linux:
+    needs: [cleanup-dev-release]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -212,6 +232,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   macos:
+    needs: [cleanup-dev-release]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -296,6 +318,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   macos10:
+    needs: [cleanup-dev-release]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
