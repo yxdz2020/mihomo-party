@@ -82,6 +82,18 @@ async function fixDataDirPermissions(): Promise<void> {
   }
 }
 
+  // 比较修改geodata文件修改时间
+async function isSourceNewer(sourcePath: string, targetPath: string): Promise<boolean> {
+  try {
+    const sourceStats = await stat(sourcePath)
+    const targetStats = await stat(targetPath)
+
+    return sourceStats.mtime > targetStats.mtime
+  } catch {
+    return true
+  }
+}
+
 async function initDirs(): Promise<void> {
   await fixDataDirPermissions()
 
@@ -137,11 +149,18 @@ async function initFiles(): Promise<void> {
     const sourcePath = path.join(resourcesFilesDir(), file)
 
     try {
-      if (!existsSync(targetPath) && existsSync(sourcePath)) {
-        await cp(sourcePath, targetPath, { recursive: true })
+      // 检查是否需要复制
+      if (existsSync(sourcePath)) {
+        const shouldCopyToWork = !existsSync(targetPath) || await isSourceNewer(sourcePath, targetPath)
+        if (shouldCopyToWork) {
+          await cp(sourcePath, targetPath, { recursive: true })
+        }
       }
-      if (!existsSync(testTargetPath) && existsSync(sourcePath)) {
-        await cp(sourcePath, testTargetPath, { recursive: true })
+      if (existsSync(sourcePath)) {
+        const shouldCopyToTest = !existsSync(testTargetPath) || await isSourceNewer(sourcePath, testTargetPath)
+        if (shouldCopyToTest) {
+          await cp(sourcePath, testTargetPath, { recursive: true })
+        }
       }
     } catch (error) {
       console.error(`Failed to copy ${file}:`, error)
