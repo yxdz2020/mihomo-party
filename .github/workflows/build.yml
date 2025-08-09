@@ -67,6 +67,18 @@ jobs:
             dist/*portable.7z
           body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Dev Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          files: |
+            dist/*.sha256
+            dist/*setup.exe
+            dist/*portable.7z
+          body: "Development build from ${{ github.sha }}"
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   windows7:
     strategy:
@@ -124,6 +136,18 @@ jobs:
             dist/*portable.7z
           body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Dev Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          files: |
+            dist/*.sha256
+            dist/*setup.exe
+            dist/*portable.7z
+          body: "Development build from ${{ github.sha }}"
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   linux:
     strategy:
@@ -173,6 +197,18 @@ jobs:
             dist/*.deb
             dist/*.rpm
           body_path: changelog.md
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Dev Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          files: |
+            dist/*.sha256
+            dist/*.deb
+            dist/*.rpm
+          body: "Development build from ${{ github.sha }}"
+          prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
   macos:
@@ -246,6 +282,17 @@ jobs:
             dist/*.sha256
             dist/*.pkg
           body_path: changelog.md
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Dev Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          files: |
+            dist/*.sha256
+            dist/*.pkg
+          body: "Development build from ${{ github.sha }}"
+          prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
   macos10:
@@ -322,9 +369,20 @@ jobs:
             dist/*.pkg
           body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Dev Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          files: |
+            dist/*.sha256
+            dist/*.pkg
+          body: "Development build from ${{ github.sha }}"
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   updater:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     needs: [windows, macos, windows7, macos10]
     runs-on: ubuntu-latest
     steps:
@@ -335,16 +393,27 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
       - name: Telegram Notification
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         run: pnpm telegram
       - name: Generate latest.yml
         run: pnpm updater
       - name: Publish Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: latest.yml
           body_path: changelog.md
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish Dev Release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev
+          files: latest.yml
+          body: "Development build updater from ${{ github.sha }}"
+          prerelease: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
   aur-release-updater:
