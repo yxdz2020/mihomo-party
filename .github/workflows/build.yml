@@ -19,13 +19,28 @@ jobs:
       - name: Delete Dev Release Assets
         continue-on-error: true
         run: |
-          # Delete the entire dev release to clean up old assets
-          curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/dev" || true
+          # Get release ID for dev tag
+          RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/dev" | \
+            jq -r '.id // empty')
 
-          # Delete the dev tag
-          curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/git/refs/tags/dev" || true
+          if [ ! -z "$RELEASE_ID" ]; then
+            echo "Found dev release with ID: $RELEASE_ID"
+
+            # Get all assets and delete them
+            curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | \
+              jq -r '.[].id' | \
+              while read asset_id; do
+                echo "Deleting asset: $asset_id"
+                curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                  "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
+              done
+
+            echo "All dev release assets deleted"
+          else
+            echo "No existing dev release found"
+          fi
   windows:
     needs: [cleanup-dev-release]
     if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
@@ -94,6 +109,7 @@ jobs:
             dist/*portable.7z
           body: "Development build from ${{ github.sha }}"
           prerelease: true
+          draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
   windows7:
@@ -165,6 +181,7 @@ jobs:
             dist/*portable.7z
           body: "Development build from ${{ github.sha }}"
           prerelease: true
+          draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
   linux:
@@ -229,6 +246,7 @@ jobs:
             dist/*.rpm
           body: "Development build from ${{ github.sha }}"
           prerelease: true
+          draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
   macos:
@@ -315,6 +333,7 @@ jobs:
             dist/*.pkg
           body: "Development build from ${{ github.sha }}"
           prerelease: true
+          draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
   macos10:
@@ -403,6 +422,7 @@ jobs:
             dist/*.pkg
           body: "Development build from ${{ github.sha }}"
           prerelease: true
+          draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
   updater:
@@ -438,6 +458,7 @@ jobs:
           files: latest.yml
           body: "Development build updater from ${{ github.sha }}"
           prerelease: true
+          draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
   aur-release-updater:
