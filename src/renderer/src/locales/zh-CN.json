@@ -54,6 +54,8 @@
   "settings.envType": "环境变量类型",
   "settings.showFloatingWindow": "显示悬浮窗",
   "settings.spinFloatingIcon": "根据网速旋转悬浮窗图标",
+  "settings.floatingWindowCompatMode": "悬浮窗兼容模式（推荐开启）",
+  "settings.floatingWindowCompatModeTooltip": "禁用透明效果以避免在某些 Windows 系统上崩溃，建议保持开启以确保稳定性",
   "settings.disableTray": "禁用托盘图标",
   "settings.proxyInTray": "在托盘菜单显示代理信息",
   "settings.showTraffic_windows": "在任务栏显示网速",

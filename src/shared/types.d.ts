@@ -236,6 +236,7 @@ interface IAppConfig {
   spinFloatingIcon?: boolean
   disableTray?: boolean
   showFloatingWindow?: boolean
+  floatingWindowCompatMode?: boolean
   connectionCardStatus?: CardStatus
   dnsCardStatus?: CardStatus
   logCardStatus?: CardStatus

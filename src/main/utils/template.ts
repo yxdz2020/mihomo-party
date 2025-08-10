@@ -21,6 +21,7 @@ export const defaultConfig: IAppConfig = {
   useNameserverPolicy: false,
   controlDns: true,
   controlSniff: true,
+  floatingWindowCompatMode: true,
   nameserverPolicy: {},
   siderOrder: [
     'sysproxy',

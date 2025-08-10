@@ -54,6 +54,8 @@
   "settings.envType": "Environment Variable Type",
   "settings.showFloatingWindow": "Show Floating Window",
   "settings.spinFloatingIcon": "Spin Floating Icon Based on Network Speed",
+  "settings.floatingWindowCompatMode": "Floating Window Compatibility Mode (Recommended)",
+  "settings.floatingWindowCompatModeTooltip": "Disables transparency effects to prevent crashes on some Windows systems. Recommended to keep enabled for stability",
   "settings.disableTray": "Disable Tray Icon",
   "settings.proxyInTray": "Show Proxy Info in Tray Menu",
   "settings.showTraffic_windows": "Show Network Speed in Taskbar",

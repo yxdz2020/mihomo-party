@@ -48,6 +48,7 @@ const GeneralConfig: React.FC = () => {
     disableTray = false,
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
+    floatingWindowCompatMode = true,
     useWindowFrame = false,
     autoQuitWithoutCore = false,
     autoQuitWithoutCoreDelay = 60,
@@ -235,6 +236,27 @@ const GeneralConfig: React.FC = () => {
                   window.electron.ipcRenderer.send('updateFloatingWindow')
                 }}
               />
+            </SettingItem>
+            <SettingItem
+              title={t('settings.floatingWindowCompatMode')}
+              divider
+            >
+              <div className="flex items-center gap-2">
+                <Switch
+                  size="sm"
+                  isSelected={floatingWindowCompatMode}
+                  onValueChange={async (v) => {
+                    await patchAppConfig({ floatingWindowCompatMode: v })
+                    closeFloatingWindow()
+                    setTimeout(() => {
+                      showFloatingWindow()
+                    }, 100)
+                  }}
+                />
+                <Tooltip content={t('settings.floatingWindowCompatModeTooltip')}>
+                  <IoIosHelpCircle className="text-default-500 cursor-help" />
+                </Tooltip>
+              </div>
             </SettingItem>
             <SettingItem title={t('settings.disableTray')} divider>
               <Switch

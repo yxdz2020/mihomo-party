@@ -41,11 +41,18 @@ async function createFloatingWindow(): Promise<void> {
       file: 'floating-window-state.json'
     })
     await logFloatingWindow('Window state keeper initialized')
-    const { customTheme = 'default.css' } = await getAppConfig()
-    await logFloatingWindow(`App config loaded, theme: ${customTheme}`)
+    const { customTheme = 'default.css', floatingWindowCompatMode = true } = await getAppConfig()
+    await logFloatingWindow(`App config loaded, theme: ${customTheme}, compatMode: ${floatingWindowCompatMode}`)
 
     const safeMode = process.env.FLOATING_SAFE_MODE === 'true'
+    const forceWin10Mode = process.env.FLOATING_WIN10_MODE === 'true'
+    const useCompatMode = floatingWindowCompatMode || forceWin10Mode || safeMode
+
     await logFloatingWindow(`Safe mode: ${safeMode}`)
+    await logFloatingWindow(`Force Win10 mode: ${forceWin10Mode}`)
+    await logFloatingWindow(`Compat mode from config: ${floatingWindowCompatMode}`)
+    await logFloatingWindow(`Platform: ${process.platform}, System version: ${process.getSystemVersion()}`)
+    await logFloatingWindow(`Using compatibility mode: ${useCompatMode}`)
 
     const windowOptions: Electron.BrowserWindowConstructorOptions = {
       width: 120,
@@ -56,13 +63,13 @@ async function createFloatingWindow(): Promise<void> {
       frame: safeMode ? true : false,
       alwaysOnTop: !safeMode,
       resizable: safeMode,
-      transparent: !safeMode,
+      transparent: !safeMode && !useCompatMode, // 兼容模式下禁用透明
       skipTaskbar: !safeMode,
       minimizable: safeMode,
       maximizable: safeMode,
       fullscreenable: false,
       closable: safeMode,
-      backgroundColor: safeMode ? '#ffffff' : '#00000000',
+      backgroundColor: safeMode ? '#ffffff' : (useCompatMode ? '#f0f0f0' : '#00000000'), // 兼容模式使用浅灰色
       webPreferences: {
         preload: join(__dirname, '../preload/index.js'),
         spellcheck: false,
@@ -79,16 +86,39 @@ async function createFloatingWindow(): Promise<void> {
     }
 
     await logFloatingWindow(`Creating BrowserWindow with options: ${JSON.stringify(windowOptions, null, 2)}`)
-    floatingWindow = new BrowserWindow(windowOptions)
-    await logFloatingWindow('BrowserWindow created successfully')
-    floatingWindowState.manage(floatingWindow)
-    await logFloatingWindow('Window state management attached')
 
-    floatingWindow.webContents.on('render-process-gone', async (_, details) => {
-      await logFloatingWindow('Render process gone', details.reason)
-      floatingWindow = null
-    })
+    try {
+      floatingWindow = new BrowserWindow(windowOptions)
+      await logFloatingWindow('BrowserWindow created successfully')
+    } catch (error) {
+      await logFloatingWindow('Failed to create BrowserWindow', error)
+      throw error
+    }
 
+    try {
+      await logFloatingWindow('Attaching window state management...')
+      floatingWindowState.manage(floatingWindow)
+      await logFloatingWindow('Window state management attached')
+    } catch (error) {
+      await logFloatingWindow('Failed to attach window state management', error)
+      throw error
+    }
+
+    await logFloatingWindow('Setting up event listeners...')
+
+    try {
+      await logFloatingWindow('Adding render-process-gone listener...')
+      floatingWindow.webContents.on('render-process-gone', async (_, details) => {
+        await logFloatingWindow('Render process gone', details.reason)
+        floatingWindow = null
+      })
+      await logFloatingWindow('Render-process-gone listener added')
+    } catch (error) {
+      await logFloatingWindow('Failed to add render-process-gone listener', error)
+      throw error
+    }
+
+    await logFloatingWindow('Adding ready-to-show listener...')
     floatingWindow.on('ready-to-show', async () => {
       try {
         await logFloatingWindow('Window ready to show, applying theme...')
@@ -102,16 +132,21 @@ async function createFloatingWindow(): Promise<void> {
         await logFloatingWindow('Error in ready-to-show', error)
       }
     })
+    await logFloatingWindow('Ready-to-show listener added')
 
+    await logFloatingWindow('Adding moved listener...')
     floatingWindow.on('moved', () => {
       if (floatingWindow) floatingWindowState.saveState(floatingWindow)
     })
+    await logFloatingWindow('Moved listener added')
+    await logFloatingWindow('Adding IPC listener...')
     ipcMain.on('updateFloatingWindow', () => {
       if (floatingWindow) {
         floatingWindow?.webContents.send('controledMihomoConfigUpdated')
         floatingWindow?.webContents.send('appConfigUpdated')
       }
     })
+    await logFloatingWindow('IPC listener added')
 
     await logFloatingWindow('Loading page...')
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -145,7 +180,17 @@ export async function showFloatingWindow(): Promise<void> {
     }
   } catch (error) {
     await logFloatingWindow('Failed to show floating window', error)
-    await patchAppConfig({ showFloatingWindow: false })
+
+    // 如果已经是兼容模式还是崩溃，说明问题很严重，自动禁用悬浮窗
+    const { floatingWindowCompatMode = true } = await getAppConfig()
+    if (floatingWindowCompatMode) {
+      await logFloatingWindow('Compatibility mode was already enabled, disabling floating window completely')
+      await patchAppConfig({ showFloatingWindow: false })
+    } else {
+      await logFloatingWindow('Enabling compatibility mode and retrying')
+      await patchAppConfig({ floatingWindowCompatMode: true })
+    }
+
     await logFloatingWindow('Disabled floating window in config due to error')
     throw error
   }
