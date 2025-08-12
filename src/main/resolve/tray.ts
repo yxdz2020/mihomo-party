@@ -22,14 +22,15 @@ import { triggerSysProxy } from '../sys/sysproxy'
 import { quitWithoutCore, restartCore, checkMihomoCorePermissions, requestTunPermissions, restartAsAdmin } from '../core/manager'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 import { t } from 'i18next'
+import { trayLogger } from '../utils/logger'
 
 export let tray: Tray | null = null
 
 export const buildContextMenu = async (): Promise<Menu> => {
   // 添加调试日志
-  console.log('Current translation for tray.showWindow:', t('tray.showWindow'))
-  console.log('Current translation for tray.hideFloatingWindow:', t('tray.hideFloatingWindow'))
-  console.log('Current translation for tray.showFloatingWindow:', t('tray.showFloatingWindow'))
+  await trayLogger.debug('Current translation for tray.showWindow', t('tray.showWindow'))
+  await trayLogger.debug('Current translation for tray.hideFloatingWindow', t('tray.hideFloatingWindow'))
+  await trayLogger.debug('Current translation for tray.showFloatingWindow', t('tray.showFloatingWindow'))
 
   const { mode, tun } = await getControledMihomoConfig()
   const {
@@ -187,7 +188,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
                   try {
                     await restartAsAdmin()
                   } catch (error) {
-                    console.error('Failed to restart as admin from tray:', error)
+                    await trayLogger.error('Failed to restart as admin from tray', error)
                     item.checked = false
                     ipcMain.emit('updateTrayMenu')
                     return
@@ -196,7 +197,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
                   try {
                     await requestTunPermissions()
                   } catch (error) {
-                    console.error('Failed to grant TUN permissions from tray:', error)
+                    await trayLogger.error('Failed to grant TUN permissions from tray', error)
                     item.checked = false
                     ipcMain.emit('updateTrayMenu')
                     return
@@ -204,7 +205,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
                 }
               }
             } catch (error) {
-              console.warn('Permission check failed in tray:', error)
+              await trayLogger.warn('Permission check failed in tray', error)
             }
 
             await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })
@@ -418,13 +419,13 @@ export async function closeTrayIcon(): Promise<void> {
 }
 
 export async function showDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && !app.dock.isVisible()) {
+  if (process.platform === 'darwin' && app.dock && !app.dock.isVisible()) {
     await app.dock.show()
   }
 }
 
 export async function hideDockIcon(): Promise<void> {
-  if (process.platform === 'darwin' && app.dock.isVisible()) {
+  if (process.platform === 'darwin' && app.dock && app.dock.isVisible()) {
     app.dock.hide()
   }
 }

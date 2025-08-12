@@ -12,6 +12,7 @@ import {
   subStoreDir,
   themesDir
 } from '../utils/dirs'
+import { systemLogger } from '../utils/logger'
 
 export async function webdavBackup(): Promise<boolean> {
   const { createClient } = await import('webdav/dist/node/index.js')
@@ -75,7 +76,7 @@ export async function webdavBackup(): Promise<boolean> {
         }
       }
     } catch (error) {
-      console.error('Failed to clean up old backup files:', error)
+      await systemLogger.error('Failed to clean up old backup files', error)
     }
   }
 

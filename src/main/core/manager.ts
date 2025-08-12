@@ -1,7 +1,7 @@
 import { ChildProcess, exec, execFile, spawn } from 'child_process'
 import {
   dataDir,
-  logPath,
+  coreLogPath,
   mihomoCoreDir,
   mihomoCorePath,
   mihomoProfileWorkDir,
@@ -41,6 +41,7 @@ import { uploadRuntimeConfig } from '../resolve/gistApi'
 import { startMonitor } from '../resolve/trafficMonitor'
 import { safeShowErrorBox } from '../utils/init'
 import i18next from '../../shared/i18n'
+import { managerLogger } from '../utils/logger'
 
 chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', async () => {
   try {
@@ -96,13 +97,12 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     try {
       await setPublicDNS()
     } catch (error) {
-      await writeFile(logPath(), `[Manager]: set dns failed, ${error}`, {
-        flag: 'a'
-      })
+      await managerLogger.error('set dns failed', error)
     }
   }
-  const stdout = createWriteStream(logPath(), { flags: 'a' })
-  const stderr = createWriteStream(logPath(), { flags: 'a' })
+  // 内核日志输出到独立的 core-日期.log 文件
+  const stdout = createWriteStream(coreLogPath(), { flags: 'a' })
+  const stderr = createWriteStream(coreLogPath(), { flags: 'a' })
   const env = {
     DISABLE_LOOPBACK_DETECTOR: String(disableLoopbackDetector),
     DISABLE_EMBED_CA: String(disableEmbedCA),
@@ -128,11 +128,9 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     })
   }
   child.on('close', async (code, signal) => {
-    await writeFile(logPath(), `[Manager]: Core closed, code: ${code}, signal: ${signal}\n`, {
-      flag: 'a'
-    })
+    await managerLogger.info(`Core closed, code: ${code}, signal: ${signal}`)
     if (retry) {
-      await writeFile(logPath(), `[Manager]: Try Restart Core\n`, { flag: 'a' })
+      await managerLogger.info('Try Restart Core')
       retry--
       await restartCore()
     } else {
@@ -194,9 +192,7 @@ export async function stopCore(force = false): Promise<void> {
       await recoverDNS()
     }
   } catch (error) {
-    await writeFile(logPath(), `[Manager]: recover dns failed, ${error}`, {
-      flag: 'a'
-    })
+    await managerLogger.error('recover dns failed', error)
   }
 
   if (child) {
@@ -214,9 +210,7 @@ export async function restartCore(): Promise<void> {
     await startCore()
   } catch (e) {
     // 记录错误到日志而不是显示阻塞对话框
-    await writeFile(logPath(), `[Manager]: restart core failed, ${e}\n`, {
-      flag: 'a'
-    })
+    await managerLogger.error('restart core failed', e)
     // 重新抛出错误，让调用者处理
     throw e
   }
@@ -260,12 +254,12 @@ async function checkProfile(): Promise<void> {
       mihomoTestDir()
     ], { env })
   } catch (error) {
-    console.error('Profile check failed:', error)
+    await managerLogger.error('Profile check failed', error)
 
     if (error instanceof Error && 'stdout' in error) {
       const { stdout, stderr } = error as { stdout: string; stderr?: string }
-      console.log('Profile check stdout:', stdout)
-      console.log('Profile check stderr:', stderr)
+      await managerLogger.info('Profile check stdout', stdout)
+      await managerLogger.info('Profile check stderr', stderr)
 
       const errorLines = stdout
         .split('\n')
@@ -377,15 +371,15 @@ export async function restartAsAdmin(): Promise<void> {
       command = `powershell -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
     }
 
-    console.log('Restarting as administrator with command:', command)
+    await managerLogger.info('Restarting as administrator with command', command)
 
     // 执行PowerShell命令
-    exec(command, { windowsHide: true }, (error, _stdout, stderr) => {
+    exec(command, { windowsHide: true }, async (error, _stdout, stderr) => {
       if (error) {
-        console.error('PowerShell execution error:', error)
-        console.error('stderr:', stderr)
+        await managerLogger.error('PowerShell execution error', error)
+        await managerLogger.error('stderr', stderr)
       } else {
-        console.log('PowerShell command executed successfully')
+        await managerLogger.info('PowerShell command executed successfully')
       }
     })
 
@@ -394,7 +388,7 @@ export async function restartAsAdmin(): Promise<void> {
     const { app } = await import('electron')
     app.quit()
   } catch (error) {
-    console.error('Failed to restart as administrator:', error)
+    await managerLogger.error('Failed to restart as administrator', error)
     throw new Error(`Failed to restart as administrator: ${error}`)
   }
 }
@@ -437,7 +431,7 @@ export async function requestTunPermissions(): Promise<void> {
 
 export async function checkAdminRestartForTun(): Promise<void> {
   if (process.argv.includes('--admin-restart-for-tun')) {
-    console.log('Detected admin restart for TUN mode, auto-enabling TUN...')
+    await managerLogger.info('Detected admin restart for TUN mode, auto-enabling TUN...')
 
     try {
       if (process.platform === 'win32') {
@@ -446,17 +440,17 @@ export async function checkAdminRestartForTun(): Promise<void> {
           await patchControledMihomoConfig({ tun: { enable: true }, dns: { enable: true } })
           await restartCore()
 
-          console.log('TUN mode auto-enabled after admin restart')
+          await managerLogger.info('TUN mode auto-enabled after admin restart')
 
           const { mainWindow } = await import('../index')
           mainWindow?.webContents.send('controledMihomoConfigUpdated')
           ipcMain.emit('updateTrayMenu')
         } else {
-          console.warn('Admin restart detected but no admin privileges found')
+          await managerLogger.warn('Admin restart detected but no admin privileges found')
         }
       }
     } catch (error) {
-      console.error('Failed to auto-enable TUN after admin restart:', error)
+      await managerLogger.error('Failed to auto-enable TUN after admin restart', error)
     }
   } else {
     // 检查TUN配置与权限的匹配
@@ -475,7 +469,7 @@ export async function validateTunPermissionsOnStartup(): Promise<void> {
     const hasPermissions = await checkMihomoCorePermissions()
 
     if (!hasPermissions) {
-      console.warn('TUN is enabled but insufficient permissions detected, auto-disabling TUN...')
+      await managerLogger.warn('TUN is enabled but insufficient permissions detected, auto-disabling TUN...')
 
       await patchControledMihomoConfig({ tun: { enable: false } })
 
@@ -483,12 +477,12 @@ export async function validateTunPermissionsOnStartup(): Promise<void> {
       mainWindow?.webContents.send('controledMihomoConfigUpdated')
       ipcMain.emit('updateTrayMenu')
 
-      console.log('TUN auto-disabled due to insufficient permissions')
+      await managerLogger.info('TUN auto-disabled due to insufficient permissions')
     } else {
-      console.log('TUN permissions validated successfully')
+      await managerLogger.info('TUN permissions validated successfully')
     }
   } catch (error) {
-    console.error('Failed to validate TUN permissions on startup:', error)
+    await managerLogger.error('Failed to validate TUN permissions on startup', error)
   }
 }
 

@@ -134,12 +134,27 @@ export function logDir(): string {
 
 export function logPath(): string {
   const date = new Date()
-  const name = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const name = `mihomo-party-${year}-${month}-${day}`
   return path.join(logDir(), `${name}.log`)
 }
 
 export function substoreLogPath(): string {
   const date = new Date()
-  const name = `sub-store-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const name = `sub-store-${year}-${month}-${day}`
+  return path.join(logDir(), `${name}.log`)
+}
+
+export function coreLogPath(): string {
+  const date = new Date()
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const name = `core-${year}-${month}-${day}`
   return path.join(logDir(), `${name}.log`)
 }

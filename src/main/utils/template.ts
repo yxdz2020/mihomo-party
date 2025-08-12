@@ -22,6 +22,10 @@ export const defaultConfig: IAppConfig = {
   controlDns: true,
   controlSniff: true,
   floatingWindowCompatMode: true,
+  disableLoopbackDetector: false,
+  disableEmbedCA: false,
+  disableSystemCA: false,
+  skipSafePathCheck: false,
   nameserverPolicy: {},
   siderOrder: [
     'sysproxy',

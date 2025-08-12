@@ -5,33 +5,13 @@ import { join } from 'path'
 import { getAppConfig, patchAppConfig } from '../config'
 import { applyTheme } from './theme'
 import { buildContextMenu, showTrayIcon } from './tray'
-import { writeFile } from 'fs/promises'
-import { logDir } from '../utils/dirs'
-import path from 'path'
+import { floatingWindowLogger } from '../utils/logger'
 
 export let floatingWindow: BrowserWindow | null = null
 
-// 悬浮窗日志记录
+// 悬浮窗日志记录 - 使用统一的日志工具
 async function logFloatingWindow(message: string, error?: any): Promise<void> {
-  try {
-    const timestamp = new Date().toISOString()
-    const logMessage = error
-      ? `[${timestamp}] [FloatingWindow] ${message}: ${error}\n`
-      : `[${timestamp}] [FloatingWindow] ${message}\n`
-
-    const logPath = path.join(logDir(), 'floating-window.log')
-    await writeFile(logPath, logMessage, { flag: 'a' })
-
-    if (error) {
-      console.error(`[FloatingWindow] ${message}:`, error)
-    } else {
-      console.log(`[FloatingWindow] ${message}`)
-    }
-  } catch (logError) {
-
-    console.error('[FloatingWindow] Failed to write log:', logError)
-    console.log(`[FloatingWindow] Original message: ${message}`, error)
-  }
+  await floatingWindowLogger.log(message, error)
 }
 
 async function createFloatingWindow(): Promise<void> {

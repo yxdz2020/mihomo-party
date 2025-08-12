@@ -42,6 +42,7 @@ import {
 import { app, dialog } from 'electron'
 import { startSSIDCheck } from '../sys/ssid'
 import i18next from '../../shared/i18n'
+import { initLogger } from './logger'
 
 // 安全错误处理
 export function safeShowErrorBox(titleKey: string, message: string): void {
@@ -115,7 +116,7 @@ async function initDirs(): Promise<void> {
         await mkdir(dir, { recursive: true })
       }
     } catch (error) {
-      console.error(`Failed to create directory ${dir}:`, error)
+      await initLogger.error(`Failed to create directory ${dir}`, error)
       throw new Error(`Failed to create directory ${dir}: ${error}`)
     }
   }
@@ -136,7 +137,7 @@ async function initConfig(): Promise<void> {
         await writeFile(config.path, yaml.stringify(config.content))
       }
     } catch (error) {
-      console.error(`Failed to create ${config.name} at ${config.path}:`, error)
+      await initLogger.error(`Failed to create ${config.name} at ${config.path}`, error)
       throw new Error(`Failed to create ${config.name}: ${error}`)
     }
   }
@@ -163,7 +164,7 @@ async function initFiles(): Promise<void> {
         }
       }
     } catch (error) {
-      console.error(`Failed to copy ${file}:`, error)
+      await initLogger.error(`Failed to copy ${file}`, error)
       if (['country.mmdb', 'geoip.dat', 'geosite.dat'].includes(file)) {
         throw new Error(`Failed to copy critical file ${file}: ${error}`)
       }

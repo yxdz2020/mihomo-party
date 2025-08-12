@@ -20,6 +20,7 @@ import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
 import { initI18n } from '../shared/i18n'
 import i18next from 'i18next'
+import { logger } from './utils/logger'
 
 // 错误处理
 function showSafeErrorBox(titleKey: string, message: string): void {
@@ -198,7 +199,7 @@ app.whenReady().then(async () => {
     try {
       await showFloatingWindow()
     } catch (error) {
-      console.error('Failed to create floating window on startup:', error)
+      await logger.error('Failed to create floating window on startup', error)
     }
   }
   if (!disableTray) {

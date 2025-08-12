@@ -11,6 +11,7 @@ import { nativeImage } from 'electron'
 import express from 'express'
 import axios from 'axios'
 import AdmZip from 'adm-zip'
+import { systemLogger } from '../utils/logger'
 
 export let pacPort: number
 export let subStorePort: number
@@ -168,7 +169,6 @@ export async function downloadSubStore(): Promise<void> {
     )
     await writeFile(tempBackendPath, Buffer.from(backendRes.data))
     // 下载前端文件
-    const tempFrontendDir = path.join(tempDir, 'dist')
     const frontendRes = await axios.get(
       'https://github.com/sub-store-org/Sub-Store-Front-End/releases/latest/download/dist.zip',
       {
@@ -192,7 +192,7 @@ export async function downloadSubStore(): Promise<void> {
     await cp(path.join(tempDir, 'dist'), frontendDir, { recursive: true })
     await rm(tempDir, { recursive: true })
   } catch (error) {
-    console.error('substore.downloadFailed:', error)
+    await systemLogger.error('substore.downloadFailed', error)
     throw error
   }
 }

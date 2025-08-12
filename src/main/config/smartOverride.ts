@@ -1,5 +1,6 @@
 import { getAppConfig } from './app'
 import { addOverrideItem, removeOverrideItem, getOverrideItem } from './override'
+import { overrideLogger } from '../utils/logger'
 
 const SMART_OVERRIDE_ID = 'smart-core-override'
 
@@ -237,7 +238,7 @@ export async function createSmartOverride(): Promise<void> {
       })
     }
   } catch (error) {
-    console.error('Failed to create Smart override:', error)
+    await overrideLogger.error('Failed to create Smart override', error)
     throw error
   }
 }
@@ -252,7 +253,7 @@ export async function removeSmartOverride(): Promise<void> {
       await removeOverrideItem(SMART_OVERRIDE_ID)
     }
   } catch (error) {
-    console.error('Failed to remove Smart override:', error)
+    await overrideLogger.error('Failed to remove Smart override', error)
     throw error
   }
 }

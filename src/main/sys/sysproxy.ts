@@ -8,6 +8,7 @@ import { resourcesFilesDir } from '../utils/dirs'
 import { net } from 'electron'
 import axios from 'axios'
 import fs from 'fs'
+import { proxyLogger } from '../utils/logger'
 
 let defaultBypass: string[]
 let triggerSysProxyTimer: NodeJS.Timeout | null = null
@@ -175,7 +176,7 @@ async function requestSocketRecreation(): Promise<void> {
     // Wait a bit for socket recreation
     await new Promise(resolve => setTimeout(resolve, 1000))
   } catch (error) {
-    console.log('Failed to send signal to helper:', error)
+    await proxyLogger.error('Failed to send signal to helper', error)
     throw error
   }
 }
@@ -197,16 +198,16 @@ async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 1):
            (error as Error).message?.includes('connect ECONNREFUSED') ||
            (error as Error).message?.includes('ENOENT'))) {
         
-        console.log(`Helper request failed (attempt ${attempt + 1}), checking socket file...`)
-        
+        await proxyLogger.info(`Helper request failed (attempt ${attempt + 1}), checking socket file...`)
+
         if (!isSocketFileExists()) {
-          console.log('Socket file missing, requesting recreation...')
+          await proxyLogger.info('Socket file missing, requesting recreation...')
           try {
             await requestSocketRecreation()
-            console.log('Socket recreation requested, retrying...')
+            await proxyLogger.info('Socket recreation requested, retrying...')
             continue
           } catch (signalError) {
-            console.log('Failed to request socket recreation:', signalError)
+            await proxyLogger.warn('Failed to request socket recreation', signalError)
           }
         }
       }
