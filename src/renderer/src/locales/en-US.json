@@ -36,6 +36,8 @@
   "common.error.shortcutRegistrationFailedWithError": "Failed to register shortcut: {{error}}",
   "common.error.adminRequired": "Please run with administrator privileges for first launch",
   "common.error.initFailed": "Application initialization failed",
+  "core.highPrivilege.title": "High Privilege Core Detected",
+  "core.highPrivilege.message": "A high privilege core (administrator privileges or setuid bit) has been detected. For security reasons, it is recommended to restart the application with administrator privileges. Restart now?",
   "common.updater.versionReady": "v{{version}} Version Ready",
   "common.updater.goToDownload": "Go to Download",
   "common.updater.update": "Update",

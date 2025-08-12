@@ -241,6 +241,18 @@ export async function manualGrantCorePermition(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('manualGrantCorePermition'))
 }
 
+export async function checkHighPrivilegeCore(): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkHighPrivilegeCore'))
+}
+
+export async function checkAdminPrivileges(): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('checkAdminPrivileges'))
+}
+
+export async function restartAsAdmin(): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartAsAdmin'))
+}
+
 export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getFilePath', ext))
 }

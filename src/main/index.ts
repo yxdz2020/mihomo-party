@@ -3,11 +3,11 @@ import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
 import { app, shell, BrowserWindow, Menu, dialog, Notification, powerMonitor } from 'electron'
 import { addProfileItem, getAppConfig, patchAppConfig } from './config'
-import { quitWithoutCore, startCore, stopCore, checkAdminRestartForTun } from './core/manager'
+import { quitWithoutCore, startCore, stopCore, checkAdminRestartForTun, checkHighPrivilegeCore, restartAsAdmin } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import icon from '../../resources/icon.png?asset'
 import { createTray, hideDockIcon, showDockIcon } from './resolve/tray'
-import { init } from './utils/init'
+import { init, initBasic } from './utils/init'
 import { join } from 'path'
 import { initShortcut } from './resolve/shortcut'
 import { spawn, exec } from 'child_process'
@@ -113,7 +113,62 @@ if (process.platform === 'win32' && !exePath().startsWith('C')) {
   app.commandLine.appendSwitch('in-process-gpu')
 }
 
-const initPromise = init()
+// 内核检测
+async function checkHighPrivilegeCoreEarly(): Promise<void> {
+  try {
+    await initBasic()
+
+    // 应用管理员权限运行，跳过检测
+    if (process.platform === 'win32') {
+      const { checkAdminPrivileges } = await import('./core/manager')
+      const isCurrentAppAdmin = await checkAdminPrivileges()
+
+      if (isCurrentAppAdmin) {
+        console.log('Current app is running as administrator, skipping privilege check')
+        return
+      }
+    } else if (process.platform === 'darwin' || process.platform === 'linux') {
+      if (process.getuid && process.getuid() === 0) {
+        console.log('Current app is running as root, skipping privilege check')
+        return
+      }
+    }
+
+    const hasHighPrivilegeCore = await checkHighPrivilegeCore()
+    if (hasHighPrivilegeCore) {
+      try {
+        const appConfig = await getAppConfig()
+        const language = appConfig.language || (app.getLocale().startsWith('zh') ? 'zh-CN' : 'en-US')
+        await initI18n({ lng: language })
+      } catch {
+        await initI18n({ lng: 'zh-CN' })
+      }
+
+      const choice = dialog.showMessageBoxSync({
+        type: 'warning',
+        title: i18next.t('core.highPrivilege.title'),
+        message: i18next.t('core.highPrivilege.message'),
+        buttons: [i18next.t('common.confirm'), i18next.t('common.cancel')],
+        defaultId: 0,
+        cancelId: 1
+      })
+
+      if (choice === 0) {
+        try {
+          await restartAsAdmin()
+          process.exit(0)
+        } catch (error) {
+          showSafeErrorBox('common.error.adminRequired', `${error}`)
+          process.exit(1)
+        }
+      } else {
+        process.exit(0)
+      }
+    }
+  } catch (e) {
+    console.error('Failed to check high privilege core:', e)
+  }
+}
 
 app.on('second-instance', async (_event, commandline) => {
   showMainWindow()
@@ -154,9 +209,10 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('party.mihomo.app')
 
+  await checkHighPrivilegeCoreEarly()
+
   try {
-    // 首先等待初始化完成，确保配置文件和目录都已创建
-    await initPromise
+    await init()
 
     const appConfig = await getAppConfig()
     // 如果配置中没有语言设置，则使用系统语言
@@ -170,6 +226,7 @@ app.whenReady().then(async () => {
     showSafeErrorBox('common.error.initFailed', `${e}`)
     app.quit()
   }
+
   try {
     const [startPromise] = await startCore()
     startPromise.then(async () => {

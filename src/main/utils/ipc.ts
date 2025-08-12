@@ -65,7 +65,8 @@ import {
   checkAdminPrivileges,
   restartAsAdmin,
   checkMihomoCorePermissions,
-  requestTunPermissions
+  requestTunPermissions,
+  checkHighPrivilegeCore
 } from '../core/manager'
 import { triggerSysProxy } from '../sys/sysproxy'
 import { checkUpdate, downloadAndInstallUpdate } from '../resolve/autoUpdater'
@@ -200,6 +201,7 @@ export function registerIpcMainHandlers(): void {
   ipcMain.handle('restartAsAdmin', () => ipcErrorWrapper(restartAsAdmin)())
   ipcMain.handle('checkMihomoCorePermissions', () => ipcErrorWrapper(checkMihomoCorePermissions)())
   ipcMain.handle('requestTunPermissions', () => ipcErrorWrapper(requestTunPermissions)())
+  ipcMain.handle('checkHighPrivilegeCore', () => ipcErrorWrapper(checkHighPrivilegeCore)())
 
   ipcMain.handle('checkTunPermissions', () => ipcErrorWrapper(checkTunPermissions)())
   ipcMain.handle('grantTunPermissions', () => ipcErrorWrapper(grantTunPermissions)())

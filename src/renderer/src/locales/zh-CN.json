@@ -36,6 +36,8 @@
   "common.error.shortcutRegistrationFailedWithError": "快捷键注册失败：{{error}}",
   "common.error.adminRequired": "首次启动请以管理员权限运行",
   "common.error.initFailed": "应用初始化失败",
+  "core.highPrivilege.title": "检测到高权限内核",
+  "core.highPrivilege.message": "检测到当前内核具有高权限（管理员权限或 setuid 位），为了安全起见，建议以管理员权限重启应用。是否现在重启？",
   "common.updater.versionReady": "v{{version}} 版本就绪",
   "common.updater.goToDownload": "前往下载",
   "common.updater.update": "更新",

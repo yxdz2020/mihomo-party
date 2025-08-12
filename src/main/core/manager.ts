@@ -417,6 +417,125 @@ export async function checkMihomoCorePermissions(): Promise<boolean> {
   return false
 }
 
+// 检测高权限内核
+export async function checkHighPrivilegeCore(): Promise<boolean> {
+  try {
+    const { core = 'mihomo' } = await getAppConfig()
+    const corePath = mihomoCorePath(core)
+
+    await managerLogger.info(`Checking high privilege core: ${corePath}`)
+
+    if (process.platform === 'win32') {
+      const { existsSync } = await import('fs')
+      if (!existsSync(corePath)) {
+        await managerLogger.info('Core file does not exist')
+        return false
+      }
+
+      const hasHighPrivilegeProcess = await checkHighPrivilegeMihomoProcess()
+      if (hasHighPrivilegeProcess) {
+        await managerLogger.info('Found high privilege mihomo process running')
+        return true
+      }
+
+      const isAdmin = await checkAdminPrivileges()
+      await managerLogger.info(`Current process admin privileges: ${isAdmin}`)
+      return isAdmin
+    }
+
+    if (process.platform === 'darwin' || process.platform === 'linux') {
+      const { stat, existsSync } = await import('fs')
+      const { promisify } = await import('util')
+      const statAsync = promisify(stat)
+
+      if (!existsSync(corePath)) {
+        await managerLogger.info('Core file does not exist')
+        return false
+      }
+
+      const stats = await statAsync(corePath)
+      const hasSetuid = (stats.mode & 0o4000) !== 0
+      const isOwnedByRoot = stats.uid === 0
+
+      await managerLogger.info(`Core file stats - setuid: ${hasSetuid}, owned by root: ${isOwnedByRoot}, mode: ${stats.mode.toString(8)}`)
+
+      return hasSetuid && isOwnedByRoot
+    }
+  } catch (error) {
+    await managerLogger.error('Failed to check high privilege core', error)
+    return false
+  }
+
+  return false
+}
+
+async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
+  try {
+    if (process.platform === 'win32') {
+      const execPromise = promisify(exec)
+
+      try {
+        const { stdout } = await execPromise('tasklist /FI "IMAGENAME eq mihomo.exe" /FO CSV')
+        const lines = stdout.split('\n').filter(line => line.includes('mihomo.exe'))
+
+        if (lines.length > 0) {
+          await managerLogger.info(`Found ${lines.length} mihomo processes running`)
+
+          for (const line of lines) {
+            const parts = line.split(',')
+            if (parts.length >= 2) {
+              const pid = parts[1].replace(/"/g, '').trim()
+              try {
+                const { stdout: processInfo } = await execPromise(`wmic process where "ProcessId=${pid}" get Name,ProcessId,ExecutablePath,CommandLine /format:csv`)
+                await managerLogger.info(`Process ${pid} info: ${processInfo.substring(0, 200)}`)
+
+                if (processInfo.includes('mihomo')) {
+                  return true
+                }
+              } catch (error) {
+                await managerLogger.info(`Cannot get info for process ${pid}, might be high privilege`)
+              }
+            }
+          }
+        }
+      } catch (error) {
+        await managerLogger.error('Failed to check mihomo processes', error)
+      }
+    }
+
+    if (process.platform === 'darwin' || process.platform === 'linux') {
+      const execPromise = promisify(exec)
+
+      try {
+        const { stdout } = await execPromise('ps aux | grep mihomo | grep -v grep')
+        const lines = stdout.split('\n').filter(line => line.trim() && line.includes('mihomo'))
+
+        if (lines.length > 0) {
+          await managerLogger.info(`Found ${lines.length} mihomo processes running`)
+
+          for (const line of lines) {
+            const parts = line.trim().split(/\s+/)
+            if (parts.length >= 1) {
+              const user = parts[0]
+              await managerLogger.info(`Mihomo process running as user: ${user}`)
+
+              if (user === 'root') {
+                return true
+              }
+            }
+          }
+        }
+      } catch (error) {
+        await managerLogger.error('Failed to check mihomo processes on Unix', error)
+      }
+    }
+  } catch (error) {
+    await managerLogger.error('Failed to check high privilege mihomo process', error)
+  }
+
+  return false
+}
+
 // TUN模式获取权限
 export async function requestTunPermissions(): Promise<void> {
   if (process.platform === 'win32') {

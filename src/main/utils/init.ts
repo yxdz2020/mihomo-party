@@ -318,12 +318,17 @@ function initDeeplink(): void {
   }
 }
 
-export async function init(): Promise<void> {
+// 基础初始化
+export async function initBasic(): Promise<void> {
   await initDirs()
   await initConfig()
   await migration()
   await initFiles()
   await cleanup()
+}
+
+export async function init(): Promise<void> {
+  await initBasic()
   await startSubStoreFrontendServer()
   await startSubStoreBackendServer()
   const { sysProxy } = await getAppConfig()
