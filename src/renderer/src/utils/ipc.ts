@@ -253,6 +253,14 @@ export async function restartAsAdmin(): Promise<void> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('restartAsAdmin'))
 }
 
+export async function showTunPermissionDialog(): Promise<boolean> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showTunPermissionDialog'))
+}
+
+export async function showErrorDialog(title: string, message: string): Promise<void> {
+  return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('showErrorDialog', title, message))
+}
+
 export async function getFilePath(ext: string[]): Promise<string[] | undefined> {
   return ipcErrorWrapper(await window.electron.ipcRenderer.invoke('getFilePath', ext))
 }

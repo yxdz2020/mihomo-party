@@ -36,6 +36,8 @@
   "common.error.shortcutRegistrationFailedWithError": "ثبت میانبر با خطا مواجه شد: {{error}}",
   "common.error.adminRequired": "لطفا برای اولین اجرا با دسترسی مدیر برنامه را اجرا کنید",
   "common.error.initFailed": "راه‌اندازی برنامه با خطا مواجه شد",
+  "core.highPrivilege.title": "هسته با سطح دسترسی بالا شناسایی شد",
+  "core.highPrivilege.message": "هسته‌ای با سطح دسترسی بالا شناسایی شد. برنامه باید در حالت مدیر سیستم برای تطابق سطح دسترسی‌ها دوباره راه‌اندازی شود. آیا می‌خواهید اکنون راه‌اندازی مجدد شود؟",
   "common.updater.versionReady": "نسخه v{{version}} آماده است",
   "common.updater.goToDownload": "دانلود",
   "common.updater.update": "به‌روزرسانی",

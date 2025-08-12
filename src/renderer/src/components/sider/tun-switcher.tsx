@@ -44,7 +44,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
 
         if (!hasPermissions) {
           if (window.electron.process.platform === 'win32') {
-            const confirmed = confirm(t('tun.permissions.required'))
+            const confirmed = await window.electron.ipcRenderer.invoke('showTunPermissionDialog')
             if (confirmed) {
               try {
                 const notification = new Notification(t('tun.permissions.restarting'))
@@ -53,7 +53,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
                 return
               } catch (error) {
                 console.error('Failed to restart as admin:', error)
-                alert(t('tun.permissions.failed') + ': ' + error)
+                await window.electron.ipcRenderer.invoke('showErrorDialog', t('tun.permissions.failed'), String(error))
                 return
               }
             } else {
@@ -65,7 +65,7 @@ const TunSwitcher: React.FC<Props> = (props) => {
               await window.electron.ipcRenderer.invoke('requestTunPermissions')
             } catch (error) {
               console.warn('Permission grant failed:', error)
-              alert(t('tun.permissions.failed') + ': ' + error)
+              await window.electron.ipcRenderer.invoke('showErrorDialog', t('tun.permissions.failed'), String(error))
               return
             }
           }

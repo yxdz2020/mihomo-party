@@ -155,7 +155,8 @@ async function checkHighPrivilegeCoreEarly(): Promise<void> {
 
       if (choice === 0) {
         try {
-          await restartAsAdmin()
+          // 非TUN重启
+          await restartAsAdmin(false)
           process.exit(0)
         } catch (error) {
           showSafeErrorBox('common.error.adminRequired', `${error}`)

@@ -350,14 +350,59 @@ export async function checkAdminPrivileges(): Promise<boolean> {
   }
 }
 
-export async function restartAsAdmin(): Promise<void> {
+// TUN 权限确认框
+export async function showTunPermissionDialog(): Promise<boolean> {
+  const { dialog } = await import('electron')
+  const i18next = await import('i18next')
+
+  await managerLogger.info('Preparing TUN permission dialog...')
+  await managerLogger.info(`i18next available: ${typeof i18next.t === 'function'}`)
+
+  const title = i18next.t('tun.permissions.title') || '需要管理员权限'
+  const message = i18next.t('tun.permissions.message') || '启用TUN模式需要管理员权限，是否现在重启应用获取权限？'
+  const confirmText = i18next.t('common.confirm') || '确认'
+  const cancelText = i18next.t('common.cancel') || '取消'
+
+  await managerLogger.info(`Dialog texts - Title: "${title}", Message: "${message}", Confirm: "${confirmText}", Cancel: "${cancelText}"`)
+
+  const choice = dialog.showMessageBoxSync({
+    type: 'warning',
+    title: title,
+    message: message,
+    buttons: [confirmText, cancelText],
+    defaultId: 0,
+    cancelId: 1
+  })
+
+  await managerLogger.info(`TUN permission dialog choice: ${choice}`)
+
+  return choice === 0
+}
+
+// 错误显示框
+export async function showErrorDialog(title: string, message: string): Promise<void> {
+  const { dialog } = await import('electron')
+  const i18next = await import('i18next')
+
+  const okText = i18next.t('common.confirm') || '确认'
+
+  dialog.showMessageBoxSync({
+    type: 'error',
+    title: title,
+    message: message,
+    buttons: [okText],
+    defaultId: 0
+  })
+}
+
+export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
   if (process.platform !== 'win32') {
     throw new Error('This function is only available on Windows')
   }
 
   const exePath = process.execPath
   const args = process.argv.slice(1)
-  const restartArgs = [...args, '--admin-restart-for-tun']
+  const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
 
   try {
     // 处理路径和参数的引号
@@ -392,8 +437,6 @@ export async function restartAsAdmin(): Promise<void> {
     throw new Error(`Failed to restart as administrator: ${error}`)
   }
 }
-
-
 
 export async function checkMihomoCorePermissions(): Promise<boolean> {
   const { core = 'mihomo' } = await getAppConfig()
@@ -474,32 +517,36 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
     if (process.platform === 'win32') {
       const execPromise = promisify(exec)
 
-      try {
-        const { stdout } = await execPromise('tasklist /FI "IMAGENAME eq mihomo.exe" /FO CSV')
-        const lines = stdout.split('\n').filter(line => line.includes('mihomo.exe'))
+      const mihomoExecutables = ['mihomo.exe', 'mihomo-alpha.exe', 'mihomo-smart.exe']
 
-        if (lines.length > 0) {
-          await managerLogger.info(`Found ${lines.length} mihomo processes running`)
+      for (const executable of mihomoExecutables) {
+        try {
+          const { stdout } = await execPromise(`tasklist /FI "IMAGENAME eq ${executable}" /FO CSV`)
+          const lines = stdout.split('\n').filter(line => line.includes(executable))
 
-          for (const line of lines) {
-            const parts = line.split(',')
-            if (parts.length >= 2) {
-              const pid = parts[1].replace(/"/g, '').trim()
-              try {
-                const { stdout: processInfo } = await execPromise(`wmic process where "ProcessId=${pid}" get Name,ProcessId,ExecutablePath,CommandLine /format:csv`)
-                await managerLogger.info(`Process ${pid} info: ${processInfo.substring(0, 200)}`)
+          if (lines.length > 0) {
+            await managerLogger.info(`Found ${lines.length} ${executable} processes running`)
 
-                if (processInfo.includes('mihomo')) {
-                  return true
+            for (const line of lines) {
+              const parts = line.split(',')
+              if (parts.length >= 2) {
+                const pid = parts[1].replace(/"/g, '').trim()
+                try {
+                  const { stdout: processInfo } = await execPromise(`wmic process where "ProcessId=${pid}" get Name,ProcessId,ExecutablePath,CommandLine /format:csv`)
+                  await managerLogger.info(`Process ${pid} info: ${processInfo.substring(0, 200)}`)
+
+                  if (processInfo.includes('mihomo')) {
+                    return true
+                  }
+                } catch (error) {
+                  await managerLogger.info(`Cannot get info for process ${pid}, might be high privilege`)
                 }
-              } catch (error) {
-                await managerLogger.info(`Cannot get info for process ${pid}, might be high privilege`)
               }
             }
           }
+        } catch (error) {
+          await managerLogger.error(`Failed to check ${executable} processes`, error)
         }
-      } catch (error) {
-        await managerLogger.error('Failed to check mihomo processes', error)
       }
     }
 
@@ -507,23 +554,36 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
       const execPromise = promisify(exec)
 
       try {
-        const { stdout } = await execPromise('ps aux | grep mihomo | grep -v grep')
-        const lines = stdout.split('\n').filter(line => line.trim() && line.includes('mihomo'))
+        const mihomoExecutables = ['mihomo', 'mihomo-alpha', 'mihomo-smart']
+        let foundProcesses = false
 
-        if (lines.length > 0) {
-          await managerLogger.info(`Found ${lines.length} mihomo processes running`)
+        for (const executable of mihomoExecutables) {
+          try {
+            const { stdout } = await execPromise(`ps aux | grep ${executable} | grep -v grep`)
+            const lines = stdout.split('\n').filter(line => line.trim() && line.includes(executable))
 
-          for (const line of lines) {
-            const parts = line.trim().split(/\s+/)
-            if (parts.length >= 1) {
-              const user = parts[0]
-              await managerLogger.info(`Mihomo process running as user: ${user}`)
+            if (lines.length > 0) {
+              foundProcesses = true
+              await managerLogger.info(`Found ${lines.length} ${executable} processes running`)
 
-              if (user === 'root') {
-                return true
+              for (const line of lines) {
+                const parts = line.trim().split(/\s+/)
+                if (parts.length >= 1) {
+                  const user = parts[0]
+                  await managerLogger.info(`${executable} process running as user: ${user}`)
+
+                  if (user === 'root') {
+                    return true
+                  }
+                }
               }
             }
+          } catch (error) {
           }
+        }
+
+        if (!foundProcesses) {
+          await managerLogger.info('No mihomo processes found running')
         }
       } catch (error) {
         await managerLogger.error('Failed to check mihomo processes on Unix', error)
@@ -572,7 +632,7 @@ export async function checkAdminRestartForTun(): Promise<void> {
       await managerLogger.error('Failed to auto-enable TUN after admin restart', error)
     }
   } else {
-    // 检查TUN配置与权限的匹配
+    // 检查TUN配置与权限的匹配，但不自动开启 TUN
     await validateTunPermissionsOnStartup()
   }
 }
