@@ -24,5 +24,7 @@ changelog += '\n#### Linux：\n\n'
 changelog += `- DEB：[64位](${downloadUrl}/mihomo-party-linux-${version}-amd64.deb) | [ARM64](${downloadUrl}/mihomo-party-linux-${version}-arm64.deb)\n\n`
 changelog += `- RPM：[64位](${downloadUrl}/mihomo-party-linux-${version}-x86_64.rpm) | [ARM64](${downloadUrl}/mihomo-party-linux-${version}-aarch64.rpm)`
 
+changelog += '\n\n### 机场推荐：\n- 高性能海外机场，稳定首选：[https://狗狗加速.com](https://party.dginv.click/#/register?code=ARdo0mXx)'
+
 writeFileSync('latest.yml', yaml.stringify(latest))
 writeFileSync('changelog.md', changelog)

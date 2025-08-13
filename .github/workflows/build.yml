@@ -43,7 +43,7 @@ jobs:
           fi
   windows:
     needs: [cleanup-dev-release]
-    if: (startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && always())
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -96,7 +96,6 @@ jobs:
             dist/*.sha256
             dist/*setup.exe
             dist/*portable.7z
-          body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Dev Release
         if: github.event_name == 'workflow_dispatch'
@@ -114,7 +113,7 @@ jobs:
 
   windows7:
     needs: [cleanup-dev-release]
-    if: (startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && always())
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -168,7 +167,6 @@ jobs:
             dist/*.sha256
             dist/*setup.exe
             dist/*portable.7z
-          body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Dev Release
         if: github.event_name == 'workflow_dispatch'
@@ -186,7 +184,7 @@ jobs:
 
   linux:
     needs: [cleanup-dev-release]
-    if: (startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && always())
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -233,7 +231,6 @@ jobs:
             dist/*.sha256
             dist/*.deb
             dist/*.rpm
-          body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Dev Release
         if: github.event_name == 'workflow_dispatch'
@@ -251,7 +248,7 @@ jobs:
 
   macos:
     needs: [cleanup-dev-release]
-    if: (startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && always())
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -321,7 +318,6 @@ jobs:
           files: |
             dist/*.sha256
             dist/*.pkg
-          body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Dev Release
         if: github.event_name == 'workflow_dispatch'
@@ -338,7 +334,7 @@ jobs:
 
   macos10:
     needs: [cleanup-dev-release]
-    if: (startsWith(github.ref, 'refs/tags/v')) || (github.event_name == 'workflow_dispatch' && always())
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -410,7 +406,6 @@ jobs:
           files: |
             dist/*.sha256
             dist/*.pkg
-          body_path: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Dev Release
         if: github.event_name == 'workflow_dispatch'
@@ -427,7 +422,7 @@ jobs:
 
   updater:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    needs: [windows, macos, windows7, macos10]
+    needs: [windows, windows7, linux, macos, macos10]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
