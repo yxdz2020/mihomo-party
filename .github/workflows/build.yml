@@ -13,10 +13,10 @@ permissions: write-all
 
 jobs:
   cleanup-dev-release:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Delete Dev Release Assets
+        if: github.event_name == 'workflow_dispatch'
         continue-on-error: true
         run: |
           # Get release ID for dev tag
@@ -41,6 +41,9 @@ jobs:
           else
             echo "No existing dev release found"
           fi
+      - name: Skip for Tag Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "Skipping cleanup for tag release"
   windows:
     needs: [cleanup-dev-release]
     if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
