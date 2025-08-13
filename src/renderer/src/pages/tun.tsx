@@ -18,7 +18,7 @@ const Tun: React.FC = () => {
   const { tun } = controledMihomoConfig || {}
   const [loading, setLoading] = useState(false)
   const {
-    device = 'Mihomo',
+    device = platform === 'darwin' ? 'utun1500' : 'Mihomo',
     stack = 'mixed',
     'auto-route': autoRoute = true,
     'auto-redirect': autoRedirect = false,
@@ -165,18 +165,17 @@ const Tun: React.FC = () => {
               <Tab key="system" title="System" />
             </Tabs>
           </SettingItem>
-          {platform !== 'darwin' && (
-            <SettingItem title={t('tun.device.title')} divider>
-              <Input
-                size="sm"
-                className="w-[100px]"
-                value={values.device}
-                onValueChange={(v) => {
-                  setValues({ ...values, device: v })
-                }}
-              />
-            </SettingItem>
-          )}
+          <SettingItem title={t('tun.device.title')} divider>
+            <Input
+              size="sm"
+              className="w-[100px]"
+              value={values.device}
+              placeholder={platform === 'darwin' ? 'utun1500' : 'Mihomo'}
+              onValueChange={(v) => {
+                setValues({ ...values, device: v })
+              }}
+            />
+          </SettingItem>
 
           <SettingItem title={t('tun.strictRoute')} divider>
             <Switch
