@@ -113,25 +113,21 @@ if (process.platform === 'win32' && !exePath().startsWith('C')) {
   app.commandLine.appendSwitch('in-process-gpu')
 }
 
-// 内核检测
+// 运行内核检测
 async function checkHighPrivilegeCoreEarly(): Promise<void> {
+  if (process.platform !== 'win32') {
+    return
+  }
+
   try {
     await initBasic()
 
-    // 应用管理员权限运行，跳过检测
-    if (process.platform === 'win32') {
-      const { checkAdminPrivileges } = await import('./core/manager')
-      const isCurrentAppAdmin = await checkAdminPrivileges()
+    const { checkAdminPrivileges } = await import('./core/manager')
+    const isCurrentAppAdmin = await checkAdminPrivileges()
 
-      if (isCurrentAppAdmin) {
-        console.log('Current app is running as administrator, skipping privilege check')
-        return
-      }
-    } else if (process.platform === 'darwin' || process.platform === 'linux') {
-      if (process.getuid && process.getuid() === 0) {
-        console.log('Current app is running as root, skipping privilege check')
-        return
-      }
+    if (isCurrentAppAdmin) {
+      console.log('Current app is running as administrator, skipping privilege check')
+      return
     }
 
     const hasHighPrivilegeCore = await checkHighPrivilegeCore()
@@ -155,7 +151,7 @@ async function checkHighPrivilegeCoreEarly(): Promise<void> {
 
       if (choice === 0) {
         try {
-          // 非TUN重启
+          // Windows 平台重启应用获取管理员权限
           await restartAsAdmin(false)
           process.exit(0)
         } catch (error) {

@@ -487,22 +487,8 @@ export async function checkHighPrivilegeCore(): Promise<boolean> {
     }
 
     if (process.platform === 'darwin' || process.platform === 'linux') {
-      const { stat, existsSync } = await import('fs')
-      const { promisify } = await import('util')
-      const statAsync = promisify(stat)
-
-      if (!existsSync(corePath)) {
-        await managerLogger.info('Core file does not exist')
-        return false
-      }
-
-      const stats = await statAsync(corePath)
-      const hasSetuid = (stats.mode & 0o4000) !== 0
-      const isOwnedByRoot = stats.uid === 0
-
-      await managerLogger.info(`Core file stats - setuid: ${hasSetuid}, owned by root: ${isOwnedByRoot}, mode: ${stats.mode.toString(8)}`)
-
-      return hasSetuid && isOwnedByRoot
+      await managerLogger.info('Non-Windows platform, skipping high privilege core check')
+      return false
     }
   } catch (error) {
     await managerLogger.error('Failed to check high privilege core', error)
