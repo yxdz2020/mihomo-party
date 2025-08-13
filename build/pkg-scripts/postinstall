@@ -125,6 +125,13 @@ macos_version=$(sw_vers -productVersion)
 macos_major=$(echo "$macos_version" | cut -d. -f1)
 log "macOS version: $macos_version"
 
+# 启用服务（防止安全软件禁用）
+if ! launchctl enable system/party.mihomo.helper 2>/dev/null; then
+    log "Warning: Failed to enable service, continuing installation..."
+else
+    log "Service enabled successfully"
+fi
+
 # 清理现有服务
 log "Cleaning up existing services..."
 launchctl bootout system "$LAUNCH_DAEMON" 2>/dev/null || true
