@@ -518,10 +518,11 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
               if (parts.length >= 2) {
                 const pid = parts[1].replace(/"/g, '').trim()
                 try {
-                  const { stdout: processInfo } = await execPromise(`wmic process where "ProcessId=${pid}" get Name,ProcessId,ExecutablePath,CommandLine /format:csv`)
+                  const { stdout: processInfo } = await execPromise(`powershell -Command "Get-Process -Id ${pid} | Select-Object Name,Id,Path,CommandLine | ConvertTo-Json"`)
+                  const processJson  = JSON.parse(processInfo)
                   await managerLogger.info(`Process ${pid} info: ${processInfo.substring(0, 200)}`)
 
-                  if (processInfo.includes('mihomo')) {
+                  if (processJson.Name === "mihomo" && processJson.Path === null) {
                     return true
                   }
                 } catch (error) {
