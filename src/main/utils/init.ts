@@ -250,7 +250,8 @@ async function migration(): Promise<void> {
     authentication,
     'bind-address': bindAddress,
     'lan-allowed-ips': lanAllowedIps,
-    'lan-disallowed-ips': lanDisallowedIps
+    'lan-disallowed-ips': lanDisallowedIps,
+    tun
   } = await getControledMihomoConfig()
   // add substore sider card
   if (useSubStore && !siderOrder.includes('substore')) {
@@ -275,6 +276,16 @@ async function migration(): Promise<void> {
   // add default lan disallowed ips
   if (!lanDisallowedIps) {
     await patchControledMihomoConfig({ 'lan-disallowed-ips': [] })
+  }
+  // default tun device
+  if (!tun?.device || (process.platform === 'darwin' && tun.device === 'Mihomo')) {
+    const defaultDevice = process.platform === 'darwin' ? 'utun1500' : 'Mihomo'
+    await patchControledMihomoConfig({
+      tun: {
+        ...tun,
+        device: defaultDevice
+      }
+    })
   }
   // remove custom app theme
   if (!['system', 'light', 'dark'].includes(appTheme)) {

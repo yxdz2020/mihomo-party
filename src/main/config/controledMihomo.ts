@@ -38,10 +38,6 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
     controledMihomoConfig.sniffer = defaultControledMihomoConfig.sniffer
   }
 
-  if (process.platform === 'darwin') {
-    delete controledMihomoConfig?.tun?.device
-  }
-
   await generateProfile()
   await writeFile(controledMihomoConfigPath(), yaml.stringify(controledMihomoConfig), 'utf-8')
 }
