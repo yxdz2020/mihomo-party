@@ -30,6 +30,124 @@ function main(config) {
       config['proxy-groups'] = []
     }
 
+    // 首先检查是否存在 url-test 或 load-balance 代理组
+    let hasUrlTestOrLoadBalance = false
+    for (let i = 0; i < config['proxy-groups'].length; i++) {
+      const group = config['proxy-groups'][i]
+      if (group && group.type) {
+        const groupType = group.type.toLowerCase()
+        if (groupType === 'url-test' || groupType === 'load-balance') {
+          hasUrlTestOrLoadBalance = true
+          break
+        }
+      }
+    }
+
+    // 如果存在 url-test 或 load-balance 代理组，只进行类型转换
+    if (hasUrlTestOrLoadBalance) {
+      console.log('[Smart Override] Found url-test or load-balance groups, converting to smart type')
+      
+      // 记录需要更新引用的代理组名称映射
+      const nameMapping = new Map()
+      
+      for (let i = 0; i < config['proxy-groups'].length; i++) {
+        const group = config['proxy-groups'][i]
+        if (group && group.type) {
+          const groupType = group.type.toLowerCase()
+          if (groupType === 'url-test' || groupType === 'load-balance') {
+            console.log('[Smart Override] Converting group:', group.name, 'from', group.type, 'to smart')
+            
+            // 记录原名称和新名称的映射关系
+            const originalName = group.name
+            
+            // 保留原有配置，只修改 type 和添加 Smart 特有配置
+            group.type = 'smart'
+            
+            // 为代理组名称添加 (Smart Group) 后缀
+            if (group.name && !group.name.includes('(Smart Group)')) {
+              group.name = group.name + '(Smart Group)'
+              nameMapping.set(originalName, group.name)
+            }
+            
+            // 添加 Smart 特有配置
+            if (!group['policy-priority']) {
+              group['policy-priority'] = ''  // policy-priority: <1 means lower priority, >1 means higher priority, the default is 1, pattern support regex and string
+            }
+            group.uselightgbm = ${useLightGBM}
+            group.collectdata = ${collectData}
+            group.strategy = '${strategy}'
+            
+            // 移除 url-test 和 load-balance 特有的配置
+            if (group.url) delete group.url
+            if (group.interval) delete group.interval
+            if (group.tolerance) delete group.tolerance
+            if (group.lazy) delete group.lazy
+            if (group.expected_status) delete group['expected-status']
+          }
+        }
+      }
+      
+      // 更新配置文件中其他位置对代理组名称的引用
+      if (nameMapping.size > 0) {
+        console.log('[Smart Override] Updating references to renamed groups:', Array.from(nameMapping.entries()))
+        
+        // 更新代理组中的 proxies 字段引用
+        if (config['proxy-groups'] && Array.isArray(config['proxy-groups'])) {
+          config['proxy-groups'].forEach(group => {
+            if (group && group.proxies && Array.isArray(group.proxies)) {
+              group.proxies = group.proxies.map(proxyName => {
+                if (nameMapping.has(proxyName)) {
+                  console.log('[Smart Override] Updated proxy reference:', proxyName, '→', nameMapping.get(proxyName))
+                  return nameMapping.get(proxyName)
+                }
+                return proxyName
+              })
+            }
+          })
+        }
+        
+        // 更新规则中的代理组引用
+        if (config.rules && Array.isArray(config.rules)) {
+          config.rules = config.rules.map(rule => {
+            if (typeof rule === 'string') {
+              let updatedRule = rule
+              nameMapping.forEach((newName, oldName) => {
+                // 使用简单的字符串替换，检查是否完全匹配
+                if (updatedRule.includes(oldName)) {
+                  updatedRule = updatedRule.split(oldName).join(newName)
+                  console.log('[Smart Override] Updated rule reference:', oldName, '→', newName)
+                }
+              })
+              return updatedRule
+            } else if (typeof rule === 'object' && rule !== null) {
+              // 处理对象格式的规则
+              ['target', 'proxy'].forEach(field => {
+                if (rule[field] && nameMapping.has(rule[field])) {
+                  console.log('[Smart Override] Updated rule object reference:', rule[field], '→', nameMapping.get(rule[field]))
+                  rule[field] = nameMapping.get(rule[field])
+                }
+              })
+            }
+            return rule
+          })
+        }
+        
+        // 更新其他可能的配置字段引用
+        ['mode', 'proxy-mode'].forEach(field => {
+          if (config[field] && nameMapping.has(config[field])) {
+            console.log('[Smart Override] Updated config field', field + ':', config[field], '→', nameMapping.get(config[field]))
+            config[field] = nameMapping.get(config[field])
+          }
+        })
+      }
+      
+      console.log('[Smart Override] Conversion completed, skipping other operations')
+      return config
+    }
+
+    // 如果没有 url-test 或 load-balance 代理组，执行原有逻辑
+    console.log('[Smart Override] No url-test or load-balance groups found, executing original logic')
+    
     // 查找现有的 Smart 代理组并更新
     let smartGroupExists = false
     for (let i = 0; i < config['proxy-groups'].length; i++) {
