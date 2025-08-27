@@ -9,6 +9,8 @@ import { existsSync } from 'fs'
 import os from 'os'
 import { exec, execSync, spawn } from 'child_process'
 import { promisify } from 'util'
+import { appLogger } from '../utils/logger'
+import { checkAdminPrivileges } from '../core/manager'
 
 export async function checkUpdate(): Promise<IAppVersion | undefined> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
@@ -95,10 +97,45 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
       await writeFile(path.join(dataDir(), file), res.data)
     }
     if (file.endsWith('.exe')) {
-      spawn(path.join(dataDir(), file), ['/S', '--force-run'], {
-        detached: true,
-        stdio: 'ignore'
-      }).unref()
+      try {
+        const installerPath = path.join(dataDir(), file)
+        const isAdmin = await checkAdminPrivileges()
+        
+        if (isAdmin) {
+          await appLogger.info('Running installer with existing admin privileges')
+          spawn(installerPath, ['/S', '--force-run'], {
+            detached: true,
+            stdio: 'ignore'
+          }).unref()
+        } else {
+          // 提升权限安装
+          const escapedPath = installerPath.replace(/'/g, "''")
+          const args = ['/S', '--force-run']
+          const argsString = args.map(arg => arg.replace(/'/g, "''")).join("', '")
+          
+          const command = `powershell -Command "Start-Process -FilePath '${escapedPath}' -ArgumentList '${argsString}' -Verb RunAs -WindowStyle Hidden"`
+          
+          await appLogger.info('Starting installer with elevated privileges')
+          
+          const execPromise = promisify(exec)
+          await execPromise(command, { windowsHide: true })
+          
+          await appLogger.info('Installer started successfully with elevation')
+        }
+      } catch (installerError) {
+        await appLogger.error('Failed to start installer, trying fallback', installerError)
+        
+        // Fallback: 尝试使用shell.openPath打开安装包
+        try {
+          await shell.openPath(path.join(dataDir(), file))
+          await appLogger.info('Opened installer with shell.openPath as fallback')
+        } catch (fallbackError) {
+          await appLogger.error('Fallback method also failed', fallbackError)
+          const installerErrorMessage = installerError instanceof Error ? installerError.message : String(installerError)
+          const fallbackErrorMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          throw new Error(`Failed to execute installer: ${installerErrorMessage}. Fallback also failed: ${fallbackErrorMessage}`)
+        }
+      }
     }
     if (file.endsWith('.7z')) {
       await copyFile(path.join(resourcesFilesDir(), '7za.exe'), path.join(dataDir(), '7za.exe'))
