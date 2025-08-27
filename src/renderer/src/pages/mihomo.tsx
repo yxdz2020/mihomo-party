@@ -232,7 +232,18 @@ const Mihomo: React.FC = () => {
             {enableSmartCore && core === 'mihomo-smart' && (
               <>
                 <SettingItem
-                  title={t('mihomo.smartCoreUseLightGBM')}
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>{t('mihomo.smartCoreUseLightGBM')}</span>
+                      <Tooltip
+                        content={t('mihomo.smartCoreUseLightGBMTooltip')}
+                        placement="top"
+                        className="max-w-xs"
+                      >
+                        <IoMdInformationCircleOutline className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-help" />
+                      </Tooltip>
+                    </div>
+                  }
                   divider
                 >
                   <Switch
@@ -247,7 +258,18 @@ const Mihomo: React.FC = () => {
                 </SettingItem>
 
                 <SettingItem
-                  title={t('mihomo.smartCoreCollectData')}
+                  title={
+                    <div className="flex items-center gap-2">
+                      <span>{t('mihomo.smartCoreCollectData')}</span>
+                      <Tooltip
+                        content={t('mihomo.smartCoreCollectDataTooltip')}
+                        placement="top"
+                        className="max-w-xs"
+                      >
+                        <IoMdInformationCircleOutline className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-help" />
+                      </Tooltip>
+                    </div>
+                  }
                   divider
                 >
                   <Switch
