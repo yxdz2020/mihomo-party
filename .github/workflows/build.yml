@@ -20,26 +20,48 @@ jobs:
         continue-on-error: true
         run: |
           # Get release ID for dev tag
+          echo "🔍 Looking for existing dev release..."
           RELEASE_ID=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/tags/dev" | \
             jq -r '.id // empty')
 
-          if [ ! -z "$RELEASE_ID" ]; then
-            echo "Found dev release with ID: $RELEASE_ID"
-
-            # Get all assets and delete them
-            curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | \
-              jq -r '.[].id' | \
-              while read asset_id; do
-                echo "Deleting asset: $asset_id"
-                curl -X DELETE -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-                  "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id"
+          if [ ! -z "$RELEASE_ID" ] && [ "$RELEASE_ID" != "empty" ]; then
+            echo "✅ Found dev release with ID: $RELEASE_ID"
+            
+            # Get all assets
+            echo "📋 Getting list of assets..."
+            ASSETS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets")
+            
+            ASSET_COUNT=$(echo "$ASSETS" | jq '. | length')
+            echo "📦 Found $ASSET_COUNT assets to delete"
+            
+            if [ "$ASSET_COUNT" -gt 0 ]; then
+              # Delete each asset with detailed logging
+              echo "$ASSETS" | jq -r '.[].id' | while read asset_id; do
+                if [ ! -z "$asset_id" ]; then
+                  echo "🗑️  Deleting asset ID: $asset_id"
+                  RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X DELETE \
+                    -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                    "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id")
+                  
+                  HTTP_CODE=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
+                  if [ "$HTTP_CODE" = "204" ]; then
+                    echo "✅ Successfully deleted asset $asset_id"
+                  else
+                    echo "❌ Failed to delete asset $asset_id (HTTP: $HTTP_CODE)"
+                    echo "Response: $(echo $RESPONSE | sed -e 's/HTTPSTATUS:.*//')"
+                  fi
+                  # Add small delay to avoid rate limiting
+                  sleep 0.5
+                fi
               done
-
-            echo "All dev release assets deleted"
+              echo "🎉 Finished deleting assets"
+            else
+              echo "ℹ️  No assets found to delete"
+            fi
           else
-            echo "No existing dev release found"
+            echo "ℹ️  No existing dev release found"
           fi
       - name: Skip for Tag Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -109,7 +131,6 @@ jobs:
             dist/*.sha256
             dist/*setup.exe
             dist/*portable.7z
-          body: "Development build from ${{ github.sha }}"
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -180,7 +201,6 @@ jobs:
             dist/*.sha256
             dist/*setup.exe
             dist/*portable.7z
-          body: "Development build from ${{ github.sha }}"
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -244,7 +264,6 @@ jobs:
             dist/*.sha256
             dist/*.deb
             dist/*.rpm
-          body: "Development build from ${{ github.sha }}"
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -330,7 +349,6 @@ jobs:
           files: |
             dist/*.sha256
             dist/*.pkg
-          body: "Development build from ${{ github.sha }}"
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -418,7 +436,6 @@ jobs:
           files: |
             dist/*.sha256
             dist/*.pkg
-          body: "Development build from ${{ github.sha }}"
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -438,7 +455,15 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          RELEASE_TYPE: release
         run: pnpm telegram
+      - name: Telegram Dev Notification
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
+          RELEASE_TYPE: dev
+        run: pnpm telegram:dev
       - name: Generate latest.yml
         run: pnpm updater
       - name: Publish Release
@@ -454,7 +479,7 @@ jobs:
         with:
           tag_name: dev
           files: latest.yml
-          body: "Development build updater from ${{ github.sha }}"
+          body_path: changelog.md
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
