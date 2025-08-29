@@ -237,6 +237,7 @@ interface IAppConfig {
   disableTray?: boolean
   showFloatingWindow?: boolean
   floatingWindowCompatMode?: boolean
+  disableHardwareAcceleration?: boolean
   connectionCardStatus?: CardStatus
   dnsCardStatus?: CardStatus
   logCardStatus?: CardStatus

@@ -199,6 +199,21 @@ function getSystemLanguage(): 'zh-CN' | 'en-US' {
   return locale.startsWith('zh') ? 'zh-CN' : 'en-US'
 }
 
+// 硬件加速设置
+async function initHardwareAcceleration(): Promise<void> {
+  try {
+    await initBasic()
+    const { disableHardwareAcceleration = false } = await getAppConfig()
+    if (disableHardwareAcceleration) {
+      app.disableHardwareAcceleration()
+    }
+  } catch (e) {
+    console.warn('Failed to read hardware acceleration config:', e)
+  }
+}
+
+initHardwareAcceleration()
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.

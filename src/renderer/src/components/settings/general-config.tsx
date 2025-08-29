@@ -30,6 +30,7 @@ import { IoIosHelpCircle, IoMdCloudDownload } from 'react-icons/io'
 import { MdEditDocument } from 'react-icons/md'
 import CSSEditorModal from './css-editor-modal'
 import { useTranslation } from 'react-i18next'
+import BaseConfirmModal from '../base/base-confirm-modal'
 
 const GeneralConfig: React.FC = () => {
   const { t, i18n } = useTranslation()
@@ -39,6 +40,8 @@ const GeneralConfig: React.FC = () => {
   const [openCSSEditor, setOpenCSSEditor] = useState(false)
   const [fetching, setFetching] = useState(false)
   const [isRelaunching, setIsRelaunching] = useState(false)
+  const [showHardwareAccelConfirm, setShowHardwareAccelConfirm] = useState(false)
+  const [pendingHardwareAccelValue, setPendingHardwareAccelValue] = useState(false)
   const { setTheme } = useTheme()
   const {
     silentStart = false,
@@ -49,6 +52,7 @@ const GeneralConfig: React.FC = () => {
     showFloatingWindow: showFloating = false,
     spinFloatingIcon = true,
     floatingWindowCompatMode = true,
+    disableHardwareAcceleration = false,
     useWindowFrame = false,
     autoQuitWithoutCore = false,
     autoQuitWithoutCoreDelay = 60,
@@ -75,6 +79,28 @@ const GeneralConfig: React.FC = () => {
             await writeTheme(customTheme, css)
             await applyTheme(customTheme)
             setOpenCSSEditor(false)
+          }}
+        />
+      )}
+      {showHardwareAccelConfirm && (
+        <BaseConfirmModal
+          isOpen={showHardwareAccelConfirm}
+          title={t('settings.hardwareAcceleration.confirm.title')}
+          content={t('settings.hardwareAcceleration.confirm.content')}
+          onCancel={() => {
+            setShowHardwareAccelConfirm(false)
+            setPendingHardwareAccelValue(false)
+          }}
+          onConfirm={async () => {
+            setShowHardwareAccelConfirm(false)
+            setIsRelaunching(true)
+            try {
+              await patchAppConfig({ disableHardwareAcceleration: pendingHardwareAccelValue })
+              await relaunchApp()
+            } catch (e) {
+              alert(e)
+              setIsRelaunching(false)
+            }
           }}
         />
       )}
@@ -346,6 +372,28 @@ const GeneralConfig: React.FC = () => {
                 setIsRelaunching(false)
               }
             }, 1000)}
+          />
+        </SettingItem>
+        <SettingItem
+          title={t('settings.disableHardwareAcceleration')}
+          actions={
+            <Tooltip content={t('settings.disableHardwareAccelerationTooltip')}>
+              <Button isIconOnly size="sm" variant="light">
+                <IoIosHelpCircle className="text-lg" />
+              </Button>
+            </Tooltip>
+          }
+          divider
+        >
+          <Switch
+            size="sm"
+            isSelected={disableHardwareAcceleration}
+            isDisabled={isRelaunching}
+            onValueChange={(v) => {
+              if (isRelaunching) return
+              setPendingHardwareAccelValue(v)
+              setShowHardwareAccelConfirm(true)
+            }}
           />
         </SettingItem>
         <SettingItem title={t('settings.backgroundColor')} divider>

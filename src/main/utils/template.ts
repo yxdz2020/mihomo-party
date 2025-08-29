@@ -22,6 +22,7 @@ export const defaultConfig: IAppConfig = {
   controlDns: true,
   controlSniff: true,
   floatingWindowCompatMode: true,
+  disableHardwareAcceleration: false,
   disableLoopbackDetector: false,
   disableEmbedCA: false,
   disableSystemCA: false,
