@@ -27,9 +27,9 @@ win:
   target:
     - nsis
     - 7z
-  artifactName: ${name}-windows-${version}-${arch}-portable.${ext}
+  artifactName: clash-party-windows-${version}-${arch}-portable.${ext}
 nsis:
-  artifactName: ${name}-windows-${version}-${arch}-setup.${ext}
+  artifactName: clash-party-windows-${version}-${arch}-setup.${ext}
   uninstallDisplayName: ${productName}
   allowToChangeInstallationDirectory: true
   oneClick: false
@@ -47,7 +47,7 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
-  artifactName: ${name}-macos-${version}-${arch}.${ext}
+  artifactName: clash-party-macos-${version}-${arch}.${ext}
 pkg:
   allowAnywhere: false
   allowCurrentUserHome: false
@@ -64,7 +64,7 @@ linux:
     - rpm
   maintainer: mihomo-party-org
   category: Utility
-  artifactName: ${name}-linux-${version}-${arch}.${ext}
+  artifactName: clash-party-linux-${version}-${arch}.${ext}
 deb:
   afterInstall: 'build/linux/postinst'
 rpm:
