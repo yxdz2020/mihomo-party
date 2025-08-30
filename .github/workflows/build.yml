@@ -565,5 +565,5 @@ jobs:
           identifier: Mihomo-Party.Mihomo-Party
           version: ${{env.VERSION}}
           release-tag: v${{env.VERSION}}
-          installers-regex: 'mihomo-party-windows-.*setup\.exe$'
+          installers-regex: 'clash-party-windows-.*setup\.exe$'
           token: ${{ secrets.POMPURIN404_TOKEN }}
