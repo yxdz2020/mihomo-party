@@ -26,7 +26,7 @@ export function getBaseVersion() {
     const pkg = readFileSync('package.json', 'utf-8')
     const { version } = JSON.parse(pkg)
     // 移除dev版本格式后缀
-    return version.replace('-dev', '').replace(/-\d{4}-[a-f0-9]{7}$/, '')
+    return version.replace(/-d\d{2,4}\.[a-f0-9]{7}$/, '')
   } catch (error) {
     console.error('Failed to read package.json:', error.message)
     return '1.0.0'
@@ -38,8 +38,8 @@ export function getDevVersion() {
   const baseVersion = getBaseVersion()
   const monthDate = getCurrentMonthDate()
   const commitHash = getGitCommitHash(true)
-  
-  return `${baseVersion}-${monthDate}-${commitHash}`
+
+  return `${baseVersion}-d${monthDate}.${commitHash}`
 }
 
  // 检查当前环境是否为dev构建
