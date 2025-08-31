@@ -89,7 +89,13 @@ jobs:
         run: |
           pnpm install
           pnpm add @mihomo-party/sysproxy-win32-${{ matrix.arch }}-msvc
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -159,7 +165,13 @@ jobs:
           pnpm add @mihomo-party/sysproxy-win32-${{ matrix.arch }}-msvc
           pnpm add -D electron@22.3.27
           (Get-Content electron-builder.yml) -replace 'windows', 'win7' | Set-Content electron-builder.yml
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -228,7 +240,13 @@ jobs:
           pnpm install
           pnpm add @mihomo-party/sysproxy-linux-${{ matrix.arch }}-gnu
           sed -i "s/productName: Clash Party/productName: mihomo-party/" electron-builder.yml
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -290,7 +308,13 @@ jobs:
         run: |
           pnpm install
           pnpm add @mihomo-party/sysproxy-darwin-${{ matrix.arch }}
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -376,7 +400,13 @@ jobs:
           pnpm install
           pnpm add @mihomo-party/sysproxy-darwin-${{ matrix.arch }}
           pnpm add -D electron@32.2.2
-          pnpm prepare --${{ matrix.arch }}
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
+      - name: Prepare
+        run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -451,6 +481,11 @@ jobs:
         run: npm install -g pnpm
       - name: Install Dependencies
         run: pnpm install
+      - name: Update Version for Dev Build
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_EVENT_NAME: workflow_dispatch
+        run: node scripts/update-version.mjs
       - name: Telegram Notification
         if: startsWith(github.ref, 'refs/tags/v')
         env:
