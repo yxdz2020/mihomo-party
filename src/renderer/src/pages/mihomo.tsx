@@ -49,7 +49,7 @@ const Mihomo: React.FC = () => {
     secret,
     authentication = [],
     'skip-auth-prefixes': skipAuthPrefixes = ['127.0.0.1/32', '::1/128'],
-    'log-level': logLevel = 'warning',
+    'log-level': logLevel = 'info',
     'find-process-mode': findProcessMode = 'strict',
     'allow-lan': allowLan,
     'lan-allowed-ips': lanAllowedIps = ['0.0.0.0/0', '::/0'],

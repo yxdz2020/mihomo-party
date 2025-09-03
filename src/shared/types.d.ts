@@ -354,12 +354,7 @@ interface IMihomoDNSConfig {
   'default-nameserver'?: string[]
   nameserver?: string[]
   fallback?: string[]
-  'fallback-filter'?: {
-    geoip?: boolean
-    'geoip-code'?: string
-    ipcidr?: string[]
-    domain?: string[]
-  }
+  'fallback-filter'?: { [key: string]: boolean | string | string[] }
   'proxy-server-nameserver'?: string[]
   'direct-nameserver'?: string[]
   'direct-nameserver-follow-policy'?: boolean
