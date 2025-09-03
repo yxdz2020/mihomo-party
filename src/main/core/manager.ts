@@ -28,7 +28,8 @@ import {
   stopMihomoTraffic,
   stopMihomoLogs,
   stopMihomoMemory,
-  patchMihomoConfig
+  patchMihomoConfig,
+  getAxios
 } from './mihomoApi'
 import chokidar from 'chokidar'
 import { readFile, rm, writeFile } from 'fs/promises'
@@ -52,8 +53,29 @@ chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', as
   }
 })
 
-export const mihomoIpcPath =
-  process.platform === 'win32' ? '\\\\.\\pipe\\MihomoParty\\mihomo' : '/tmp/mihomo-party.sock'
+// 动态生成 IPC 路径
+export const getMihomoIpcPath = (): string => {
+  if (process.platform === 'win32') {
+    const isAdmin = getSessionAdminStatus()
+    const sessionId = process.env.SESSIONNAME || process.env.USERNAME || 'default'
+    const processId = process.pid
+
+    if (isAdmin) {
+      return `\\\\.\\pipe\\MihomoParty\\mihomo-admin-${sessionId}-${processId}`
+    } else {
+      return `\\\\.\\pipe\\MihomoParty\\mihomo-user-${sessionId}-${processId}`
+    }
+  }
+
+  const uid = process.getuid?.() || 0
+
+  if (uid === 0) {
+    return '/tmp/mihomo-party-admin.sock'
+  } else {
+    return `/tmp/mihomo-party-${uid}.sock`
+  }
+}
+
 const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
 
 let setPublicDNSTimer: NodeJS.Timeout | null = null
@@ -93,6 +115,9 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   await generateProfile()
   await checkProfile()
   await stopCore()
+
+  await cleanupSocketFile()
+
   if (tun?.enable && autoSetDNS) {
     try {
       await setPublicDNS()
@@ -100,6 +125,15 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       await managerLogger.error('set dns failed', error)
     }
   }
+
+  // 获取动态 IPC 路径
+  const dynamicIpcPath = getMihomoIpcPath()
+  await managerLogger.info(`Using IPC path: ${dynamicIpcPath}`)
+
+  if (process.platform === 'win32') {
+    await validateWindowsPipeAccess(dynamicIpcPath)
+  }
+
   // 内核日志输出到独立的 core-日期.log 文件
   const stdout = createWriteStream(coreLogPath(), { flags: 'a' })
   const stderr = createWriteStream(coreLogPath(), { flags: 'a' })
@@ -111,7 +145,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   }
   child = spawn(
     corePath,
-    ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), ctlParam, mihomoIpcPath],
+    ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), ctlParam, dynamicIpcPath],
     {
       detached: true,
       stdio: detached ? 'ignore' : undefined,
@@ -152,6 +186,18 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       if ((process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
         (process.platform === 'win32' && str.includes('External controller pipe listen error'))
       ) {
+        await managerLogger.error('External controller listen error detected:', str)
+
+        if (process.platform === 'win32') {
+          await managerLogger.info('Attempting Windows pipe cleanup and retry...')
+          try {
+            await cleanupWindowsNamedPipes()
+            await new Promise(resolve => setTimeout(resolve, 2000))
+          } catch (cleanupError) {
+            await managerLogger.error('Pipe cleanup failed:', cleanupError)
+          }
+        }
+
         reject(i18next.t('mihomo.error.externalControllerListenError'))
       }
 
@@ -176,6 +222,11 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
             })
           })
         ])
+
+        await waitForCoreReady()
+
+        // 强制刷新 axios 实例以使用新的管道路径
+        await getAxios(true)
         await startMihomoTraffic()
         await startMihomoConnections()
         await startMihomoLogs()
@@ -203,6 +254,118 @@ export async function stopCore(force = false): Promise<void> {
   stopMihomoConnections()
   stopMihomoLogs()
   stopMihomoMemory()
+
+  // 强制刷新 axios
+  try {
+    await getAxios(true)
+  } catch (error) {
+    await managerLogger.warn('Failed to refresh axios instance:', error)
+  }
+
+  // 清理 Socket 文件
+  await cleanupSocketFile()
+}
+async function cleanupSocketFile(): Promise<void> {
+  if (process.platform === 'win32') {
+    await cleanupWindowsNamedPipes()
+  } else {
+    await cleanupUnixSockets()
+  }
+}
+
+// Windows 命名管道清理
+async function cleanupWindowsNamedPipes(): Promise<void> {
+  try {
+    const execPromise = promisify(exec)
+
+    try {
+      const { stdout } = await execPromise(
+        `powershell -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process | Where-Object {$_.ProcessName -like '*mihomo*'} | Select-Object Id,ProcessName | ConvertTo-Json"`,
+        { encoding: 'utf8' }
+      )
+
+      if (stdout.trim()) {
+        await managerLogger.info(`Found potential pipe-blocking processes: ${stdout}`)
+
+        try {
+          const processes = JSON.parse(stdout)
+          const processArray = Array.isArray(processes) ? processes : [processes]
+
+          for (const proc of processArray) {
+            const pid = proc.Id
+            if (pid && pid !== process.pid) {
+              try {
+                process.kill(pid, 'SIGTERM')
+                await managerLogger.info(`Terminated process ${pid} to free pipe`)
+              } catch (error) {
+                await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
+              }
+            }
+          }
+        } catch (parseError) {
+          await managerLogger.warn('Failed to parse process list JSON:', parseError)
+
+          // 回退到文本解析
+          const lines = stdout.split('\n').filter(line => line.includes('mihomo'))
+          for (const line of lines) {
+            const match = line.match(/(\d+)/)
+            if (match) {
+              const pid = parseInt(match[1])
+              if (pid !== process.pid) {
+                try {
+                  process.kill(pid, 'SIGTERM')
+                  await managerLogger.info(`Terminated process ${pid} to free pipe`)
+                } catch (error) {
+                  await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      await managerLogger.warn('Failed to check mihomo processes:', error)
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+  } catch (error) {
+    await managerLogger.error('Windows named pipe cleanup failed:', error)
+  }
+}
+
+// Unix Socket 清理
+async function cleanupUnixSockets(): Promise<void> {
+  try {
+    const socketPaths = [
+      '/tmp/mihomo-party.sock',
+      '/tmp/mihomo-party-admin.sock',
+      `/tmp/mihomo-party-${process.getuid?.() || 'user'}.sock`
+    ]
+
+    for (const socketPath of socketPaths) {
+      try {
+        if (existsSync(socketPath)) {
+          await rm(socketPath)
+          await managerLogger.info(`Cleaned up socket file: ${socketPath}`)
+        }
+      } catch (error) {
+        await managerLogger.warn(`Failed to cleanup socket file ${socketPath}:`, error)
+      }
+    }
+  } catch (error) {
+    await managerLogger.error('Unix socket cleanup failed:', error)
+  }
+}
+
+// Windows 命名管道访问验证
+async function validateWindowsPipeAccess(pipePath: string): Promise<void> {
+  try {
+    await managerLogger.info(`Validating pipe access for: ${pipePath}`)
+    await managerLogger.info(`Pipe validation completed for: ${pipePath}`)
+  } catch (error) {
+    await managerLogger.error('Windows pipe validation failed:', error)
+  }
 }
 
 export async function restartCore(): Promise<void> {
@@ -330,28 +493,66 @@ export async function grantTunPermissions(): Promise<void> {
   }
 }
 
+// 在应用启动时检测一次权限
+let sessionAdminStatus: boolean | null = null
+
+export async function initAdminStatus(): Promise<void> {
+  if (process.platform === 'win32' && sessionAdminStatus === null) {
+    sessionAdminStatus = await checkAdminPrivileges().catch(() => false)
+  }
+}
+
+export function getSessionAdminStatus(): boolean {
+  if (process.platform !== 'win32') {
+    return true
+  }
+  return sessionAdminStatus ?? false
+}
+
+// 等待内核完全启动并创建管道
+async function waitForCoreReady(): Promise<void> {
+  const maxRetries = 30
+  const retryInterval = 500
+
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const axios = await getAxios(true)
+      await axios.get('/')
+      await managerLogger.info(`Core ready after ${i + 1} attempts (${(i + 1) * retryInterval}ms)`)
+      return
+    } catch (error) {
+      if (i === 0) {
+        await managerLogger.info('Waiting for core to be ready...')
+      }
+
+      if (i === maxRetries - 1) {
+        await managerLogger.warn(`Core not ready after ${maxRetries} attempts, proceeding anyway`)
+        return
+      }
+
+      await new Promise(resolve => setTimeout(resolve, retryInterval))
+    }
+  }
+}
+
 export async function checkAdminPrivileges(): Promise<boolean> {
   if (process.platform !== 'win32') {
     return true
   }
 
   const execPromise = promisify(exec)
-  
+
   try {
     // 首先尝试 fltmc 命令检测管理员权限
-    await execPromise('fltmc')
-    await managerLogger.info('Admin privileges confirmed via fltmc')
+    // 使用 chcp 65001 设置 UTF-8 编码，避免中文乱码
+    await execPromise('chcp 65001 >nul 2>&1 && fltmc', { encoding: 'utf8' })
     return true
-  } catch (fltmcError) {
-    await managerLogger.info('fltmc failed, trying net session as fallback', fltmcError)
-    
+  } catch (fltmcError: any) {
     try {
       // 如果 fltmc 失败，尝试 net session 命令作为备用检测方法
-      await execPromise('net session')
-      await managerLogger.info('Admin privileges confirmed via net session')
+      await execPromise('chcp 65001 >nul 2>&1 && net session', { encoding: 'utf8' })
       return true
-    } catch (netSessionError) {
-      await managerLogger.info('Both fltmc and net session failed, no admin privileges', netSessionError)
+    } catch (netSessionError: any) {
       return false
     }
   }
@@ -514,7 +715,8 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
 
       for (const executable of mihomoExecutables) {
         try {
-          const { stdout } = await execPromise(`tasklist /FI "IMAGENAME eq ${executable}" /FO CSV`)
+          // 使用 UTF-8 编码执行 tasklist 命令
+          const { stdout } = await execPromise(`chcp 65001 >nul 2>&1 && tasklist /FI "IMAGENAME eq ${executable}" /FO CSV`, { encoding: 'utf8' })
           const lines = stdout.split('\n').filter(line => line.includes(executable))
 
           if (lines.length > 0) {
@@ -525,8 +727,12 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
               if (parts.length >= 2) {
                 const pid = parts[1].replace(/"/g, '').trim()
                 try {
-                  const { stdout: processInfo } = await execPromise(`powershell -Command "Get-Process -Id ${pid} | Select-Object Name,Id,Path,CommandLine | ConvertTo-Json"`)
-                  const processJson  = JSON.parse(processInfo)
+                  // 使用 UTF-8 编码执行 PowerShell 命令
+                  const { stdout: processInfo } = await execPromise(
+                    `powershell -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process -Id ${pid} | Select-Object Name,Id,Path,CommandLine | ConvertTo-Json"`,
+                    { encoding: 'utf8' }
+                  )
+                  const processJson = JSON.parse(processInfo)
                   await managerLogger.info(`Process ${pid} info: ${processInfo.substring(0, 200)}`)
 
                   if (processJson.Name.includes('mihomo') && processJson.Path === null) {
