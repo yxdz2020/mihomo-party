@@ -541,18 +541,24 @@ export async function checkAdminPrivileges(): Promise<boolean> {
   }
 
   const execPromise = promisify(exec)
-
+  
   try {
-    // 首先尝试 fltmc 命令检测管理员权限
-    // 使用 chcp 65001 设置 UTF-8 编码，避免中文乱码
+    // fltmc 检测管理员权限
     await execPromise('chcp 65001 >nul 2>&1 && fltmc', { encoding: 'utf8' })
+    await managerLogger.info('Admin privileges confirmed via fltmc')
     return true
   } catch (fltmcError: any) {
+    const errorCode = fltmcError?.code || 0
+    await managerLogger.debug(`fltmc failed with code ${errorCode}, trying net session as fallback`)
+    
     try {
-      // 如果 fltmc 失败，尝试 net session 命令作为备用检测方法
+      // net session 备用
       await execPromise('chcp 65001 >nul 2>&1 && net session', { encoding: 'utf8' })
+      await managerLogger.info('Admin privileges confirmed via net session')
       return true
     } catch (netSessionError: any) {
+      const netErrorCode = netSessionError?.code || 0
+      await managerLogger.debug(`Both fltmc and net session failed, no admin privileges. Error codes: fltmc=${errorCode}, net=${netErrorCode}`)
       return false
     }
   }
@@ -715,7 +721,6 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
 
       for (const executable of mihomoExecutables) {
         try {
-          // 使用 UTF-8 编码执行 tasklist 命令
           const { stdout } = await execPromise(`chcp 65001 >nul 2>&1 && tasklist /FI "IMAGENAME eq ${executable}" /FO CSV`, { encoding: 'utf8' })
           const lines = stdout.split('\n').filter(line => line.includes(executable))
 
@@ -727,7 +732,6 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
               if (parts.length >= 2) {
                 const pid = parts[1].replace(/"/g, '').trim()
                 try {
-                  // 使用 UTF-8 编码执行 PowerShell 命令
                   const { stdout: processInfo } = await execPromise(
                     `powershell -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process -Id ${pid} | Select-Object Name,Id,Path,CommandLine | ConvertTo-Json"`,
                     { encoding: 'utf8' }
