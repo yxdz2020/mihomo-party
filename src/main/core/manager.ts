@@ -153,6 +153,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     os.setPriority(child.pid, os.constants.priority[mihomoCpuPriority])
   }
   if (detached) {
+    await managerLogger.info(`Core process detached successfully on ${process.platform}, PID: ${child.pid}`)
     child.unref()
     return new Promise((resolve) => {
       resolve([new Promise(() => {})])
@@ -388,8 +389,21 @@ export async function keepCoreAlive(): Promise<void> {
 }
 
 export async function quitWithoutCore(): Promise<void> {
-  await keepCoreAlive()
+  await managerLogger.info(`Starting lightweight mode on platform: ${process.platform}`)
+
+  try {
+    await startCore(true)
+    if (child && child.pid) {
+      await writeFile(path.join(dataDir(), 'core.pid'), child.pid.toString())
+      await managerLogger.info(`Core started in lightweight mode with PID: ${child.pid}`)
+    }
+  } catch (e) {
+    await managerLogger.error('Failed to start core in lightweight mode:', e)
+    safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
+  }
+
   await startMonitor(true)
+  await managerLogger.info('Exiting main process, core will continue running in background')
   app.exit()
 }
 
