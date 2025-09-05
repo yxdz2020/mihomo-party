@@ -67,13 +67,10 @@ export const getMihomoIpcPath = (): string => {
     }
   }
 
-  const uid = process.getuid?.() || 0
+  const uid = process.getuid?.() || 'unknown'
+  const processId = process.pid
 
-  if (uid === 0) {
-    return '/tmp/mihomo-party-admin.sock'
-  } else {
-    return `/tmp/mihomo-party-${uid}.sock`
-  }
+  return `/tmp/mihomo-party-${uid}-${processId}.sock`
 }
 
 const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
