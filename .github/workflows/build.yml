@@ -132,6 +132,8 @@ jobs:
           }
       - name: Generate checksums
         run: pnpm checksum setup.exe portable.7z
+      - name: Copy Legacy Artifacts
+        run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
         uses: actions/upload-artifact@v4
@@ -208,6 +210,8 @@ jobs:
           }
       - name: Generate checksums
         run: pnpm checksum setup.exe portable.7z
+      - name: Copy Legacy Artifacts
+        run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
         uses: actions/upload-artifact@v4
@@ -277,6 +281,8 @@ jobs:
         run: pnpm build:linux --${{ matrix.arch }}
       - name: Generate checksums
         run: pnpm checksum .deb .rpm
+      - name: Copy Legacy Artifacts
+        run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
         uses: actions/upload-artifact@v4
@@ -371,6 +377,8 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - name: Generate checksums
         run: pnpm checksum .pkg
+      - name: Copy Legacy Artifacts
+        run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
         uses: actions/upload-artifact@v4
@@ -464,6 +472,8 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - name: Generate checksums
         run: pnpm checksum .pkg
+      - name: Copy Legacy Artifacts
+        run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
         uses: actions/upload-artifact@v4
