@@ -3,7 +3,7 @@ import { registerIpcMainHandlers } from './utils/ipc'
 import windowStateKeeper from 'electron-window-state'
 import { app, shell, BrowserWindow, Menu, dialog, Notification, powerMonitor } from 'electron'
 import { addProfileItem, getAppConfig, patchAppConfig } from './config'
-import { quitWithoutCore, startCore, stopCore, checkAdminRestartForTun, checkHighPrivilegeCore, restartAsAdmin } from './core/manager'
+import { quitWithoutCore, startCore, stopCore, checkAdminRestartForTun, checkHighPrivilegeCore, restartAsAdmin, initAdminStatus } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import icon from '../../resources/icon.png?asset'
 import { createTray, hideDockIcon, showDockIcon } from './resolve/tray'
@@ -222,6 +222,8 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('party.mihomo.app')
 
   await checkHighPrivilegeCoreEarly()
+
+  await initAdminStatus()
 
   try {
     await init()
