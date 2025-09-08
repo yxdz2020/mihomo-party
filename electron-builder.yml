@@ -51,6 +51,7 @@ mac:
 pkg:
   allowAnywhere: false
   allowCurrentUserHome: false
+  isRelocatable: false
   background:
     alignment: bottomleft
     file: build/background.png
