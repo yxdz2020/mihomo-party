@@ -44,6 +44,8 @@ import { startSSIDCheck } from '../sys/ssid'
 import i18next from '../../shared/i18n'
 import { initLogger } from './logger'
 
+let isInitBasicCompleted = false
+
 // 安全错误处理
 export function safeShowErrorBox(titleKey: string, message: string): void {
   let title: string
@@ -350,16 +352,21 @@ function initDeeplink(): void {
 
 // 基础初始化
 export async function initBasic(): Promise<void> {
+  if (isInitBasicCompleted) {
+    return
+  }
+
   await initDirs()
   await initConfig()
   await migration()
   await migrateSubStoreFiles()
   await initFiles()
   await cleanup()
+
+  isInitBasicCompleted = true
 }
 
 export async function init(): Promise<void> {
-  await initBasic()
   await startSubStoreFrontendServer()
   await startSubStoreBackendServer()
   const { sysProxy } = await getAppConfig()

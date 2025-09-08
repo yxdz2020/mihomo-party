@@ -9,6 +9,10 @@
 - 修复 MacOS 进入轻量模式内核退出的问题
 - 修复 AUR 发布问题
 - 修复 改名后升级提示404的问题
+- 遗失的部分翻译
+- 改名后潜在的 MacOS 安装失败
+- 改名后 WinGet 上传失败
+- MacOS 首次启动时的 ENOENT: no such file or directory
 
 ### 优化 (Optimize)
  - socket 管理防止内核通信失败
