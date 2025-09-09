@@ -57,7 +57,6 @@ const ProfileItem: React.FC<Props> = (props) => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const { profileDisplayDate = 'expire' } = appConfig || {}
   const [updating, setUpdating] = useState(false)
-  const [selecting, setSelecting] = useState(false)
   const [openInfoEditor, setOpenInfoEditor] = useState(false)
   const [openFileEditor, setOpenFileEditor] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -185,8 +184,7 @@ const ProfileItem: React.FC<Props> = (props) => {
 
     // 处理卡片选中
     if (!isActuallyDragging && !isDragging && clickStartPos) {
-      setSelecting(true)
-      onPress().finally(() => setSelecting(false))
+      onPress()
     }
 
     cleanup()
@@ -216,7 +214,7 @@ const ProfileItem: React.FC<Props> = (props) => {
         fullWidth
         isPressable={false}
         onContextMenu={handleContextMenu}
-        className={`${isCurrent ? 'bg-primary' : ''} ${selecting ? 'blur-sm' : ''} cursor-pointer`}
+        className={`${isCurrent ? 'bg-primary' : ''} cursor-pointer transition-colors duration-150`}
       >
         <div
           ref={setNodeRef}

@@ -25,6 +25,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
   const { data: profileConfig, mutate: mutateProfileConfig } = useSWR('getProfileConfig', () =>
     getProfileConfig()
   )
+  const [targetProfileId, setTargetProfileId] = React.useState<string | null>(null)
 
   const setProfileConfig = async (config: IProfileConfig): Promise<void> => {
     try {
@@ -71,23 +72,31 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
   }
 
   const changeCurrentProfile = async (id: string): Promise<void> => {
-    if (profileConfig?.current === id) {
+    if (targetProfileId === id) {
       return
     }
 
-    // 乐观更新：立即更新 UI 状态，提供即时反馈
+    setTargetProfileId(id)
+
+    // 立即更新 UI 状态和托盘菜单，提供即时反馈
     if (profileConfig) {
       const optimisticUpdate = { ...profileConfig, current: id }
       mutateProfileConfig(optimisticUpdate, false)
+      window.electron.ipcRenderer.send('updateTrayMenu')
     }
 
+    // 异步执行后台切换，不阻塞 UI
     try {
-      // 异步执行后台切换，不阻塞 UI
-      change(id).then(() => {
-        window.electron.ipcRenderer.send('updateTrayMenu')
+      await change(id)
+
+      if (targetProfileId === id) {
         mutateProfileConfig()
-      }).catch((e) => {
-        const errorMsg = e?.message || String(e)
+        setTargetProfileId(null)
+      } else {
+      }
+    } catch (e) {
+      if (targetProfileId === id) {
+        const errorMsg = (e as any)?.message || String(e)
         // 处理 IPC 超时错误
         if (errorMsg.includes('reply was never sent')) {
           setTimeout(() => mutateProfileConfig(), 1000)
@@ -95,10 +104,8 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
           alert(`切换 Profile 失败: ${errorMsg}`)
           mutateProfileConfig()
         }
-      })
-    } catch (e) {
-      alert(`切换 Profile 失败: ${e}`)
-      mutateProfileConfig()
+        setTargetProfileId(null)
+      }
     }
   }
 

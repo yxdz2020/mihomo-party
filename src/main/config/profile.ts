@@ -13,6 +13,8 @@ import { join } from 'path'
 import { app } from 'electron'
 
 let profileConfig: IProfileConfig // profile.yaml
+// 最终选中订阅ID
+let targetProfileId: string | null = null
 
 export async function getProfileConfig(force = false): Promise<IProfileConfig> {
   if (force || !profileConfig) {
@@ -38,20 +40,33 @@ export async function changeCurrentProfile(id: string): Promise<void> {
   const config = await getProfileConfig()
   const current = config.current
 
-  if (current === id) {
+  if (current === id && targetProfileId !== id) {
     return
   }
 
+  targetProfileId = id
+
   config.current = id
-  await setProfileConfig(config)
+  const configSavePromise = setProfileConfig(config)
 
   try {
+    await configSavePromise
+
+    // 检查订阅切换是否中断
+    if (targetProfileId !== id) {
+      return
+    }
     await restartCore()
+    if (targetProfileId === id) {
+      targetProfileId = null
+    }
   } catch (e) {
-    // 如果重启失败，恢复原来的配置
-    config.current = current
-    await setProfileConfig(config)
-    throw e
+    if (targetProfileId === id) {
+      config.current = current
+      await setProfileConfig(config)
+      targetProfileId = null
+      throw e
+    }
   }
 }
 
@@ -203,7 +218,8 @@ export async function getProfileStr(id: string | undefined): Promise<string> {
 }
 
 export async function setProfileStr(id: string, content: string): Promise<void> {
-  const { current } = await getProfileConfig()
+  // 读取最新的配置
+  const { current } = await getProfileConfig(true)
   await writeFile(profilePath(id), content, 'utf-8')
   if (current === id) await restartCore()
 }

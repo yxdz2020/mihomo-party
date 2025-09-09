@@ -79,6 +79,7 @@ let setPublicDNSTimer: NodeJS.Timeout | null = null
 let recoverDNSTimer: NodeJS.Timeout | null = null
 let child: ChildProcess
 let retry = 10
+let isRestarting = false
 
 export async function startCore(detached = false): Promise<Promise<void>[]> {
   const {
@@ -102,7 +103,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       await rm(path.join(dataDir(), 'core.pid'))
     }
   }
-  const { current } = await getProfileConfig()
+  const { current } = await getProfileConfig(true)
   const { tun } = await getControledMihomoConfig()
   const corePath = mihomoCorePath(core)
 
@@ -161,6 +162,12 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   }
   child.on('close', async (code, signal) => {
     await managerLogger.info(`Core closed, code: ${code}, signal: ${signal}`)
+
+    if (isRestarting) {
+      await managerLogger.info('Core closed during restart, skipping auto-restart')
+      return
+    }
+
     if (retry) {
       await managerLogger.info('Try Restart Core')
       retry--
@@ -293,10 +300,14 @@ async function cleanupWindowsNamedPipes(): Promise<void> {
             const pid = proc.Id
             if (pid && pid !== process.pid) {
               try {
+                // 先检查进程是否存在
+                process.kill(pid, 0)
                 process.kill(pid, 'SIGTERM')
                 await managerLogger.info(`Terminated process ${pid} to free pipe`)
-              } catch (error) {
-                await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
+              } catch (error: any) {
+                if (error.code !== 'ESRCH') {
+                  await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
+                }
               }
             }
           }
@@ -311,10 +322,13 @@ async function cleanupWindowsNamedPipes(): Promise<void> {
               const pid = parseInt(match[1])
               if (pid !== process.pid) {
                 try {
+                  process.kill(pid, 0)
                   process.kill(pid, 'SIGTERM')
                   await managerLogger.info(`Terminated process ${pid} to free pipe`)
-                } catch (error) {
-                  await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
+                } catch (error: any) {
+                  if (error.code !== 'ESRCH') {
+                    await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
+                  }
                 }
               }
             }
@@ -367,13 +381,20 @@ async function validateWindowsPipeAccess(pipePath: string): Promise<void> {
 }
 
 export async function restartCore(): Promise<void> {
+  // 防止并发重启
+  if (isRestarting) {
+    await managerLogger.info('Core restart already in progress, skipping duplicate request')
+    return
+  }
+
+  isRestarting = true
   try {
     await startCore()
   } catch (e) {
-    // 记录错误到日志而不是显示阻塞对话框
     await managerLogger.error('restart core failed', e)
-    // 重新抛出错误，让调用者处理
     throw e
+  } finally {
+    isRestarting = false
   }
 }
 

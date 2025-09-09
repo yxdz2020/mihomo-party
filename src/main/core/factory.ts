@@ -25,7 +25,8 @@ let runtimeConfigStr: string
 let runtimeConfig: IMihomoConfig
 
 export async function generateProfile(): Promise<void> {
-  const { current } = await getProfileConfig()
+  // 读取最新的配置
+  const { current } = await getProfileConfig(true)
   const { diffWorkDir = false, controlDns = true, controlSniff = true, useNameserverPolicy } = await getAppConfig()
   const currentProfile = await overrideProfile(current, await getProfile(current))
   let controledMihomoConfig = await getControledMihomoConfig()

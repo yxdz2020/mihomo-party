@@ -205,6 +205,8 @@ export const startMihomoTraffic = async (): Promise<void> => {
 }
 
 export const stopMihomoTraffic = (): void => {
+  trafficRetry = 0
+
   if (mihomoTrafficWs) {
     mihomoTrafficWs.removeAllListeners()
     if (mihomoTrafficWs.readyState === WebSocket.OPEN) {
@@ -262,6 +264,8 @@ export const startMihomoMemory = async (): Promise<void> => {
 }
 
 export const stopMihomoMemory = (): void => {
+  memoryRetry = 0
+
   if (mihomoMemoryWs) {
     mihomoMemoryWs.removeAllListeners()
     if (mihomoMemoryWs.readyState === WebSocket.OPEN) {
@@ -306,6 +310,8 @@ export const startMihomoLogs = async (): Promise<void> => {
 }
 
 export const stopMihomoLogs = (): void => {
+  logsRetry = 0
+
   if (mihomoLogsWs) {
     mihomoLogsWs.removeAllListeners()
     if (mihomoLogsWs.readyState === WebSocket.OPEN) {
@@ -352,6 +358,8 @@ export const startMihomoConnections = async (): Promise<void> => {
 }
 
 export const stopMihomoConnections = (): void => {
+  connectionsRetry = 0
+
   if (mihomoConnectionsWs) {
     mihomoConnectionsWs.removeAllListeners()
     if (mihomoConnectionsWs.readyState === WebSocket.OPEN) {
