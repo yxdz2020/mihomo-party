@@ -13,6 +13,8 @@
 - 改名后潜在的 MacOS 安装失败
 - 改名后 WinGet 上传失败
 - MacOS 首次启动时的 ENOENT: no such file or directory
+- 修复 Gist url 404 error
+- MacOS 下状态栏图标 Logo
 
 ### 优化 (Optimize)
  - socket 管理防止内核通信失败
