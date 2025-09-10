@@ -1,3 +1,9 @@
+## 1.8.8
+
+### 修复 (Fix)
+- MacOS 首次启动时的 ENOENT: no such file or directory(config.yaml)
+- 自动更新获取老的文件名称
+
 ## 1.8.7
 
 ### 新功能 (Feat)

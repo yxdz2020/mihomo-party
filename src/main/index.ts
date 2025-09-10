@@ -221,6 +221,8 @@ app.whenReady().then(async () => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('party.mihomo.app')
 
+  await initBasic()
+
   await checkHighPrivilegeCoreEarly()
 
   await initAdminStatus()
