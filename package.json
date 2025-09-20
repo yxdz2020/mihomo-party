@@ -21,7 +21,7 @@
     "telegram:dev": "node scripts/telegram.mjs dev",
     "artifact": "node scripts/artifact.mjs",
     "dev": "electron-vite dev",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "electron-builder install-app-deps && node node_modules/electron/install.js",
     "build:win": "electron-vite build && electron-builder --publish never --win",
     "build:win:dev": "npm run prepare:dev && electron-vite build && electron-builder --publish never --win",
     "build:mac": "electron-vite build && electron-builder --publish never --mac",
