@@ -1,7 +1,6 @@
 import { Button, Card, CardBody } from '@heroui/react'
 import { mihomoUnfixedProxy } from '@renderer/utils/ipc'
-import React from 'react'
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
 
@@ -16,7 +15,14 @@ interface Props {
   isGroupTesting?: boolean
 }
 
-const ProxyItem: React.FC<Props> = (props) => {
+function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
+  if (delay === -1) return 'primary'
+  if (delay === 0) return 'danger'
+  if (delay < 500) return 'success'
+  return 'warning'
+}
+
+const ProxyItem: React.FC<Props> = React.memo((props) => {
   const { t } = useTranslation()
   const { mutateProxies, proxyDisplayMode, group, proxy, selected, onSelect, onProxyDelay, isGroupTesting = false } = props
 
@@ -25,34 +31,27 @@ const ProxyItem: React.FC<Props> = (props) => {
       return proxy.history[proxy.history.length - 1].delay
     }
     return -1
-  }, [proxy])
+  }, [proxy.history])
 
   const [loading, setLoading] = useState(false)
 
   const isLoading = loading || isGroupTesting
-  
-  function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
-    if (delay === -1) return 'primary'
-    if (delay === 0) return 'danger'
-    if (delay < 500) return 'success'
-    return 'warning'
-  }
 
-  function delayText(delay: number): string {
+  const delayText = useMemo(() => {
     if (delay === -1) return t('proxies.delay.test')
     if (delay === 0) return t('proxies.delay.timeout')
     return delay.toString()
-  }
+  }, [delay, t])
 
-  const onDelay = (): void => {
+  const onDelay = useCallback((): void => {
     setLoading(true)
     onProxyDelay(proxy.name, group.testUrl).finally(() => {
       mutateProxies()
       setLoading(false)
     })
-  }
+  }, [proxy.name, group.testUrl, onProxyDelay, mutateProxies])
 
-  const fixed = group.fixed && group.fixed === proxy.name
+  const fixed = useMemo(() => group.fixed && group.fixed === proxy.name, [group.fixed, proxy.name])
 
   return (
     <Card
@@ -118,7 +117,7 @@ const ProxyItem: React.FC<Props> = (props) => {
                 className="h-full text-sm ml-auto -mt-0.5 px-2 relative w-min whitespace-nowrap"
               >
                 <div className="w-full h-full flex items-center justify-end">
-                  {delayText(delay)}
+                  {delayText}
                 </div>
               </Button>
             </div>
@@ -156,7 +155,7 @@ const ProxyItem: React.FC<Props> = (props) => {
               className="h-full text-sm px-2 relative w-min whitespace-nowrap"
             >
               <div className="w-full h-full flex items-center justify-end">
-                {delayText(delay)}
+                {delayText}
               </div>
             </Button>
           </div>
@@ -165,6 +164,18 @@ const ProxyItem: React.FC<Props> = (props) => {
       </CardBody>
     </Card>
   )
-}
+}, (prevProps, nextProps) => {
+  // 必要时重新渲染
+  return (
+    prevProps.proxy.name === nextProps.proxy.name &&
+    prevProps.proxy.history === nextProps.proxy.history &&
+    prevProps.selected === nextProps.selected &&
+    prevProps.proxyDisplayMode === nextProps.proxyDisplayMode &&
+    prevProps.group.fixed === nextProps.group.fixed &&
+    prevProps.isGroupTesting === nextProps.isGroupTesting
+  )
+})
+
+ProxyItem.displayName = 'ProxyItem'
 
 export default ProxyItem
