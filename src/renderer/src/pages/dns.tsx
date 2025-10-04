@@ -61,7 +61,7 @@ const DNS: React.FC = () => {
     proxyServerNameserver,
     directNameserver,
     fallback,
-    fallbackGeoip: fallbackFilter?.geoip || true,
+    fallbackGeoip: (fallbackFilter?.geoip || true) as string | true | string[],
     fallbackGeoipCode: fallbackFilter?.['geoip-code'] || 'CN',
     fallbackIpcidr: fallbackFilter?.ipcidr || ['240.0.0.0/4', '0.0.0.0/32'],
     fallbackDomain: fallbackFilter?.domain || ['+.google.com', '+.facebook.com', '+.youtube.com'],
@@ -174,7 +174,7 @@ const DNS: React.FC = () => {
                 'direct-nameserver': values.directNameserver,
                 fallback: values.fallback,
                 'fallback-filter': {
-                  geoip: values.fallbackGeoip,
+                  ...(values.fallbackGeoip ? { geoip: values.fallbackGeoip } : {}),
                   'geoip-code': values.fallbackGeoipCode,
                   ipcidr: values.fallbackIpcidr,
                   domain: values.fallbackDomain
@@ -415,9 +415,9 @@ const DNS: React.FC = () => {
         <SettingItem title={t('dns.fallbackFilter.geoip')} divider>
           <Switch
             size="sm"
-            isSelected={values.fallbackGeoip}
+            isSelected={!!values.fallbackGeoip}
             onValueChange={(v) => {
-              setValues({ ...values, fallbackGeoip: v })
+              setValues({ ...values, fallbackGeoip: v as string | true | string[] })
             }}
           />
         </SettingItem>
@@ -425,7 +425,7 @@ const DNS: React.FC = () => {
           <Input
             size="sm"
             className="w-[100px]"
-            value={values.fallbackGeoipCode}
+            value={typeof values.fallbackGeoipCode === 'string' ? values.fallbackGeoipCode : ''}
             placeholder="CN"
             onValueChange={(v) => {
               setValues({ ...values, fallbackGeoipCode: v })

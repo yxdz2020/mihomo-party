@@ -1,5 +1,7 @@
-import { GenIcon } from 'react-icons'
-function SubStoreIcon(props): JSX.Element {
+import { GenIcon, IconBaseProps } from 'react-icons'
+import React from 'react'
+
+function SubStoreIcon(props: IconBaseProps): React.ReactElement {
   return GenIcon({
     tag: 'svg',
     attr: { viewBox: '0 0 192 192' },

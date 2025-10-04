@@ -59,7 +59,7 @@ const ProxyItem: React.FC<Props> = React.memo((props) => {
       onPress={() => onSelect(group.name, proxy.name)}
       isPressable
       fullWidth
-      shadow="xs"
+      shadow="sm"
       className={`${
         fixed 
           ? 'bg-secondary/30 border-r-2 border-r-secondary border-l-2 border-l-secondary' 

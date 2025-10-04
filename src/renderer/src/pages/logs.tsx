@@ -58,7 +58,7 @@ const Logs: React.FC = () => {
     localStorage.setItem(LOGS_FILTER_KEY, filter)
   }, [filter])
 
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     if (!trace) {
       const container = containerRef.current
       if (container) {

@@ -3,7 +3,7 @@ import { ReactNode } from 'react'
 import { ErrorBoundary, FallbackProps } from 'react-error-boundary'
 import { useTranslation } from 'react-i18next'
 
-const ErrorFallback = ({ error }: FallbackProps): JSX.Element => {
+const ErrorFallback = ({ error }: FallbackProps): React.ReactElement => {
   const { t } = useTranslation()
   
   return (
@@ -55,7 +55,7 @@ interface Props {
   children?: ReactNode
 }
 
-const BaseErrorBoundary = (props: Props): JSX.Element => {
+const BaseErrorBoundary = (props: Props): React.ReactElement => {
   return <ErrorBoundary FallbackComponent={ErrorFallback}>{props.children}</ErrorBoundary>
 }
 

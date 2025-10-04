@@ -92,7 +92,7 @@ const Override: React.FC = () => {
       if (event.dataTransfer?.files) {
         const file = event.dataTransfer.files[0]
         if (file.name.endsWith('.js') || file.name.endsWith('.yaml')) {
-          const content = await readTextFile(file.path)
+          const content = await readTextFile((file as File & { path: string }).path)
           try {
             await addOverrideItem({
               name: file.name,
