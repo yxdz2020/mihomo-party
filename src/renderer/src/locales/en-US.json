@@ -72,7 +72,7 @@
   "settings.hideConnectionCardWave": "Connection Card Pure Number Display",
   "settings.showDockIcon": "Show Dock Icon",
   "settings.useWindowFrame": "Use System Title Bar",
-  "settings.triggerMainWindowBehavior": "Window Trigger Behavior",
+  "settings.triggerMainWindowBehavior": "Tray Window Trigger Behavior",
   "settings.triggerMainWindowBehaviorShow": "Always Show",
   "settings.triggerMainWindowBehaviorToggle": "Toggle Show/Hide",
   "settings.disableHardwareAcceleration": "Disable Hardware Acceleration",

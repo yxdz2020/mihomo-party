@@ -7,7 +7,7 @@
 - Webdav增加Cron定时备份
 - 连接卡片纯数字显示样式
 - 支持修改点击任务栏的窗口触发行为
-- 在设置里增加 WebUI 快捷打开方式
+- 内核设置下增加 WebUI 快捷打开方式
 
 ### 修复 (Fix)
 - MacOS 首次启动时的 ENOENT: no such file or directory(config.yaml)
