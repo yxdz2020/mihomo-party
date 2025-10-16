@@ -44,6 +44,38 @@ import { safeShowErrorBox } from '../utils/init'
 import i18next from '../../shared/i18n'
 import { managerLogger } from '../utils/logger'
 
+// 内核名称白名单
+const ALLOWED_CORES = ['mihomo', 'mihomo-alpha', 'mihomo-smart'] as const
+type AllowedCore = typeof ALLOWED_CORES[number]
+
+function isValidCoreName(core: string): core is AllowedCore {
+  return ALLOWED_CORES.includes(core as AllowedCore)
+}
+
+  // 路径检查
+function validateCorePath(corePath: string): void {
+
+  if (corePath.includes('..')) {
+    throw new Error('Invalid core path: directory traversal detected')
+  }
+
+  const dangerousChars = /[;&|`$(){}[\]<>'"\\]/
+  if (dangerousChars.test(path.basename(corePath))) {
+    throw new Error('Invalid core path: contains dangerous characters')
+  }
+
+  const normalizedPath = path.normalize(path.resolve(corePath))
+  const expectedDir = path.normalize(path.resolve(mihomoCoreDir()))
+
+  if (!normalizedPath.startsWith(expectedDir + path.sep) && normalizedPath !== expectedDir) {
+    throw new Error('Invalid core path: not in expected directory')
+  }
+}
+
+function shellEscape(arg: string): string {
+  return "'" + arg.replace(/'/g, "'\\''") + "'"
+}
+
 chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', async () => {
   try {
     await stopCore(true)
@@ -502,22 +534,28 @@ export async function checkTunPermissions(): Promise<boolean> {
 
 export async function grantTunPermissions(): Promise<void> {
   const { core = 'mihomo' } = await getAppConfig()
+
+  // 验证内核名称
+  if (!isValidCoreName(core)) {
+    throw new Error(`Invalid core name: ${core}. Allowed values: ${ALLOWED_CORES.join(', ')}`)
+  }
+
   const corePath = mihomoCorePath(core)
-  const execPromise = promisify(exec)
+
+  // 验证路径
+  validateCorePath(corePath)
+
   const execFilePromise = promisify(execFile)
 
   if (process.platform === 'darwin') {
-    const shell = `chown root:admin ${corePath.replace(' ', '\\\\ ')}\nchmod +sx ${corePath.replace(' ', '\\\\ ')}`
-    const command = `do shell script "${shell}" with administrator privileges`
-    await execPromise(`osascript -e '${command}'`)
+    const escapedPath = shellEscape(corePath)
+    const script = `do shell script "chown root:admin ${escapedPath} && chmod +sx ${escapedPath}" with administrator privileges`
+    await execFilePromise('osascript', ['-e', script])
   }
 
   if (process.platform === 'linux') {
-    await execFilePromise('pkexec', [
-      'bash',
-      '-c',
-      `chown root:root "${corePath}" && chmod +sx "${corePath}"`
-    ])
+    await execFilePromise('pkexec', ['chown', 'root:root', corePath])
+    await execFilePromise('pkexec', ['chmod', '+sx', corePath])
   }
 
   if (process.platform === 'win32') {
