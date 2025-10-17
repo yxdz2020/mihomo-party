@@ -234,6 +234,11 @@ interface IAppConfig {
   proxyCols: 'auto' | '1' | '2' | '3' | '4'
   connectionDirection: 'asc' | 'desc'
   connectionOrderBy: 'time' | 'upload' | 'download' | 'uploadSpeed' | 'downloadSpeed'
+  connectionViewMode?: 'list' | 'table'
+  connectionTableColumns?: string[]
+  connectionTableColumnWidths?: Record<string, number>
+  connectionTableSortColumn?: string
+  connectionTableSortDirection?: 'asc' | 'desc'
   spinFloatingIcon?: boolean
   disableTray?: boolean
   showFloatingWindow?: boolean
