@@ -291,7 +291,7 @@ export function registerIpcMainHandlers(): void {
   })
   ipcMain.handle('showMainWindow', showMainWindow)
   ipcMain.handle('closeMainWindow', closeMainWindow)
-  ipcMain.handle('triggerMainWindow', triggerMainWindow)
+  ipcMain.handle('triggerMainWindow', (_e, force) => triggerMainWindow(force))
   ipcMain.handle('showFloatingWindow', () => ipcErrorWrapper(showFloatingWindow)())
   ipcMain.handle('closeFloatingWindow', () => ipcErrorWrapper(closeFloatingWindow)())
   ipcMain.handle('showContextMenu', () => ipcErrorWrapper(showContextMenu)())
