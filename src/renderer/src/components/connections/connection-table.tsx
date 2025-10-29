@@ -402,7 +402,7 @@ const ConnectionTable: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody>
-            {sortedConnections.map((connection, index) => (
+            {sortedConnections.map((connection) => (
               <tr
                 key={connection.id}
                 className="border-b border-divider hover:bg-content2 cursor-pointer transition-colors h-12"
