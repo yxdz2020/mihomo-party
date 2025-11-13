@@ -6,7 +6,7 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { platform } from '@renderer/utils/init'
 import { FaNetworkWired } from 'react-icons/fa'
-import { IoMdCloudDownload, IoMdInformationCircleOutline, IoMdRefresh } from 'react-icons/io'
+import { IoMdCloudDownload, IoMdInformationCircleOutline, IoMdRefresh, IoMdShuffle } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import {
   mihomoUpgrade,
@@ -42,7 +42,21 @@ const Mihomo: React.FC = () => {
     smartCoreCollectData = false,
     smartCoreStrategy = 'sticky-sessions',
     maxLogDays = 7,
-    sysProxy 
+    sysProxy,
+    disableLoopbackDetector,
+    disableEmbedCA,
+    disableSystemCA,
+    skipSafePathCheck,
+    showMixedPort,
+    enableMixedPort = true,
+    showSocksPort,
+    enableSocksPort = true,
+    showHttpPort,
+    enableHttpPort = true,
+    showRedirPort,
+    enableRedirPort = false,
+    showTproxyPort,
+    enableTproxyPort = false
   } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
 
@@ -75,11 +89,12 @@ const Mihomo: React.FC = () => {
   } = controledMihomoConfig || {}
   const { 'store-selected': storeSelected, 'store-fake-ip': storeFakeIp } = profile
 
-  const [mixedPortInput, setMixedPortInput] = useState(mixedPort)
-  const [socksPortInput, setSocksPortInput] = useState(socksPort)
-  const [httpPortInput, setHttpPortInput] = useState(httpPort)
-  const [redirPortInput, setRedirPortInput] = useState(redirPort)
-  const [tproxyPortInput, setTproxyPortInput] = useState(tproxyPort)
+  const [isManualPortChange, setIsManualPortChange] = useState(false)
+  const [mixedPortInput, setMixedPortInput] = useState(showMixedPort || mixedPort)
+  const [socksPortInput, setSocksPortInput] = useState(showSocksPort || socksPort)
+  const [httpPortInput, setHttpPortInput] = useState(showHttpPort || httpPort)
+  const [redirPortInput, setRedirPortInput] = useState(showRedirPort || redirPort)
+  const [tproxyPortInput, setTproxyPortInput] = useState(showTproxyPort || tproxyPort)
   const [externalControllerInput, setExternalControllerInput] = useState(externalController)
   const [secretInput, setSecretInput] = useState(secret)
   const [lanAllowedIpsInput, setLanAllowedIpsInput] = useState(lanAllowedIps)
@@ -115,6 +130,9 @@ const Mihomo: React.FC = () => {
   }
   
   const { host, port } = parseController()
+  
+  // 生成随机端口(范围1024-65535)
+  const generateRandomPort = () => Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024
   
   // 默认WebUI面板选项
   const defaultWebUIPanels: WebUIPanel[] = [
@@ -613,7 +631,7 @@ const Mihomo: React.FC = () => {
         <SettingCard>
           <SettingItem title={t('mihomo.mixedPort')} divider>
             <div className="flex">
-              {mixedPortInput !== mixedPort && (
+              {isManualPortChange && mixedPortInput !== mixedPort && (
                 <Button
                   size="sm"
                   color="primary"
@@ -634,24 +652,53 @@ const Mihomo: React.FC = () => {
                 size="sm"
                 type="number"
                 className="w-[100px]"
-                value={mixedPortInput.toString()}
+                value={showMixedPort?.toString()}
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
-                  setMixedPortInput(parseInt(v))
+                  patchAppConfig({ showMixedPort: parseInt(v) })
+                  setIsManualPortChange(true)
+                }}
+              />
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                className="ml-2"
+                onPress={() => {
+                  const randomPort = generateRandomPort()
+                  setMixedPortInput(randomPort)
+                  patchAppConfig({ showMixedPort: randomPort })
+                  setIsManualPortChange(true)
+                }}
+              >
+                <IoMdShuffle className="text-lg" />
+              </Button>
+              <Switch
+                size="sm"
+                className="ml-2"
+                isSelected={enableMixedPort}
+                onValueChange={(value) => {
+                  patchAppConfig({ enableMixedPort: value })
+                  if (value) {
+                    const port = appConfig?.showMixedPort
+                    onChangeNeedRestart({ 'mixed-port': port })
+                  } else {
+                    onChangeNeedRestart({ 'mixed-port': 0 })
+                  }
                 }}
               />
             </div>
           </SettingItem>
           <SettingItem title={t('mihomo.socksPort')} divider>
             <div className="flex">
-              {socksPortInput !== socksPort && (
+              {isManualPortChange && socksPortInput !== socksPort && (
                 <Button
                   size="sm"
                   color="primary"
                   className="mr-2"
-                  onPress={() => {
-                    onChangeNeedRestart({ 'socks-port': socksPortInput })
+                  onPress={async () => {
+                    await onChangeNeedRestart({ 'socks-port': socksPortInput })
                   }}
                 >
                   {t('mihomo.confirm')}
@@ -662,24 +709,55 @@ const Mihomo: React.FC = () => {
                 size="sm"
                 type="number"
                 className="w-[100px]"
-                value={socksPortInput.toString()}
+                value={showSocksPort?.toString()}
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
-                  setSocksPortInput(parseInt(v))
+                  const port = parseInt(v)
+                  setSocksPortInput(port)
+                  patchAppConfig({ showSocksPort: port })
+                  setIsManualPortChange(true)
+                }}
+              />
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                className="ml-2"
+                onPress={() => {
+                  const randomPort = generateRandomPort()
+                  setSocksPortInput(randomPort)
+                  patchAppConfig({ showSocksPort: randomPort })
+                  setIsManualPortChange(true)
+                }}
+              >
+                <IoMdShuffle className="text-lg" />
+              </Button>
+              <Switch
+                size="sm"
+                className="ml-2"
+                isSelected={enableSocksPort}
+                onValueChange={(value) => {
+                  patchAppConfig({ enableSocksPort: value })
+                  if (value) {
+                    const port = appConfig?.showSocksPort || socksPort
+                    onChangeNeedRestart({ 'socks-port': port })
+                  } else {
+                    onChangeNeedRestart({ 'socks-port': 0 })
+                  }
                 }}
               />
             </div>
           </SettingItem>
           <SettingItem title={t('mihomo.httpPort')} divider>
             <div className="flex">
-              {httpPortInput !== httpPort && (
+              {isManualPortChange && httpPortInput !== httpPort && (
                 <Button
                   size="sm"
                   color="primary"
                   className="mr-2"
-                  onPress={() => {
-                    onChangeNeedRestart({ port: httpPortInput })
+                  onPress={async () => {
+                    await onChangeNeedRestart({ port: httpPortInput })
                   }}
                 >
                   {t('mihomo.confirm')}
@@ -690,11 +768,42 @@ const Mihomo: React.FC = () => {
                 size="sm"
                 type="number"
                 className="w-[100px]"
-                value={httpPortInput.toString()}
+                value={showHttpPort?.toString()}
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
-                  setHttpPortInput(parseInt(v))
+                  const port = parseInt(v)
+                  setHttpPortInput(port)
+                  patchAppConfig({ showHttpPort: port })
+                  setIsManualPortChange(true)
+                }}
+              />
+              <Button
+                isIconOnly
+                size="sm"
+                variant="light"
+                className="ml-2"
+                onPress={() => {
+                  const randomPort = generateRandomPort()
+                  setHttpPortInput(randomPort)
+                  patchAppConfig({ showHttpPort: randomPort })
+                  setIsManualPortChange(true)
+                }}
+              >
+                <IoMdShuffle className="text-lg" />
+              </Button>
+              <Switch
+                size="sm"
+                className="ml-2"
+                isSelected={enableHttpPort}
+                onValueChange={(value) => {
+                  patchAppConfig({ enableHttpPort: value })
+                  if (value) {
+                    const port = appConfig?.showHttpPort || httpPort
+                    onChangeNeedRestart({ port: port })
+                  } else {
+                    onChangeNeedRestart({ port: 0 })
+                  }
                 }}
               />
             </div>
@@ -702,13 +811,13 @@ const Mihomo: React.FC = () => {
           {platform !== 'win32' && (
             <SettingItem title={t('mihomo.redirPort')} divider>
               <div className="flex">
-                {redirPortInput !== redirPort && (
+                {isManualPortChange && redirPortInput !== redirPort && (
                   <Button
                     size="sm"
                     color="primary"
                     className="mr-2"
-                    onPress={() => {
-                      onChangeNeedRestart({ 'redir-port': redirPortInput })
+                    onPress={async () => {
+                      await onChangeNeedRestart({ 'redir-port': redirPortInput })
                     }}
                   >
                     {t('mihomo.confirm')}
@@ -719,11 +828,42 @@ const Mihomo: React.FC = () => {
                   size="sm"
                   type="number"
                   className="w-[100px]"
-                  value={redirPortInput.toString()}
+                  value={showRedirPort?.toString()}
                   max={65535}
                   min={0}
                   onValueChange={(v) => {
-                    setRedirPortInput(parseInt(v))
+                    const port = parseInt(v)
+                    setRedirPortInput(port)
+                    patchAppConfig({ showRedirPort: port })
+                    setIsManualPortChange(true)
+                  }}
+                />
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  className="ml-2"
+                  onPress={() => {
+                    const randomPort = generateRandomPort()
+                    setRedirPortInput(randomPort)
+                    patchAppConfig({ showRedirPort: randomPort })
+                    setIsManualPortChange(true)
+                  }}
+                >
+                  <IoMdShuffle className="text-lg" />
+                </Button>
+                <Switch
+                  size="sm"
+                  className="ml-2"
+                  isSelected={enableRedirPort}
+                  onValueChange={(value) => {
+                    patchAppConfig({ enableRedirPort: value })
+                    if (value) {
+                      const port = appConfig?.showRedirPort || redirPort
+                      onChangeNeedRestart({ 'redir-port': port })
+                    } else {
+                      onChangeNeedRestart({ 'redir-port': 0 })
+                    }
                   }}
                 />
               </div>
@@ -732,13 +872,13 @@ const Mihomo: React.FC = () => {
           {platform === 'linux' && (
             <SettingItem title={t('mihomo.tproxyPort')} divider>
               <div className="flex">
-                {tproxyPortInput !== tproxyPort && (
+                {isManualPortChange && tproxyPortInput !== tproxyPort && (
                   <Button
                     size="sm"
                     color="primary"
                     className="mr-2"
-                    onPress={() => {
-                      onChangeNeedRestart({ 'tproxy-port': tproxyPortInput })
+                    onPress={async () => {
+                      await onChangeNeedRestart({ 'tproxy-port': tproxyPortInput })
                     }}
                   >
                     {t('mihomo.confirm')}
@@ -749,11 +889,42 @@ const Mihomo: React.FC = () => {
                   size="sm"
                   type="number"
                   className="w-[100px]"
-                  value={tproxyPortInput.toString()}
+                  value={showTproxyPort?.toString()}
                   max={65535}
                   min={0}
                   onValueChange={(v) => {
-                    setTproxyPortInput(parseInt(v))
+                    const port = parseInt(v)
+                    setTproxyPortInput(port)
+                    patchAppConfig({ showTproxyPort: port })
+                    setIsManualPortChange(true)
+                  }}
+                />
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  className="ml-2"
+                  onPress={() => {
+                    const randomPort = generateRandomPort()
+                    setTproxyPortInput(randomPort)
+                    patchAppConfig({ showTproxyPort: randomPort })
+                    setIsManualPortChange(true)
+                  }}
+                >
+                  <IoMdShuffle className="text-lg" />
+                </Button>
+                <Switch
+                  size="sm"
+                  className="ml-2"
+                  isSelected={enableTproxyPort}
+                  onValueChange={(value) => {
+                    patchAppConfig({ enableTproxyPort: value })
+                    if (value) {
+                      const port = appConfig?.showTproxyPort || tproxyPort
+                      onChangeNeedRestart({ 'tproxy-port': port })
+                    } else {
+                      onChangeNeedRestart({ 'tproxy-port': 0 })
+                    }
                   }}
                 />
               </div>
