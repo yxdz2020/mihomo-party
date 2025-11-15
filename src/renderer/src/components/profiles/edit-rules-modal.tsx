@@ -1,9 +1,9 @@
-import { 
-  Modal, 
-  ModalContent, 
-  ModalHeader, 
-  ModalBody, 
-  ModalFooter, 
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
   Button,
   Chip,
   Input,
@@ -12,9 +12,10 @@ import {
   Autocomplete,
   AutocompleteItem,
   Checkbox,
-  Divider
+  Divider,
+  Spinner
 } from '@heroui/react'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo, useCallback, startTransition, memo, useDeferredValue } from 'react'
 import { getProfileStr, setRuleStr, getRuleStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
 import yaml from 'js-yaml'
@@ -278,27 +279,155 @@ const isAddRuleDisabled = (newRule: RuleItem, validateRulePayload: (ruleType: st
     (newRule.type !== 'MATCH' && newRule.payload.trim() !== '' && !validateRulePayload(newRule.type, newRule.payload));
 };
 
+// 避免整个列表重新渲染
+interface RuleListItemProps {
+  rule: RuleItem;
+  originalIndex: number;
+  isDeleted: boolean;
+  isPrependOrAppend: boolean;
+  rulesLength: number;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
+  onRemove: (index: number) => void;
+}
+
+const RuleListItem = memo<RuleListItemProps>(({
+  rule,
+  originalIndex,
+  isDeleted,
+  isPrependOrAppend,
+  rulesLength,
+  onMoveUp,
+  onMoveDown,
+  onRemove
+}) => {
+  let bgColorClass = 'bg-content2';
+  let textStyleClass = '';
+
+  if (isDeleted) {
+    bgColorClass = 'bg-danger-50 opacity-70';
+    textStyleClass = 'line-through text-foreground-500';
+  } else if (isPrependOrAppend) {
+    bgColorClass = 'bg-success-50';
+  }
+
+  return (
+    <div className={`flex items-center gap-2 p-2 rounded-lg ${bgColorClass}`}>
+      <div className="flex flex-col">
+        <div className="flex items-center gap-1">
+          <Chip size="sm" variant="flat">
+            {rule.type}
+          </Chip>
+          {/* 显示附加参数 */}
+          <div className="flex gap-1">
+            {rule.additionalParams && rule.additionalParams.length > 0 && (
+              rule.additionalParams.map((param, idx) => (
+                <Chip key={idx} size="sm" variant="flat" color="secondary">{param}</Chip>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className={`font-medium truncate ${textStyleClass}`}>
+          {rule.type === 'MATCH' ? rule.proxy : rule.payload}
+        </div>
+        {rule.proxy && rule.type !== 'MATCH' && (
+          <div className={`text-sm text-foreground-500 truncate ${textStyleClass}`}>{rule.proxy}</div>
+        )}
+      </div>
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          variant="light"
+          onPress={() => originalIndex !== -1 && onMoveUp(originalIndex)}
+          isIconOnly
+          isDisabled={originalIndex === -1 || originalIndex === 0 || isDeleted}
+        >
+          <IoMdArrowUp className="text-lg" />
+        </Button>
+        <Button
+          size="sm"
+          variant="light"
+          onPress={() => originalIndex !== -1 && onMoveDown(originalIndex)}
+          isIconOnly
+          isDisabled={originalIndex === -1 || originalIndex === rulesLength - 1 || isDeleted}
+        >
+          <IoMdArrowDown className="text-lg" />
+        </Button>
+        <Button
+          size="sm"
+          color={originalIndex !== -1 && isDeleted ? "success" : "danger"}
+          variant="light"
+          onPress={() => originalIndex !== -1 && onRemove(originalIndex)}
+          isIconOnly
+        >
+          {originalIndex !== -1 && isDeleted ? <IoMdUndo className="text-lg" /> : <IoMdTrash className="text-lg" />}
+        </Button>
+      </div>
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.rule === nextProps.rule &&
+    prevProps.originalIndex === nextProps.originalIndex &&
+    prevProps.isDeleted === nextProps.isDeleted &&
+    prevProps.isPrependOrAppend === nextProps.isPrependOrAppend &&
+    prevProps.rulesLength === nextProps.rulesLength
+  );
+});
+
 const EditRulesModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
   const [rules, setRules] = useState<RuleItem[]>([])
-  const [filteredRules, setFilteredRules] = useState<RuleItem[]>([])
   const [, setProfileContent] = useState('')
   const [newRule, setNewRule] = useState<RuleItem>({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] })
   const [searchTerm, setSearchTerm] = useState('')
+  const [deferredSearchTerm, setDeferredSearchTerm] = useState('')
   const [proxyGroups, setProxyGroups] = useState<string[]>([])
   const [deletedRules, setDeletedRules] = useState<Set<number>>(new Set())
   const [prependRules, setPrependRules] = useState<Set<number>>(new Set())
   const [appendRules, setAppendRules] = useState<Set<number>>(new Set())
+  const [isLoading, setIsLoading] = useState(true)
   const { t } = useTranslation()
 
+  const ruleIndexMap = useMemo(() => {
+    const map = new Map<RuleItem, number>()
+    rules.forEach((rule, index) => {
+      map.set(rule, index)
+    })
+    return map
+  }, [rules])
+
+  const filteredRules = useMemo(() => {
+    if (deferredSearchTerm === '') return rules
+
+    const lowerSearch = deferredSearchTerm.toLowerCase()
+    return rules.filter(rule =>
+      rule.type.toLowerCase().includes(lowerSearch) ||
+      rule.payload.toLowerCase().includes(lowerSearch) ||
+      (rule.proxy && rule.proxy.toLowerCase().includes(lowerSearch)) ||
+      (rule.additionalParams && rule.additionalParams.some(param => param.toLowerCase().includes(lowerSearch)))
+    )
+  }, [deferredSearchTerm, rules])
+
+  useEffect(() => {
+    startTransition(() => {
+      setDeferredSearchTerm(searchTerm)
+    })
+  }, [searchTerm])
+
+  const deferredFilteredRules = useDeferredValue(filteredRules)
+
   const getContent = async (): Promise<void> => {
-    const content = await getProfileStr(id)
-    setProfileContent(content)
-    
+    setIsLoading(true)
     try {
+      const content = await getProfileStr(id)
+      setProfileContent(content)
+
       const parsed = yaml.load(content) as any
       let initialRules: RuleItem[] = [];
-      
+
       if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
         initialRules = parsed.rules.map((rule: string) => {
           const parts = rule.split(',')
@@ -424,14 +553,12 @@ const EditRulesModal: React.FC<Props> = (props) => {
           setPrependRules(newPrependRules);
           setAppendRules(newAppendRules);
           setDeletedRules(newDeletedRules);
-          
+
           // 设置规则列表
           setRules(allRules);
-          setFilteredRules(allRules);
         } else {
           // 使用初始规则
           setRules(initialRules);
-          setFilteredRules(initialRules);
           // 清空规则标记
           setPrependRules(new Set());
           setAppendRules(new Set());
@@ -441,7 +568,6 @@ const EditRulesModal: React.FC<Props> = (props) => {
         // 规则文件读取失败
         console.debug('规则文件读取失败:', ruleError);
         setRules(initialRules);
-        setFilteredRules(initialRules);
         // 清空规则标记
         setPrependRules(new Set());
         setAppendRules(new Set());
@@ -449,6 +575,8 @@ const EditRulesModal: React.FC<Props> = (props) => {
       }
     } catch (e) {
       console.error('Failed to parse profile content', e)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -456,31 +584,38 @@ const EditRulesModal: React.FC<Props> = (props) => {
     getContent()
   }, [])
 
-  useEffect(() => {
-    if (searchTerm === '') {
-      setFilteredRules(rules)
-    } else {
-      const filtered = rules.filter(rule => 
-        rule.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        rule.payload.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (rule.proxy && rule.proxy.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (rule.additionalParams && rule.additionalParams.some(param => param.toLowerCase().includes(searchTerm.toLowerCase())))
-      )
-      setFilteredRules(filtered)
+  const validateRulePayload = useCallback((ruleType: string, payload: string): boolean => {
+    if (ruleType === 'MATCH') {
+      return true;
     }
-  }, [searchTerm, rules])
 
-  const handleSave = async (): Promise<void> => {
+    const rule = ruleDefinitionsMap.get(ruleType);
+    const validator = rule?.validator;
+    if (!validator) {
+      return true;
+    }
+
+    return validator(payload);
+  }, []);
+
+  const isPayloadValid = useMemo(() => {
+    if (newRule.type === 'MATCH' || !newRule.payload) {
+      return true;
+    }
+    return validateRulePayload(newRule.type, newRule.payload);
+  }, [newRule.type, newRule.payload, validateRulePayload]);
+
+  const handleSave = useCallback(async (): Promise<void> => {
     try {
       // 保存规则到文件
       const prependRuleStrings = Array.from(prependRules)
         .filter(index => !deletedRules.has(index) && index < rules.length)
         .map(index => convertRuleToString(rules[index]));
-      
+
       const appendRuleStrings = Array.from(appendRules)
         .filter(index => !deletedRules.has(index) && index < rules.length)
         .map(index => convertRuleToString(rules[index]));
-      
+
       // 保存删除的规则
       const deletedRuleStrings = Array.from(deletedRules)
         .filter(index => index < rules.length && !prependRules.has(index) && !appendRules.has(index))
@@ -494,14 +629,14 @@ const EditRulesModal: React.FC<Props> = (props) => {
           }
           return parts.join(',');
         });
-      
+
       // 创建规则数据对象
       const ruleData = {
         prepend: prependRuleStrings,
         append: appendRuleStrings,
         delete: deletedRuleStrings
       };
-      
+
       // 保存到 YAML 文件
       const ruleYaml = yaml.dump(ruleData);
       await setRuleStr(id, ruleYaml);
@@ -509,7 +644,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
     } catch (e) {
       alert(t('profiles.editRules.saveError') + ': ' + (e instanceof Error ? e.message : String(e)));
     }
-  }
+  }, [prependRules, deletedRules, rules, appendRules, id, onClose, t])
 
   const handleRuleTypeChange = (selected: string): void => {
     const noResolveSupported = isRuleSupportsNoResolve(selected);
@@ -547,57 +682,61 @@ const EditRulesModal: React.FC<Props> = (props) => {
     });
   };
 
-  const handleAddRule = (position: 'prepend' | 'append' = 'append'): void => {
-    if (newRule.type === 'MATCH' || newRule.payload.trim() !== '') {
-      if (newRule.type !== 'MATCH' && newRule.payload.trim() !== '' && !validateRulePayload(newRule.type, newRule.payload)) {
-        alert(t('profiles.editRules.invalidPayload') + ': ' + getRuleExample(newRule.type));
-        return;
-      }
-      
-      const newRuleItem = { ...newRule };
+  const handleAddRule = useCallback((position: 'prepend' | 'append' = 'append'): void => {
+    if (!(newRule.type === 'MATCH' || newRule.payload.trim() !== '')) {
+      return;
+    }
+
+    if (newRule.type !== 'MATCH' && newRule.payload.trim() !== '' && !validateRulePayload(newRule.type, newRule.payload)) {
+      alert(t('profiles.editRules.invalidPayload') + ': ' + getRuleExample(newRule.type));
+      return;
+    }
+
+    const newRuleItem = { ...newRule };
+
+    startTransition(() => {
       let updatedRules: RuleItem[];
-      
+
       if (position === 'prepend') {
         // 前置规则插入
-        const insertPosition = newRuleItem.offset !== undefined ? 
+        const insertPosition = newRuleItem.offset !== undefined ?
           Math.min(newRuleItem.offset, rules.length) : 0;
-        
+
         updatedRules = [...rules];
         updatedRules.splice(insertPosition, 0, newRuleItem);
-        
+
         // 更新规则索引
         const { newPrependRules, newAppendRules, newDeletedRules } = updateAllRuleIndicesAfterInsertion(prependRules, appendRules, deletedRules, insertPosition, true);
-        
-        // 更新状态
+
+        // 批量更新状态
         setPrependRules(newPrependRules);
         setAppendRules(newAppendRules);
         setDeletedRules(newDeletedRules);
       } else {
         // 后置规则插入
-        const insertPosition = newRuleItem.offset !== undefined ? 
-          Math.max(0, rules.length - newRuleItem.offset) : 
+        const insertPosition = newRuleItem.offset !== undefined ?
+          Math.max(0, rules.length - newRuleItem.offset) :
           rules.length;
-        
+
         updatedRules = [...rules];
         updatedRules.splice(insertPosition, 0, newRuleItem);
-        
+
         // 更新规则索引
         const { newPrependRules, newAppendRules, newDeletedRules } = updateAllRuleIndicesAfterInsertion(prependRules, appendRules, deletedRules, insertPosition, false, true);
-        
-        // 更新状态
+
+        // 批量更新状态
         setPrependRules(newPrependRules);
         setAppendRules(newAppendRules);
         setDeletedRules(newDeletedRules);
       }
-      
+
       // 更新规则列表
       setRules(updatedRules);
-      setFilteredRules(updatedRules);
-      setNewRule({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] });
-    }
-  }
+    });
+    setNewRule({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] });
+  }, [newRule, rules, prependRules, appendRules, deletedRules, validateRulePayload, t])
 
-  const handleRemoveRule = (index: number): void => {
+  const handleRemoveRule = useCallback((index: number): void => {
     setDeletedRules(prev => {
       const newSet = new Set(prev);
       if (newSet.has(index)) {
@@ -607,100 +746,72 @@ const EditRulesModal: React.FC<Props> = (props) => {
       }
       return newSet;
     });
-  }
+  }, [])
 
-  const handleMoveRuleUp = (index: number): void => {
+  const handleMoveRuleUp = useCallback((index: number): void => {
     if (index <= 0) return;
-    const updatedRules = [...rules];
-    const temp = updatedRules[index];
-    updatedRules[index] = updatedRules[index - 1];
-    updatedRules[index - 1] = temp;
-    
-    // 更新前置规则偏移量
-    if (prependRules.has(index)) {
-      updatedRules[index - 1] = { 
-        ...updatedRules[index - 1], 
-        offset: Math.max(0, (updatedRules[index - 1].offset || 0) - 1) 
-      };
-    }
-    
-    // 更新后置规则偏移量
-    if (appendRules.has(index)) {
-      updatedRules[index - 1] = { 
-        ...updatedRules[index - 1], 
-        offset: (updatedRules[index - 1].offset || 0) + 1 
-      };
-    }
-    
-    // 首先更新规则数组
-    setRules(updatedRules);
-    setFilteredRules(updatedRules);
-    
-    // 更新删除规则索引
-    setDeletedRules(prev => updateRuleIndices(prev, index, index - 1));
-    
-    // 更新前置规则索引
-    setPrependRules(prev => updateRuleIndices(prev, index, index - 1));
-    
-    // 更新后置规则索引
-    setAppendRules(prev => updateRuleIndices(prev, index, index - 1));
-  }
+    startTransition(() => {
+      const updatedRules = [...rules];
+      const temp = updatedRules[index];
+      updatedRules[index] = updatedRules[index - 1];
+      updatedRules[index - 1] = temp;
 
-  const handleMoveRuleDown = (index: number): void => {
+      // 更新前置规则偏移量
+      if (prependRules.has(index)) {
+        updatedRules[index - 1] = {
+          ...updatedRules[index - 1],
+          offset: Math.max(0, (updatedRules[index - 1].offset || 0) - 1)
+        };
+      }
+
+      // 更新后置规则偏移量
+      if (appendRules.has(index)) {
+        updatedRules[index - 1] = {
+          ...updatedRules[index - 1],
+          offset: (updatedRules[index - 1].offset || 0) + 1
+        };
+      }
+
+      // 批量更新状态
+      setRules(updatedRules);
+      setDeletedRules(prev => updateRuleIndices(prev, index, index - 1));
+      setPrependRules(prev => updateRuleIndices(prev, index, index - 1));
+      setAppendRules(prev => updateRuleIndices(prev, index, index - 1));
+    });
+  }, [rules, prependRules, appendRules])
+
+  const handleMoveRuleDown = useCallback((index: number): void => {
     if (index >= rules.length - 1) return;
-    const updatedRules = [...rules];
-    const temp = updatedRules[index];
-    updatedRules[index] = updatedRules[index + 1];
-    updatedRules[index + 1] = temp;
-    
-    // 更新前置规则偏移量
-    if (prependRules.has(index)) {
-      updatedRules[index + 1] = { 
-        ...updatedRules[index + 1], 
-        offset: (updatedRules[index + 1].offset || 0) + 1 
-      };
-    }
-    
-    // 更新后置规则偏移量
-    if (appendRules.has(index)) {
-      updatedRules[index + 1] = { 
-        ...updatedRules[index + 1], 
-        offset: Math.max(0, (updatedRules[index + 1].offset || 0) - 1) 
-      };
-    }
-    
-    // 首先更新规则数组
-    setRules(updatedRules);
-    setFilteredRules(updatedRules);
-    
-    // 更新删除规则索引
-    setDeletedRules(prev => updateRuleIndices(prev, index, index + 1));
-    
-    // 更新前置规则索引
-    setPrependRules(prev => updateRuleIndices(prev, index, index + 1));
-    
-    // 更新后置规则索引
-    setAppendRules(prev => updateRuleIndices(prev, index, index + 1));
-  }
+    startTransition(() => {
+      const updatedRules = [...rules];
+      const temp = updatedRules[index];
+      updatedRules[index] = updatedRules[index + 1];
+      updatedRules[index + 1] = temp;
 
-  const validateRulePayload = (ruleType: string, payload: string): boolean => {
-    if (ruleType === 'MATCH') {
-      return true;
-    }
+      // 更新前置规则偏移量
+      if (prependRules.has(index)) {
+        updatedRules[index + 1] = {
+          ...updatedRules[index + 1],
+          offset: (updatedRules[index + 1].offset || 0) + 1
+        };
+      }
 
-    const validator = getRuleValidator(ruleType);
-    if (!validator) {
-      return true;
-    }
+      // 更新后置规则偏移量
+      if (appendRules.has(index)) {
+        updatedRules[index + 1] = {
+          ...updatedRules[index + 1],
+          offset: Math.max(0, (updatedRules[index + 1].offset || 0) - 1)
+        };
+      }
 
-    return validator(payload);
-  };
+      // 批量更新状态
+      setRules(updatedRules);
+      setDeletedRules(prev => updateRuleIndices(prev, index, index + 1));
+      setPrependRules(prev => updateRuleIndices(prev, index, index + 1));
+      setAppendRules(prev => updateRuleIndices(prev, index, index + 1));
+    });
+  }, [rules, prependRules, appendRules])
 
-  const getRuleValidator = (ruleType: string): ((value: string) => boolean) | undefined => {
-    const rule = ruleDefinitionsMap.get(ruleType);
-    return rule?.validator;
-  };
-  
   // 解析规则字符串
   const parseRuleString = (ruleStr: string): RuleItem => {
     const parts = ruleStr.split(',');
@@ -911,7 +1022,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
                   value={newRule.payload}
                   onValueChange={(value) => setNewRule({ ...newRule, payload: value })}
                   isDisabled={newRule.type === 'MATCH'}
-                  color={newRule.payload && newRule.type !== 'MATCH' && !validateRulePayload(newRule.type, newRule.payload) ? "danger" : "default"}
+                  color={newRule.payload && newRule.type !== 'MATCH' && !isPayloadValid ? "danger" : "default"}
                 />
                 
                 <Autocomplete
@@ -998,81 +1109,36 @@ const EditRulesModal: React.FC<Props> = (props) => {
                 />
               </div>
               <div className="flex flex-col gap-2 max-h-[calc(100vh-200px)] overflow-y-auto flex-1">
-                {filteredRules.length === 0 ? (
+                {isLoading ? (
+                  <div className="flex items-center justify-center h-full py-8">
+                    <Spinner size="lg" label={t('common.loading') || 'Loading...'} />
+                  </div>
+                ) : filteredRules.length === 0 ? (
                   <div className="text-center text-foreground-500 py-4">
-                    {rules.length === 0 
-                      ? t('profiles.editRules.noRules') 
-                      : searchTerm 
-                        ? t('profiles.editRules.noMatchingRules') 
+                    {rules.length === 0
+                      ? t('profiles.editRules.noRules')
+                      : searchTerm
+                        ? t('profiles.editRules.noMatchingRules')
                         : t('profiles.editRules.noRules')}
                   </div>
                 ) : (
-                  filteredRules.map((rule, index) => {
-                    const originalIndex = rules.indexOf(rule);
-                    let bgColorClass = 'bg-content2';
-                    let textStyleClass = '';
-                    if (deletedRules.has(originalIndex)) {
-                      bgColorClass = 'bg-danger-50 opacity-70';
-                      textStyleClass = 'line-through text-foreground-500';
-                    } else if (prependRules.has(originalIndex) || appendRules.has(originalIndex)) {
-                      bgColorClass = 'bg-success-50';
-                    }
-                    
+                  deferredFilteredRules.map((rule, index) => {
+                    const originalIndex = ruleIndexMap.get(rule) ?? -1;
+                    const isDeleted = deletedRules.has(originalIndex);
+                    const isPrependOrAppend = prependRules.has(originalIndex) || appendRules.has(originalIndex);
+
                     return (
-                      <div key={`${originalIndex}-${index}`} className={`flex items-center gap-2 p-2 rounded-lg ${bgColorClass}`}>
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-1">
-                            <Chip size="sm" variant="flat">
-                              {rule.type}
-                            </Chip>
-                            {/* 显示附加参数 */}
-                            <div className="flex gap-1">
-                              {rule.additionalParams && rule.additionalParams.length > 0 && (
-                                rule.additionalParams.map((param, idx) => (
-                                  <Chip key={idx} size="sm" variant="flat" color="secondary">{param}</Chip>
-                                ))
-                              )}  
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className={`font-medium truncate ${textStyleClass}`}>
-                            {rule.type === 'MATCH' ? rule.proxy : rule.payload}
-                          </div>
-                          {rule.proxy && rule.type !== 'MATCH' && (
-                            <div className={`text-sm text-foreground-500 truncate ${textStyleClass}`}>{rule.proxy}</div>
-                          )}
-                        </div>
-                        <div className="flex gap-1">
-                          <Button 
-                            size="sm" 
-                            variant="light"
-                            onPress={() => originalIndex !== -1 && handleMoveRuleUp(originalIndex)}
-                            isIconOnly
-                            isDisabled={originalIndex === -1 || originalIndex === 0 || deletedRules.has(originalIndex)}
-                          >
-                            <IoMdArrowUp className="text-lg" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="light"
-                            onPress={() => originalIndex !== -1 && handleMoveRuleDown(originalIndex)}
-                            isIconOnly
-                            isDisabled={originalIndex === -1 || originalIndex === rules.length - 1 || deletedRules.has(originalIndex)}
-                          >
-                            <IoMdArrowDown className="text-lg" />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            color={originalIndex !== -1 && deletedRules.has(originalIndex) ? "success" : "danger"}
-                            variant="light"
-                            onPress={() => originalIndex !== -1 && handleRemoveRule(originalIndex)}
-                            isIconOnly
-                          >
-                            {originalIndex !== -1 && deletedRules.has(originalIndex) ? <IoMdUndo className="text-lg" /> : <IoMdTrash className="text-lg" />}
-                          </Button>
-                        </div>
-                      </div>
+                      <RuleListItem
+                        key={`${originalIndex}-${index}`}
+                        rule={rule}
+                        originalIndex={originalIndex}
+                        isDeleted={isDeleted}
+                        isPrependOrAppend={isPrependOrAppend}
+                        rulesLength={rules.length}
+                        onMoveUp={handleMoveRuleUp}
+                        onMoveDown={handleMoveRuleDown}
+                        onRemove={handleRemoveRule}
+                      />
                     )
                   })
                 )}
