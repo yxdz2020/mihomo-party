@@ -695,7 +695,9 @@ const Mihomo: React.FC = () => {
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
-                  patchAppConfig({ showMixedPort: parseInt(v) })
+                  const port = parseInt(v)
+                  setMixedPortInput(port)
+                  patchAppConfig({ showMixedPort: port })
                   setIsManualPortChange(true)
                 }}
               />
