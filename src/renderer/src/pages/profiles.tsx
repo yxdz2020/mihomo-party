@@ -11,6 +11,7 @@ import {
   Tooltip
 } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
+import { toast } from '@renderer/components/base/toast'
 import ProfileItem from '@renderer/components/profiles/profile-item'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -197,10 +198,10 @@ const Profiles: React.FC = () => {
             const content = await readTextFile(path)
             await addProfileItemRef.current({ name: file.name, type: 'local', file: content })
           } catch (e) {
-            alert(e)
+            toast.error(String(e))
           }
         } else {
-          alert(tRef.current('profiles.error.unsupportedFileType'))
+          toast.warning(tRef.current('profiles.error.unsupportedFileType'))
         }
       }
       setFileOver(false)
@@ -345,7 +346,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -366,7 +367,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -398,7 +399,7 @@ const Profiles: React.FC = () => {
                         await addProfileItem({ name: fileName, type: 'local', file: content })
                       }
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     }
                   } else if (key === 'new') {
                     await addProfileItem({

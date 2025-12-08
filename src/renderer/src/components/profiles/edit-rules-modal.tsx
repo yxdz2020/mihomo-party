@@ -22,6 +22,7 @@ import yaml from 'js-yaml'
 import { IoMdTrash, IoMdArrowUp, IoMdArrowDown, IoMdUndo } from 'react-icons/io'
 import { MdVerticalAlignTop, MdVerticalAlignBottom } from 'react-icons/md'
 import { platform } from '@renderer/utils/init'
+import { toast } from '@renderer/components/base/toast'
 
 interface Props {
   id: string
@@ -642,7 +643,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
       await setRuleStr(id, ruleYaml);
       onClose();
     } catch (e) {
-      alert(t('profiles.editRules.saveError') + ': ' + (e instanceof Error ? e.message : String(e)));
+      toast.error(t('profiles.editRules.saveError') + ': ' + (e instanceof Error ? e.message : String(e)));
     }
   }, [prependRules, deletedRules, rules, appendRules, id, onClose, t])
 
@@ -688,7 +689,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
     }
 
     if (newRule.type !== 'MATCH' && newRule.payload.trim() !== '' && !validateRulePayload(newRule.type, newRule.payload)) {
-      alert(t('profiles.editRules.invalidPayload') + ': ' + getRuleExample(newRule.type));
+      toast.error(t('profiles.editRules.invalidPayload') + ': ' + getRuleExample(newRule.type));
       return;
     }
 

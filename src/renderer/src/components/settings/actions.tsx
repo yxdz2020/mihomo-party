@@ -1,5 +1,6 @@
 import { Button, Tooltip } from '@heroui/react'
 import SettingCard from '../base/base-setting-card'
+import { toast } from '@renderer/components/base/toast'
 import SettingItem from '../base/base-setting-item'
 import {
   checkUpdate,
@@ -69,7 +70,7 @@ const Actions: React.FC = () => {
                   })
                 }
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               } finally {
                 setCheckingUpdate(false)
               }

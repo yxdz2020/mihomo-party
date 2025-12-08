@@ -13,6 +13,7 @@ import {
   DropdownMenu,
   DropdownItem
 } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import React, { useState } from 'react'
 import SettingItem from '../base/base-setting-item'
 import { useOverrideConfig } from '@renderer/hooks/use-override-config'
@@ -49,7 +50,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
       await restartCore()
       onClose()
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     }
   }
 

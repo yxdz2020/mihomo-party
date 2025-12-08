@@ -8,6 +8,7 @@ import {
   Input
 } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
+import { toast } from '@renderer/components/base/toast'
 import { getFilePath, readTextFile } from '@renderer/utils/ipc'
 import { useEffect, useRef, useState } from 'react'
 import { MdContentPaste } from 'react-icons/md'
@@ -115,7 +116,7 @@ const Override: React.FC = () => {
             setFileOver(false)
           }
         } else {
-          alert(tRef.current('override.unsupportedFileType'))
+          toast.warning(tRef.current('override.unsupportedFileType'))
         }
       }
       setFileOver(false)
@@ -222,7 +223,7 @@ const Override: React.FC = () => {
                       })
                     }
                   } catch (e) {
-                    alert(e)
+                    toast.error(String(e))
                   }
                 } else if (key === 'new-yaml') {
                   await addOverrideItem({

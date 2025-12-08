@@ -1,4 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react'
+import { toast } from '@renderer/components/base/toast'
 import useSWR from 'swr'
 import {
   getOverrideConfig,
@@ -28,7 +29,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await set(config)
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       mutateOverrideConfig()
     }
@@ -38,7 +39,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await add(item)
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       mutateOverrideConfig()
     }
@@ -48,7 +49,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await remove(id)
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       mutateOverrideConfig()
     }
@@ -58,7 +59,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await update(item)
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       mutateOverrideConfig()
     }

@@ -10,6 +10,7 @@ import useSWR from 'swr'
 import SettingCard from '../base/base-setting-card'
 import SettingItem from '../base/base-setting-item'
 import { Button, Chip } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import { IoMdRefresh } from 'react-icons/io'
 import { CgLoadbarDoc } from 'react-icons/cg'
 import { MdEditDocument } from 'react-icons/md'
@@ -71,7 +72,7 @@ const RuleProvider: React.FC = () => {
       await mihomoUpdateRuleProviders(name)
       mutate()
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       setUpdating((prev) => {
         prev[index] = false

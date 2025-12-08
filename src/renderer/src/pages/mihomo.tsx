@@ -1,5 +1,6 @@
 import { Button, Divider, Input, Select, SelectItem, Switch, Tooltip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Spinner, Chip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
+import { toast } from '@renderer/components/base/toast'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -308,7 +309,7 @@ const Mihomo: React.FC = () => {
       if (errorMessage.includes('配置检查失败') || errorMessage.includes('Profile Check Failed')) {
         await showDetailedError(t('mihomo.error.profileCheckFailed'), errorMessage)
       } else {
-        alert(errorMessage)
+        toast.error(errorMessage)
       }
     } finally {
       PubSub.publish('mihomo-core-changed')
@@ -324,7 +325,7 @@ const Mihomo: React.FC = () => {
     } catch (error) {
       console.error('Failed to fetch tags:', error)
       setTags([])
-      alert(t('mihomo.error.fetchTagsFailed'))
+      toast.error(t('mihomo.error.fetchTagsFailed'))
     } finally {
       setLoadingTags(false)
     }
@@ -355,7 +356,7 @@ const Mihomo: React.FC = () => {
       new Notification(t('mihomo.coreUpgradeSuccess'))
     } catch (error) {
       console.error('Failed to install specific core:', error)
-      alert(t('mihomo.error.installCoreFailed'))
+      toast.error(t('mihomo.error.installCoreFailed'))
     } finally {
       setInstalling(false)
     }
@@ -493,7 +494,7 @@ const Mihomo: React.FC = () => {
                         if (typeof e === 'string' && e.includes('already using latest version')) {
                           new Notification(t('mihomo.alreadyLatestVersion'))
                         } else {
-                          alert(e)
+                          toast.error(String(e))
                         }
                       } finally {
                         setUpgrading(false)
