@@ -1,26 +1,19 @@
 import { Button, Card, CardFooter, CardHeader, Chip } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import dayjs from '@renderer/utils/dayjs'
-import React, { useEffect } from 'react'
+import React from 'react'
 import { CgClose, CgTrash } from 'react-icons/cg'
 
 interface Props {
   index: number
   info: IMihomoConnectionDetail
-  selected: IMihomoConnectionDetail | undefined
   setSelected: React.Dispatch<React.SetStateAction<IMihomoConnectionDetail | undefined>>
   setIsDetailModalOpen: React.Dispatch<React.SetStateAction<boolean>>
   close: (id: string) => void
 }
 
 const ConnectionItem: React.FC<Props> = (props) => {
-  const { index, info, close, selected, setSelected, setIsDetailModalOpen } = props
-
-  useEffect(() => {
-    if (selected?.id === info.id) {
-      setSelected(info)
-    }
-  }, [info])
+  const { index, info, close, setSelected, setIsDetailModalOpen } = props
 
   return (
     <div className={`px-2 pb-2 ${index === 0 ? 'pt-2' : ''}`}>
@@ -37,7 +30,7 @@ const ConnectionItem: React.FC<Props> = (props) => {
             <div className="w-full pr-12">
               <CardHeader className="pb-0 gap-1">
                 <Chip
-                  color={`${info.isActive ? 'primary' : 'danger'}`}
+                  color={info.isActive ? 'primary' : 'danger'}
                   size="sm"
                   radius="sm"
                   variant="dot"
@@ -84,7 +77,7 @@ const ConnectionItem: React.FC<Props> = (props) => {
           </div>
         </Card>
         <Button
-          color={`${info.isActive ? 'warning' : 'danger'}`}
+          color={info.isActive ? 'warning' : 'danger'}
           variant="light"
           isIconOnly
           className="absolute right-2 top-1/2 -translate-y-1/2"

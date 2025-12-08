@@ -55,6 +55,15 @@ const Connections: React.FC = () => {
     allConnectionsRef.current = allConnections
   }, [activeConnections, allConnections])
 
+  const selectedConnection = useMemo(() => {
+    if (!selected) return undefined
+    return (
+      activeConnections.find((c) => c.id === selected.id) ||
+      closedConnections.find((c) => c.id === selected.id) ||
+      selected
+    )
+  }, [selected, activeConnections, closedConnections])
+
   const handleColumnWidthChange = useCallback(async (widths: Record<string, number>) => {
     await patchAppConfig({ connectionTableColumnWidths: widths })
   }, [patchAppConfig])
@@ -246,8 +255,8 @@ const Connections: React.FC = () => {
         </div>
       }
     >
-      {isDetailModalOpen && selected && (
-        <ConnectionDetailModal onClose={() => setIsDetailModalOpen(false)} connection={selected} />
+      {isDetailModalOpen && selectedConnection && (
+        <ConnectionDetailModal onClose={() => setIsDetailModalOpen(false)} connection={selectedConnection} />
       )}
       <div className="overflow-x-auto sticky top-0 z-40">
         <div className="flex p-2 gap-2">
@@ -403,7 +412,6 @@ const Connections: React.FC = () => {
               <ConnectionItem
                 setSelected={setSelected}
                 setIsDetailModalOpen={setIsDetailModalOpen}
-                selected={selected}
                 close={closeConnection}
                 index={i}
                 key={connection.id}
