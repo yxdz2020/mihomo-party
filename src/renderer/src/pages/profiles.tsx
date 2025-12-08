@@ -156,26 +156,37 @@ const Profiles: React.FC = () => {
     }
   }
 
-  const handleInputKeyUp = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key !== 'Enter' || isUrlEmpty) return
-      handleImport()
-    },
-    [isUrlEmpty]
-  )
+  const handleImportRef = useRef(handleImport)
+  handleImportRef.current = handleImport
+
+  const addProfileItemRef = useRef(addProfileItem)
+  addProfileItemRef.current = addProfileItem
+
+  const tRef = useRef(t)
+  tRef.current = t
+
+  const handleInputKeyUp = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter' || e.currentTarget.value.trim() === '') return
+    handleImportRef.current()
+  }, [])
 
   useEffect(() => {
-    pageRef.current?.addEventListener('dragover', (e) => {
+    const element = pageRef.current
+    if (!element) return
+
+    const handleDragOver = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(true)
-    })
-    pageRef.current?.addEventListener('dragleave', (e) => {
+    }
+
+    const handleDragLeave = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(false)
-    })
-    pageRef.current?.addEventListener('drop', async (event) => {
+    }
+
+    const handleDrop = async (event: DragEvent): Promise<void> => {
       event.preventDefault()
       event.stopPropagation()
       if (event.dataTransfer?.files) {
@@ -184,20 +195,25 @@ const Profiles: React.FC = () => {
           try {
             const path = window.api.webUtils.getPathForFile(file)
             const content = await readTextFile(path)
-            await addProfileItem({ name: file.name, type: 'local', file: content })
+            await addProfileItemRef.current({ name: file.name, type: 'local', file: content })
           } catch (e) {
             alert(e)
           }
         } else {
-          alert(t('profiles.error.unsupportedFileType'))
+          alert(tRef.current('profiles.error.unsupportedFileType'))
         }
       }
       setFileOver(false)
-    })
+    }
+
+    element.addEventListener('dragover', handleDragOver)
+    element.addEventListener('dragleave', handleDragLeave)
+    element.addEventListener('drop', handleDrop)
+
     return (): void => {
-      pageRef.current?.removeEventListener('dragover', () => {})
-      pageRef.current?.removeEventListener('dragleave', () => {})
-      pageRef.current?.removeEventListener('drop', () => {})
+      element.removeEventListener('dragover', handleDragOver)
+      element.removeEventListener('dragleave', handleDragLeave)
+      element.removeEventListener('drop', handleDrop)
     }
   }, [])
 
