@@ -42,7 +42,7 @@ import {
 } from '../config'
 import { app, dialog } from 'electron'
 import { startSSIDCheck } from '../sys/ssid'
-import i18next from '../../shared/i18n'
+import i18next, { resources } from '../../shared/i18n'
 import { initLogger } from './logger'
 
 let isInitBasicCompleted = false
@@ -54,11 +54,9 @@ export function safeShowErrorBox(titleKey: string, message: string): void {
     title = i18next.t(titleKey)
     if (!title || title === titleKey) throw new Error('Translation not ready')
   } catch {
-    const isZh = process.env.LANG?.startsWith('zh') || process.env.LC_ALL?.startsWith('zh')
-    const fallbacks: Record<string, { zh: string; en: string }> = {
-      'mihomo.error.coreStartFailed': { zh: '内核启动出错', en: 'Core start failed' }
-    }
-    title = fallbacks[titleKey] ? (isZh ? fallbacks[titleKey].zh : fallbacks[titleKey].en) : (isZh ? '错误' : 'Error')
+    const isZh = app.getLocale().startsWith('zh')
+    const lang = isZh ? resources['zh-CN'].translation : resources['en-US'].translation
+    title = lang[titleKey] || (isZh ? '错误' : 'Error')
   }
   dialog.showErrorBox(title, message)
 }

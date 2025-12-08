@@ -499,24 +499,7 @@ async function checkProfile(): Promise<void> {
 }
 
 export async function checkTunPermissions(): Promise<boolean> {
-  const { core = 'mihomo' } = await getAppConfig()
-  const corePath = mihomoCorePath(core)
-
-  try {
-    if (process.platform === 'win32') {
-      return await checkAdminPrivileges()
-    }
-
-    if (process.platform === 'darwin' || process.platform === 'linux') {
-      const { stat } = await import('fs/promises')
-      const stats = await stat(corePath)
-      return (stats.mode & 0o4000) !== 0 && stats.uid === 0
-    }
-  } catch {
-    return false
-  }
-
-  return false
+  return checkMihomoCorePermissions()
 }
 
 export async function grantTunPermissions(): Promise<void> {
