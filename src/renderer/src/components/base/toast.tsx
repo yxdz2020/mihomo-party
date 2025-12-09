@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { IoCheckmark, IoClose, IoAlertSharp, IoInformationSharp } from 'react-icons/io5'
+import { IoCheckmark, IoClose, IoAlertSharp, IoInformationSharp, IoCopy } from 'react-icons/io5'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -11,6 +11,7 @@ interface ToastData {
   message: string
   duration?: number
   exiting?: boolean
+  detailed?: boolean
 }
 
 type ToastListener = (toasts: ToastData[]) => void
@@ -38,11 +39,18 @@ const removeToast = (id: string): void => {
   notifyListeners()
 }
 
+const addDetailedToast = (type: ToastType, message: string, title?: string): void => {
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  toasts = [...toasts.slice(-4), { id, type, message, title, duration: 8000, detailed: true }]
+  notifyListeners()
+}
+
 export const toast = {
   success: (message: string, title?: string): void => addToast('success', message, title),
   error: (message: string, title?: string): void => addToast('error', message, title, 1800),
   warning: (message: string, title?: string): void => addToast('warning', message, title),
-  info: (message: string, title?: string): void => addToast('info', message, title)
+  info: (message: string, title?: string): void => addToast('info', message, title),
+  detailedError: (message: string, title?: string): void => addDetailedToast('error', message, title)
 }
 
 const ToastItem: React.FC<{
@@ -50,6 +58,7 @@ const ToastItem: React.FC<{
   onRemove: (id: string) => void
 }> = ({ data, onRemove }) => {
   useEffect(() => {
+    if (data.detailed) return
     const duration = data.duration || 3500
     const exitTimer = setTimeout(() => markExiting(data.id), duration - 200)
     const removeTimer = setTimeout(() => onRemove(data.id), duration)
@@ -57,7 +66,7 @@ const ToastItem: React.FC<{
       clearTimeout(exitTimer)
       clearTimeout(removeTimer)
     }
-  }, [data.id, data.duration, onRemove])
+  }, [data.id, data.duration, data.detailed, onRemove])
 
   const theme: Record<ToastType, { icon: React.ReactNode; bg: string; iconBg: string }> = {
     success: {
@@ -85,6 +94,66 @@ const ToastItem: React.FC<{
   const { icon, iconBg } = theme[data.type]
   const duration = data.duration || 3500
 
+  const handleClose = (): void => {
+    markExiting(data.id)
+    setTimeout(() => onRemove(data.id), 150)
+  }
+
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async (): Promise<void> => {
+    await navigator.clipboard.writeText(data.message)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  if (data.detailed) {
+    return (
+      <div
+        className={`
+          relative flex flex-col gap-3 p-4
+          bg-content1 rounded-xl
+          shadow-xl border border-danger/30
+          ${data.exiting ? 'toast-exit' : 'toast-enter'}
+        `}
+        style={{ width: 480 }}
+      >
+        <div className="flex items-center justify-between overflow-visible">
+          <div className="flex items-center gap-3">
+            <div className={`flex-shrink-0 w-8 h-8 ${iconBg} rounded-full flex items-center justify-center`}>
+              {icon}
+            </div>
+            <p className="text-base font-semibold text-foreground">{data.title || '错误'}</p>
+          </div>
+          <div className="relative" style={{ zIndex: 99999 }}>
+            <button
+              onClick={handleCopy}
+              className="p-2 rounded-lg hover:bg-default-200 transition-colors"
+            >
+              <div className="relative w-4 h-4">
+                <IoCopy className={`absolute inset-0 text-base text-foreground-500 transition-all duration-200 ${copied ? 'opacity-0 scale-50' : 'opacity-100 scale-100'}`} />
+                <IoCheckmark className={`absolute inset-0 text-base text-success transition-all duration-200 ${copied ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
+              </div>
+            </button>
+            <div className={`absolute top-full mt-1 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-foreground bg-content2 border border-default-200 rounded shadow-md whitespace-nowrap transition-all duration-200 ${copied ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`} style={{ zIndex: 99999 }}>
+              已复制
+            </div>
+          </div>
+        </div>
+        <div className="bg-default-100 rounded-lg p-3 max-h-60 overflow-y-auto scrollbar-thin">
+          <pre className="text-xs text-foreground-600 whitespace-pre-wrap break-words font-mono select-text leading-relaxed">
+            {data.message}
+          </pre>
+        </div>
+        <button
+          onClick={handleClose}
+          className="self-end px-4 py-1.5 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger/90 transition-colors"
+        >
+          确定
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`
@@ -109,10 +178,7 @@ const ToastItem: React.FC<{
         </p>
       </div>
       <button
-        onClick={() => {
-          markExiting(data.id)
-          setTimeout(() => onRemove(data.id), 150)
-        }}
+        onClick={handleClose}
         className="flex-shrink-0 p-1 rounded-full hover:bg-default-200/60 transition-colors"
       >
         <IoClose className="text-base text-foreground-400" />

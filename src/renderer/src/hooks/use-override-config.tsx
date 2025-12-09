@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react'
-import { toast } from '@renderer/components/base/toast'
+import { showError } from '@renderer/utils/error-display'
 import useSWR from 'swr'
 import {
   getOverrideConfig,
@@ -29,7 +29,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await set(config)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '保存覆写配置失败')
     } finally {
       mutateOverrideConfig()
     }
@@ -39,7 +39,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await add(item)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '添加覆写失败')
     } finally {
       mutateOverrideConfig()
     }
@@ -49,7 +49,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await remove(id)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '删除覆写失败')
     } finally {
       mutateOverrideConfig()
     }
@@ -59,7 +59,7 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
     try {
       await update(item)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '更新覆写失败')
     } finally {
       mutateOverrideConfig()
     }

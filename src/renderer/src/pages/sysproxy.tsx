@@ -1,6 +1,6 @@
 import { Button, Input, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
-import { toast } from '@renderer/components/base/toast'
+import { showErrorSync } from '@renderer/utils/error-display'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import PacEditorModal from '@renderer/components/sysproxy/pac-editor-modal'
@@ -106,7 +106,7 @@ const Sysproxy: React.FC = () => {
     } catch (e) {
       setValues({ ...values, enable: previousState })
       setChanged(true)
-      toast.error(String(e))
+      showErrorSync(e, '系统代理设置失败')
 
       await patchAppConfig({ sysProxy: { enable: false } })
     }

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react'
-import { toast } from '@renderer/components/base/toast'
+import { showError } from '@renderer/utils/error-display'
 import useSWR from 'swr'
 import { getControledMihomoConfig, patchControledMihomoConfig as patch } from '@renderer/utils/ipc'
 
@@ -23,7 +23,7 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     try {
       await patch(value)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '更新内核配置失败')
     } finally {
       mutateControledMihomoConfig()
     }

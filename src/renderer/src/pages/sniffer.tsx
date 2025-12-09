@@ -1,6 +1,6 @@
 import { Button, Divider, Input, Switch } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
-import { toast } from '@renderer/components/base/toast'
+import { showErrorSync } from '@renderer/utils/error-display'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -71,7 +71,7 @@ const Sniffer: React.FC = () => {
         await restartCore()
       }
     } catch (e) {
-      toast.error(String(e))
+      showErrorSync(e, '嵅探配置保存失败')
     }
   }
 

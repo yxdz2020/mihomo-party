@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react'
-import { toast } from '@renderer/components/base/toast'
+import { showError } from '@renderer/utils/error-display'
 import useSWR from 'swr'
 import { getAppConfig, patchAppConfig as patch } from '@renderer/utils/ipc'
 
@@ -18,7 +18,7 @@ export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children 
     try {
       await patch(value)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '更新应用配置失败')
     } finally {
       mutateAppConfig()
     }

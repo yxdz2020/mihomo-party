@@ -1,6 +1,7 @@
 import { Button, Divider, Input, Select, SelectItem, Switch, Tooltip, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Spinner, Chip } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
 import { toast } from '@renderer/components/base/toast'
+import { showError } from '@renderer/utils/error-display'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -14,7 +15,6 @@ import {
   restartCore,
   startSubStoreBackendServer,
   triggerSysProxy,
-  showDetailedError,
   fetchMihomoTags,
   installSpecificMihomoCore,
   clearMihomoVersionCache
@@ -306,11 +306,7 @@ const Mihomo: React.FC = () => {
       const errorMessage = e instanceof Error ? e.message : String(e)
       console.error('Core restart failed:', errorMessage)
 
-      if (errorMessage.includes('配置检查失败') || errorMessage.includes('Profile Check Failed')) {
-        await showDetailedError(t('mihomo.error.profileCheckFailed'), errorMessage)
-      } else {
-        toast.error(errorMessage)
-      }
+      await showError(errorMessage, t('mihomo.error.profileCheckFailed'))
     } finally {
       PubSub.publish('mihomo-core-changed')
     }

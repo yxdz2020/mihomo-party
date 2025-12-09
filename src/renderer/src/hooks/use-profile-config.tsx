@@ -1,4 +1,5 @@
 import React, { createContext, ReactNode, useContext } from 'react'
+import { showError } from '@renderer/utils/error-display'
 import { toast } from '@renderer/components/base/toast'
 import useSWR from 'swr'
 import {
@@ -33,7 +34,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await set(config)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '保存配置失败')
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -44,7 +45,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await add(item)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '添加配置失败')
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -55,7 +56,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await remove(id)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '删除配置失败')
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -66,7 +67,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await update(item)
     } catch (e) {
-      toast.error(String(e))
+      await showError(e, '更新配置失败')
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -108,7 +109,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
         if (errorMsg.includes('reply was never sent')) {
           setTimeout(() => mutateProfileConfig(), 1000)
         } else {
-          toast.error(errorMsg, '切换配置失败')
+          await showError(errorMsg, '切换配置失败')
           mutateProfileConfig()
         }
       } finally {
