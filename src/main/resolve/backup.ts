@@ -21,7 +21,13 @@ import i18next from 'i18next'
 
 let backupCronJob: Cron | null = null
 
-export async function webdavBackup(): Promise<boolean> {
+interface WebDAVContext {
+  client: ReturnType<Awaited<typeof import('webdav/dist/node/index.js')>['createClient']>
+  webdavDir: string
+  webdavMaxBackups: number
+}
+
+async function getWebDAVClient(): Promise<WebDAVContext> {
   const { createClient } = await import('webdav/dist/node/index.js')
   const {
     webdavUrl = '',
@@ -30,6 +36,17 @@ export async function webdavBackup(): Promise<boolean> {
     webdavDir = 'clash-party',
     webdavMaxBackups = 0
   } = await getAppConfig()
+
+  const client = createClient(webdavUrl, {
+    username: webdavUsername,
+    password: webdavPassword
+  })
+
+  return { client, webdavDir, webdavMaxBackups }
+}
+
+export async function webdavBackup(): Promise<boolean> {
+  const { client, webdavDir, webdavMaxBackups } = await getWebDAVClient()
   const zip = new AdmZip()
 
   zip.addLocalFile(appConfigPath())
@@ -44,10 +61,6 @@ export async function webdavBackup(): Promise<boolean> {
   const date = new Date()
   const zipFileName = `${process.platform}_${dayjs(date).format('YYYY-MM-DD_HH-mm-ss')}.zip`
 
-  const client = createClient(webdavUrl, {
-    username: webdavUsername,
-    password: webdavPassword
-  })
   try {
     await client.createDirectory(webdavDir)
   } catch {
@@ -92,36 +105,14 @@ export async function webdavBackup(): Promise<boolean> {
 }
 
 export async function webdavRestore(filename: string): Promise<void> {
-  const { createClient } = await import('webdav/dist/node/index.js')
-  const {
-    webdavUrl = '',
-    webdavUsername = '',
-    webdavPassword = '',
-    webdavDir = 'clash-party'
-  } = await getAppConfig()
-
-  const client = createClient(webdavUrl, {
-    username: webdavUsername,
-    password: webdavPassword
-  })
+  const { client, webdavDir } = await getWebDAVClient()
   const zipData = await client.getFileContents(`${webdavDir}/${filename}`)
   const zip = new AdmZip(zipData as Buffer)
   zip.extractAllTo(dataDir(), true)
 }
 
 export async function listWebdavBackups(): Promise<string[]> {
-  const { createClient } = await import('webdav/dist/node/index.js')
-  const {
-    webdavUrl = '',
-    webdavUsername = '',
-    webdavPassword = '',
-    webdavDir = 'clash-party'
-  } = await getAppConfig()
-
-  const client = createClient(webdavUrl, {
-    username: webdavUsername,
-    password: webdavPassword
-  })
+  const { client, webdavDir } = await getWebDAVClient()
   const files = await client.getDirectoryContents(webdavDir, { glob: '*.zip' })
   if (Array.isArray(files)) {
     return files.map((file) => file.basename)
@@ -131,18 +122,7 @@ export async function listWebdavBackups(): Promise<string[]> {
 }
 
 export async function webdavDelete(filename: string): Promise<void> {
-  const { createClient } = await import('webdav/dist/node/index.js')
-  const {
-    webdavUrl = '',
-    webdavUsername = '',
-    webdavPassword = '',
-    webdavDir = 'clash-party'
-  } = await getAppConfig()
-
-  const client = createClient(webdavUrl, {
-    username: webdavUsername,
-    password: webdavPassword
-  })
+  const { client, webdavDir } = await getWebDAVClient()
   await client.deleteFile(`${webdavDir}/${filename}`)
 }
 

@@ -1,4 +1,5 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import { relaunchApp, webdavDelete, webdavRestore } from '@renderer/utils/ipc'
 import React, { useState } from 'react'
 import { MdDeleteForever } from 'react-icons/md'
@@ -43,7 +44,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
                       await webdavRestore(filename)
                       await relaunchApp()
                     } catch (e) {
-                      alert(t('common.error.restoreFailed', { error: e }))
+                      toast.error(t('common.error.restoreFailed', { error: e }))
                     } finally {
                       setRestoring(false)
                     }
@@ -61,7 +62,7 @@ const WebdavRestoreModal: React.FC<Props> = (props) => {
                       await webdavDelete(filename)
                       setFilenames(filenames.filter((name) => name !== filename))
                     } catch (e) {
-                      alert(t('common.error.deleteFailed', { error: e }))
+                      toast.error(t('common.error.deleteFailed', { error: e }))
                     }
                   }}
                 >

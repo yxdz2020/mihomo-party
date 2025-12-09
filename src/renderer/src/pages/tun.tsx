@@ -1,5 +1,6 @@
 import { Button, Input, Switch, Tab, Tabs } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
+import { toast } from '@renderer/components/base/toast'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -112,7 +113,7 @@ const Tun: React.FC = () => {
                     new Notification(t('tun.notifications.firewallResetSuccess'))
                     await restartCore()
                   } catch (e) {
-                    alert(e)
+                    toast.error(String(e))
                   } finally {
                     setLoading(false)
                   }
@@ -133,7 +134,7 @@ const Tun: React.FC = () => {
                     new Notification(t('tun.notifications.coreAuthSuccess'))
                     await restartCore()
                   } catch (e) {
-                    alert(e)
+                    toast.error(String(e))
                   }
                 }}
               >

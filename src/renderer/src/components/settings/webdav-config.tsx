@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
+import { toast } from '@renderer/components/base/toast'
 import SettingItem from '../base/base-setting-item'
 import { Button, Input, Select, SelectItem } from '@heroui/react'
 import { listWebdavBackups, webdavBackup, reinitWebdavBackupScheduler } from '@renderer/utils/ipc'
@@ -47,7 +48,7 @@ const WebdavConfig: React.FC = () => {
         body: t('webdav.notification.backupSuccess.body')
       })
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       setBackuping(false)
     }
@@ -60,7 +61,7 @@ const WebdavConfig: React.FC = () => {
       setFilenames(filenames)
       setRestoreOpen(true)
     } catch (e) {
-      alert(t('common.error.getBackupListFailed', { error: e }))
+      toast.error(t('common.error.getBackupListFailed', { error: e }))
     } finally {
       setRestoring(false)
     }
@@ -156,7 +157,7 @@ const WebdavConfig: React.FC = () => {
                       new Notification(t('webdav.notification.cronUpdateFailed'))
                     }
                   } else {
-                    alert(t('common.error.invalidCron'))
+                    toast.warning(t('common.error.invalidCron'))
                   }
                 }}
               >

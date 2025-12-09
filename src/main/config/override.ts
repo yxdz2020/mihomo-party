@@ -40,7 +40,7 @@ export async function addOverrideItem(item: Partial<IOverrideItem>): Promise<voi
   const config = await getOverrideConfig()
   const newItem = await createOverride(item)
   if (await getOverrideItem(item.id)) {
-    updateOverrideItem(newItem)
+    await updateOverrideItem(newItem)
   } else {
     config.items.push(newItem)
   }
@@ -84,7 +84,7 @@ export async function createOverride(item: Partial<IOverrideItem>): Promise<IOve
     }
     case 'local': {
       const data = item.file || ''
-      setOverride(id, newItem.ext, data)
+      await setOverride(id, newItem.ext, data)
       break
     }
   }

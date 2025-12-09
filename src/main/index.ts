@@ -7,7 +7,7 @@ import { quitWithoutCore, startCore, stopCore, checkAdminRestartForTun, checkHig
 import { triggerSysProxy } from './sys/sysproxy'
 import icon from '../../resources/icon.png?asset'
 import { createTray, hideDockIcon, showDockIcon } from './resolve/tray'
-import { init, initBasic } from './utils/init'
+import { init, initBasic, safeShowErrorBox } from './utils/init'
 import { join } from 'path'
 import { initShortcut } from './resolve/shortcut'
 import { spawn, exec } from 'child_process'
@@ -23,24 +23,6 @@ import i18next from 'i18next'
 import { logger } from './utils/logger'
 import { initWebdavBackupScheduler } from './resolve/backup'
 
-// 错误处理
-function showSafeErrorBox(titleKey: string, message: string): void {
-  let title: string
-  try {
-    title = i18next.t(titleKey)
-    if (!title || title === titleKey) throw new Error('Translation not ready')
-  } catch {
-    const isZh = app.getLocale().startsWith('zh')
-    const fallbacks: Record<string, { zh: string; en: string }> = {
-      'common.error.initFailed': { zh: '应用初始化失败', en: 'Application initialization failed' },
-      'mihomo.error.coreStartFailed': { zh: '内核启动出错', en: 'Core start failed' },
-      'profiles.error.importFailed': { zh: '配置导入失败', en: 'Profile import failed' },
-      'common.error.adminRequired': { zh: '需要管理员权限', en: 'Administrator privileges required' }
-    }
-    title = fallbacks[titleKey] ? (isZh ? fallbacks[titleKey].zh : fallbacks[titleKey].en) : (isZh ? '错误' : 'Error')
-  }
-  dialog.showErrorBox(title, message)
-}
 
 async function fixUserDataPermissions(): Promise<void> {
   if (process.platform !== 'darwin') return
@@ -80,7 +62,7 @@ async function initApp(): Promise<void> {
 
 initApp()
   .catch((e) => {
-    showSafeErrorBox('common.error.initFailed', `${e}`)
+    safeShowErrorBox('common.error.initFailed', `${e}`)
     app.quit()
   })
 
@@ -150,7 +132,7 @@ async function checkHighPrivilegeCoreEarly(): Promise<void> {
           await restartAsAdmin(false)
           process.exit(0)
         } catch (error) {
-          showSafeErrorBox('common.error.adminRequired', `${error}`)
+          safeShowErrorBox('common.error.adminRequired', `${error}`)
           process.exit(1)
         }
       } else {
@@ -234,7 +216,7 @@ app.whenReady().then(async () => {
     }
     await initI18n({ lng: appConfig.language })
   } catch (e) {
-    showSafeErrorBox('common.error.initFailed', `${e}`)
+    safeShowErrorBox('common.error.initFailed', `${e}`)
     app.quit()
   }
 
@@ -247,7 +229,7 @@ app.whenReady().then(async () => {
       await checkAdminRestartForTun()
     })
   } catch (e) {
-    showSafeErrorBox('mihomo.error.coreStartFailed', `${e}`)
+    safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
   }
   try {
     await startMonitor()
@@ -303,7 +285,7 @@ async function handleDeepLink(url: string): Promise<void> {
         new Notification({ title: i18next.t('profiles.notification.importSuccess') }).show()
         break
       } catch (e) {
-        showSafeErrorBox('profiles.error.importFailed', `${url}\n${e}`)
+        safeShowErrorBox('profiles.error.importFailed', `${url}\n${e}`)
       }
     }
   }

@@ -1,5 +1,6 @@
 import { Button, Tab, Input, Switch, Tabs, Divider } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
+import { toast } from '@renderer/components/base/toast'
 import { MdDeleteForever } from 'react-icons/md'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
@@ -145,7 +146,7 @@ const DNS: React.FC = () => {
         await restartCore()
       }
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     }
   }
 

@@ -1,6 +1,6 @@
 import BasePage from '@renderer/components/base/base-page'
 import { mihomoCloseAllConnections, mihomoCloseConnection } from '@renderer/utils/ipc'
-import { Key, useCallback, useEffect, useMemo, useState } from 'react'
+import { Key, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge, Button, Divider, Input, Select, SelectItem, Tab, Tabs } from '@heroui/react'
 import { calcTraffic } from '@renderer/utils/calc'
 import ConnectionItem from '@renderer/components/connections/connection-item'
@@ -47,6 +47,22 @@ const Connections: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false)
   const [viewMode, setViewMode] = useState<'list' | 'table'>(connectionViewMode)
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(new Set(connectionTableColumns))
+
+  const activeConnectionsRef = useRef(activeConnections)
+  const allConnectionsRef = useRef(allConnections)
+  useEffect(() => {
+    activeConnectionsRef.current = activeConnections
+    allConnectionsRef.current = allConnections
+  }, [activeConnections, allConnections])
+
+  const selectedConnection = useMemo(() => {
+    if (!selected) return undefined
+    return (
+      activeConnections.find((c) => c.id === selected.id) ||
+      closedConnections.find((c) => c.id === selected.id) ||
+      selected
+    )
+  }, [selected, activeConnections, closedConnections])
 
   const handleColumnWidthChange = useCallback(async (widths: Record<string, number>) => {
     await patchAppConfig({ connectionTableColumnWidths: widths })
@@ -98,71 +114,80 @@ const Connections: React.FC = () => {
 
   const closeAllConnections = useCallback((): void => {
     tab === 'active' ? mihomoCloseAllConnections() : trashAllClosedConnection()
-  }, [tab, closedConnections])
+  }, [tab])
 
   const closeConnection = useCallback((id: string): void => {
     tab === 'active' ? mihomoCloseConnection(id) : trashClosedConnection(id)
   }, [tab])
 
   const trashAllClosedConnection = (): void => {
-    const trashIds = closedConnections.map((conn) => conn.id)
-    setAllConnections((allConns) => allConns.filter((conn) => !trashIds.includes(conn.id)))
-    setClosedConnections([])
-
-    cachedConnections = allConnections
+    setClosedConnections((closedConns) => {
+      const trashIds = new Set(closedConns.map((conn) => conn.id))
+      setAllConnections((allConns) => {
+        const filtered = allConns.filter((conn) => !trashIds.has(conn.id))
+        cachedConnections = filtered
+        return filtered
+      })
+      return []
+    })
   }
 
   const trashClosedConnection = (id: string): void => {
-    setAllConnections((allConns) => allConns.filter((conn) => conn.id != id))
-    setClosedConnections((closedConns) => closedConns.filter((conn) => conn.id != id))
-
-    cachedConnections = allConnections
+    setAllConnections((allConns) => {
+      const filtered = allConns.filter((conn) => conn.id !== id)
+      cachedConnections = filtered
+      return filtered
+    })
+    setClosedConnections((closedConns) => closedConns.filter((conn) => conn.id !== id))
   }
 
   useEffect(() => {
-    if (isPaused) return
-    window.electron.ipcRenderer.on('mihomoConnections', (_e, info: IMihomoConnectionsInfo) => {
+    const handler = (_e: unknown, info: IMihomoConnectionsInfo): void => {
       setConnectionsInfo(info)
 
       if (!info.connections) return
-      const allConns = unionWith(activeConnections, allConnections, (a, b) => a.id === b.id)
+      const allConns = unionWith(
+        activeConnectionsRef.current,
+        allConnectionsRef.current,
+        (a, b) => a.id === b.id
+      )
 
+      const prevConnMap = new Map(activeConnectionsRef.current.map((c) => [c.id, c]))
       const activeConns = info.connections.map((conn) => {
-        const preConn = activeConnections.find((c) => c.id === conn.id)
-        const downloadSpeed = preConn ? conn.download - preConn.download : 0
-        const uploadSpeed = preConn ? conn.upload - preConn.upload : 0
+        const preConn = prevConnMap.get(conn.id)
         return {
           ...conn,
           isActive: true,
-          downloadSpeed: downloadSpeed,
-          uploadSpeed: uploadSpeed
+          downloadSpeed: preConn ? conn.download - preConn.download : 0,
+          uploadSpeed: preConn ? conn.upload - preConn.upload : 0
         }
       })
       const closedConns = differenceWith(allConns, activeConns, (a, b) => a.id === b.id).map(
-        (conn) => {
-          return {
-            ...conn,
-            isActive: false,
-            downloadSpeed: 0,
-            uploadSpeed: 0
-          }
-        }
+        (conn) => ({
+          ...conn,
+          isActive: false,
+          downloadSpeed: 0,
+          uploadSpeed: 0
+        })
       )
 
       setActiveConnections(activeConns)
       setClosedConnections(closedConns)
       setAllConnections(allConns.slice(-(activeConns.length + 200)))
+      cachedConnections = allConns
+    }
 
-      cachedConnections = allConnections
-    })
+    if (!isPaused) {
+      window.electron.ipcRenderer.on('mihomoConnections', handler)
+    }
 
     return (): void => {
       window.electron.ipcRenderer.removeAllListeners('mihomoConnections')
     }
-  }, [allConnections, activeConnections, closedConnections, isPaused])
-  const togglePause = () => {
-    setIsPaused(!isPaused)
-  }
+  }, [isPaused])
+  const togglePause = useCallback(() => {
+    setIsPaused((prev) => !prev)
+  }, [])
 
   return (
     <BasePage
@@ -182,7 +207,7 @@ const Connections: React.FC = () => {
             color="primary"
             variant="flat"
             showOutline={false}
-            content={`${filteredConnections.length}`}
+            content={filteredConnections.length}
           >
             <Button
               className="app-nodrag ml-1"
@@ -230,14 +255,14 @@ const Connections: React.FC = () => {
         </div>
       }
     >
-      {isDetailModalOpen && selected && (
-        <ConnectionDetailModal onClose={() => setIsDetailModalOpen(false)} connection={selected} />
+      {isDetailModalOpen && selectedConnection && (
+        <ConnectionDetailModal onClose={() => setIsDetailModalOpen(false)} connection={selectedConnection} />
       )}
       <div className="overflow-x-auto sticky top-0 z-40">
         <div className="flex p-2 gap-2">
           <Tabs
             size="sm"
-            color={`${tab === 'active' ? 'primary' : 'danger'}`}
+            color={tab === 'active' ? 'primary' : 'danger'}
             selectedKey={tab}
             variant="underlined"
             className="w-fit h-[32px]"
@@ -249,7 +274,7 @@ const Connections: React.FC = () => {
               key="active"
               title={
                 <Badge
-                  color={`${tab === 'active' ? 'primary' : 'default'}`}
+                  color={tab === 'active' ? 'primary' : 'default'}
                   size="sm"
                   shape="circle"
                   variant="flat"
@@ -264,7 +289,7 @@ const Connections: React.FC = () => {
               key="closed"
               title={
                 <Badge
-                  color={`${tab === 'closed' ? 'danger' : 'default'}`}
+                  color={tab === 'closed' ? 'danger' : 'default'}
                   size="sm"
                   shape="circle"
                   variant="flat"
@@ -339,7 +364,7 @@ const Connections: React.FC = () => {
                 size="sm"
                 className="w-[180px] min-w-[131px]"
                 aria-label={t('connections.orderBy')}
-                selectedKeys={new Set([connectionOrderBy])}
+                selectedKeys={[connectionOrderBy]}
                 disallowEmptySelection={true}
                 onSelectionChange={async (v) => {
                   await patchAppConfig({
@@ -362,7 +387,7 @@ const Connections: React.FC = () => {
                 size="sm"
                 isIconOnly
                 className="bg-content2"
-                onPress={async () => {
+                onPress={() => {
                   patchAppConfig({
                     connectionDirection: connectionDirection === 'asc' ? 'desc' : 'asc'
                   })
@@ -387,7 +412,6 @@ const Connections: React.FC = () => {
               <ConnectionItem
                 setSelected={setSelected}
                 setIsDetailModalOpen={setIsDetailModalOpen}
-                selected={selected}
                 close={closeConnection}
                 index={i}
                 key={connection.id}

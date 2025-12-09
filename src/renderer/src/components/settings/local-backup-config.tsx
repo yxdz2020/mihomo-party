@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
+import { toast } from '@renderer/components/base/toast'
 import SettingItem from '../base/base-setting-item'
 import { Button, useDisclosure } from '@heroui/react'
 import { exportLocalBackup, importLocalBackup } from '@renderer/utils/ipc'
@@ -22,7 +23,7 @@ const LocalBackupConfig: React.FC = () => {
         })
       }
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     } finally {
       setExporting(false)
     }
@@ -38,7 +39,7 @@ const LocalBackupConfig: React.FC = () => {
         })
       }
     } catch (e) {
-      alert(t('common.error.importFailed', { error: e }))
+      toast.error(t('common.error.importFailed', { error: e }))
     } finally {
       setImporting(false)
       onClose()

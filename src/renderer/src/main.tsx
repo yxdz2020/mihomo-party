@@ -14,6 +14,7 @@ import { OverrideConfigProvider } from './hooks/use-override-config'
 import { ProfileConfigProvider } from './hooks/use-profile-config'
 import { RulesProvider } from './hooks/use-rules'
 import { GroupsProvider } from './hooks/use-groups'
+import { ToastProvider } from './components/base/toast'
 import './i18n'
 
 let F12Count = 0
@@ -53,7 +54,9 @@ init().then(() => {
                     <OverrideConfigProvider>
                       <GroupsProvider>
                         <RulesProvider>
-                          <App />
+                          <ToastProvider>
+                            <App />
+                          </ToastProvider>
                         </RulesProvider>
                       </GroupsProvider>
                     </OverrideConfigProvider>

@@ -1,4 +1,5 @@
 import { Button, Input, Switch, Tab, Tabs } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
@@ -123,7 +124,7 @@ const GeoData: React.FC = () => {
                 await mihomoUpgradeGeo()
                 new Notification(t('resources.geoData.updateSuccess'))
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               } finally {
                 setUpdating(false)
               }

@@ -11,6 +11,7 @@ import {
   Tooltip
 } from '@heroui/react'
 import BasePage from '@renderer/components/base/base-page'
+import { toast } from '@renderer/components/base/toast'
 import ProfileItem from '@renderer/components/profiles/profile-item'
 import { useProfileConfig } from '@renderer/hooks/use-profile-config'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -156,26 +157,37 @@ const Profiles: React.FC = () => {
     }
   }
 
-  const handleInputKeyUp = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      if (e.key !== 'Enter' || isUrlEmpty) return
-      handleImport()
-    },
-    [isUrlEmpty]
-  )
+  const handleImportRef = useRef(handleImport)
+  handleImportRef.current = handleImport
+
+  const addProfileItemRef = useRef(addProfileItem)
+  addProfileItemRef.current = addProfileItem
+
+  const tRef = useRef(t)
+  tRef.current = t
+
+  const handleInputKeyUp = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter' || e.currentTarget.value.trim() === '') return
+    handleImportRef.current()
+  }, [])
 
   useEffect(() => {
-    pageRef.current?.addEventListener('dragover', (e) => {
+    const element = pageRef.current
+    if (!element) return
+
+    const handleDragOver = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(true)
-    })
-    pageRef.current?.addEventListener('dragleave', (e) => {
+    }
+
+    const handleDragLeave = (e: DragEvent): void => {
       e.preventDefault()
       e.stopPropagation()
       setFileOver(false)
-    })
-    pageRef.current?.addEventListener('drop', async (event) => {
+    }
+
+    const handleDrop = async (event: DragEvent): Promise<void> => {
       event.preventDefault()
       event.stopPropagation()
       if (event.dataTransfer?.files) {
@@ -184,20 +196,25 @@ const Profiles: React.FC = () => {
           try {
             const path = window.api.webUtils.getPathForFile(file)
             const content = await readTextFile(path)
-            await addProfileItem({ name: file.name, type: 'local', file: content })
+            await addProfileItemRef.current({ name: file.name, type: 'local', file: content })
           } catch (e) {
-            alert(e)
+            toast.error(String(e))
           }
         } else {
-          alert(t('profiles.error.unsupportedFileType'))
+          toast.warning(tRef.current('profiles.error.unsupportedFileType'))
         }
       }
       setFileOver(false)
-    })
+    }
+
+    element.addEventListener('dragover', handleDragOver)
+    element.addEventListener('dragleave', handleDragLeave)
+    element.addEventListener('drop', handleDrop)
+
     return (): void => {
-      pageRef.current?.removeEventListener('dragover', () => {})
-      pageRef.current?.removeEventListener('dragleave', () => {})
-      pageRef.current?.removeEventListener('drop', () => {})
+      element.removeEventListener('dragover', handleDragOver)
+      element.removeEventListener('dragleave', handleDragLeave)
+      element.removeEventListener('drop', handleDrop)
     }
   }, [])
 
@@ -329,7 +346,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -350,7 +367,7 @@ const Profiles: React.FC = () => {
                         useProxy
                       })
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     } finally {
                       setSubStoreImporting(false)
                     }
@@ -382,7 +399,7 @@ const Profiles: React.FC = () => {
                         await addProfileItem({ name: fileName, type: 'local', file: content })
                       }
                     } catch (e) {
-                      alert(e)
+                      toast.error(String(e))
                     }
                   } else if (key === 'new') {
                     await addProfileItem({

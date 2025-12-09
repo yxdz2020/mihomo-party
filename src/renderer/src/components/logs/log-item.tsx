@@ -14,7 +14,7 @@ const LogItem: React.FC<IMihomoLogInfo & { index: number }> = (props) => {
       <Card>
         <CardHeader className="pb-0 pt-1">
           <div className={`mr-2 text-lg font-bold text-${colorMap[type]}`}>
-            {props.type.toUpperCase()}
+            {type.toUpperCase()}
           </div>
           <small className="text-foreground-500">{time}</small>
         </CardHeader>
@@ -24,4 +24,4 @@ const LogItem: React.FC<IMihomoLogInfo & { index: number }> = (props) => {
   )
 }
 
-export default LogItem
+export default React.memo(LogItem)

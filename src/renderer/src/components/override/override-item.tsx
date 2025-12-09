@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownTrigger
 } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from '@renderer/utils/dayjs'
 import React, { Key, useMemo, useState } from 'react'
@@ -197,7 +198,7 @@ const OverrideItem: React.FC<Props> = (props) => {
                         await addOverrideItem(info)
                         await restartCore()
                       } catch (e) {
-                        alert(e)
+                        toast.error(String(e))
                       } finally {
                         setUpdating(false)
                       }

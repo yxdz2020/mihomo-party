@@ -1,5 +1,6 @@
 import { Button, Input } from '@heroui/react'
 import SettingCard from '../base/base-setting-card'
+import { toast } from '@renderer/components/base/toast'
 import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React, { KeyboardEvent, useState } from 'react'
@@ -213,10 +214,10 @@ const ShortcutInput: React.FC<{
                 await patchAppConfig({ [action]: inputValue })
                 window.electron.ipcRenderer.send('updateTrayMenu')
               } else {
-                alert(t('common.error.shortcutRegistrationFailed'))
+                toast.error(t('common.error.shortcutRegistrationFailed'))
               }
             } catch (e) {
-              alert(t('common.error.shortcutRegistrationFailedWithError', { error: e }))
+              toast.error(t('common.error.shortcutRegistrationFailedWithError', { error: e }))
             }
           }}
         >

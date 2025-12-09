@@ -1,4 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import BorderSwitch from '@renderer/components/base/border-swtich'
 import { LuServer } from 'react-icons/lu'
@@ -39,7 +40,7 @@ const DNSCard: React.FC<Props> = (props) => {
       await patchControledMihomoConfig({})
       await restartCore()
     } catch (e) {
-      alert(e)
+      toast.error(String(e))
     }
   }
 

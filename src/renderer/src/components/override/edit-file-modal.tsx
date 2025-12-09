@@ -1,4 +1,5 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import React, { useEffect, useState } from 'react'
 import { BaseEditor } from '../base/base-editor'
 import { getOverride, restartCore, setOverride } from '@renderer/utils/ipc'
@@ -58,7 +59,7 @@ const EditFileModal: React.FC<Props> = (props) => {
                 await restartCore()
                 onClose()
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               }
             }}
           >

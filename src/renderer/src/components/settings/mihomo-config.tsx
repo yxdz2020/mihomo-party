@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
+import { toast } from '@renderer/components/base/toast'
 import SettingItem from '../base/base-setting-item'
 import { Button, Input, Select, SelectItem, Switch, Tooltip } from '@heroui/react'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
@@ -122,7 +123,7 @@ const MihomoConfig: React.FC = () => {
                   await navigator.clipboard.writeText(`${url}/raw/clash-party.yaml`)
                 }
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               }
             }}
           >
@@ -176,7 +177,7 @@ const MihomoConfig: React.FC = () => {
                 })
                 await restartCore()
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               }
             }}
           >
@@ -208,7 +209,7 @@ const MihomoConfig: React.FC = () => {
               await patchAppConfig({ diffWorkDir: v })
               await restartCore()
             } catch (e) {
-              alert(e)
+              toast.error(String(e))
             }
           }}
         />

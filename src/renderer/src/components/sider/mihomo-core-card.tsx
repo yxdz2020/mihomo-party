@@ -1,4 +1,5 @@
 import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
+import { toast } from '@renderer/components/base/toast'
 import { calcTraffic } from '@renderer/utils/calc'
 import { mihomoVersion, restartCore } from '@renderer/utils/ipc'
 import React, { useEffect, useState } from 'react'
@@ -112,7 +113,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
                   try {
                     await restartCore()
                   } catch (e) {
-                    alert(e)
+                    toast.error(String(e))
                   } finally {
                     mutate()
                   }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import SettingCard from '../base/base-setting-card'
+import { toast } from '@renderer/components/base/toast'
 import SettingItem from '../base/base-setting-item'
 import { Button, Input, Select, SelectItem, Switch, Tab, Tabs, Tooltip } from '@heroui/react'
 import { BiCopy, BiSolidFileImport } from 'react-icons/bi'
@@ -105,7 +106,7 @@ const GeneralConfig: React.FC = () => {
               await patchAppConfig({ disableHardwareAcceleration: pendingHardwareAccelValue })
               await relaunchApp()
             } catch (e) {
-              alert(e)
+              toast.error(String(e))
               setIsRelaunching(false)
             }
           }}
@@ -151,7 +152,7 @@ const GeneralConfig: React.FC = () => {
                   await disableAutoRun()
                 }
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               } finally {
                 mutateEnable()
               }
@@ -248,7 +249,7 @@ const GeneralConfig: React.FC = () => {
                   envType: Array.from(v) as ('bash' | 'cmd' | 'powershell')[]
                 })
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
               }
             }}
           >
@@ -413,7 +414,7 @@ const GeneralConfig: React.FC = () => {
                 await patchAppConfig({ useWindowFrame: v })
                 await relaunchApp()
               } catch (e) {
-                alert(e)
+                toast.error(String(e))
                 setIsRelaunching(false)
               }
             }, 1000)}
@@ -503,7 +504,7 @@ const GeneralConfig: React.FC = () => {
                     await fetchThemes()
                     setCustomThemes(await resolveThemes())
                   } catch (e) {
-                    alert(e)
+                    toast.error(String(e))
                   } finally {
                     setFetching(false)
                   }
@@ -523,7 +524,7 @@ const GeneralConfig: React.FC = () => {
                     await importThemes(files)
                     setCustomThemes(await resolveThemes())
                   } catch (e) {
-                    alert(e)
+                    toast.error(String(e))
                   }
                 }}
               >
@@ -555,7 +556,7 @@ const GeneralConfig: React.FC = () => {
                 try {
                   await patchAppConfig({ customTheme: v.currentKey as string })
                 } catch (e) {
-                  alert(e)
+                  toast.error(String(e))
                 }
               }}
             >
