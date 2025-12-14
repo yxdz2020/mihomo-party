@@ -37,8 +37,22 @@ const WebdavConfig: React.FC = () => {
     webdavIgnoreCert
   })
   const setWebdavDebounce = debounce(
-    ({ webdavUrl, webdavUsername, webdavPassword, webdavDir, webdavMaxBackups, webdavBackupCron }) => {
-      patchAppConfig({ webdavUrl, webdavUsername, webdavPassword, webdavDir, webdavMaxBackups, webdavBackupCron })
+    ({
+      webdavUrl,
+      webdavUsername,
+      webdavPassword,
+      webdavDir,
+      webdavMaxBackups,
+      webdavBackupCron
+    }) => {
+      patchAppConfig({
+        webdavUrl,
+        webdavUsername,
+        webdavPassword,
+        webdavDir,
+        webdavMaxBackups,
+        webdavBackupCron
+      })
     },
     500
   )
@@ -154,7 +168,7 @@ const WebdavConfig: React.FC = () => {
         <SettingItem title={t('webdav.backup.cron.title')} divider>
           <div className="flex w-[60%] gap-2">
             {webdavBackupCron !== webdav.webdavBackupCron && (
-            <Button
+              <Button
                 size="sm"
                 color="primary"
                 onPress={async () => {
@@ -184,7 +198,6 @@ const WebdavConfig: React.FC = () => {
                 setWebdav({ ...webdav, webdavBackupCron: v })
               }}
             />
-            
           </div>
         </SettingItem>
         <div className="flex justify0between">
