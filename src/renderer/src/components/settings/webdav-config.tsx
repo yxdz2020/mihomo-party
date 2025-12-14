@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import SettingCard from '../base/base-setting-card'
 import { toast } from '@renderer/components/base/toast'
 import SettingItem from '../base/base-setting-item'
-import { Button, Input, Select, SelectItem } from '@heroui/react'
+import { Button, Input, Select, SelectItem, Switch } from '@heroui/react'
 import { listWebdavBackups, webdavBackup, reinitWebdavBackupScheduler } from '@renderer/utils/ipc'
 import WebdavRestoreModal from './webdav-restore-modal'
 import debounce from '@renderer/utils/debounce'
@@ -19,7 +19,8 @@ const WebdavConfig: React.FC = () => {
     webdavPassword,
     webdavDir = 'clash-party',
     webdavMaxBackups = 0,
-    webdavBackupCron
+    webdavBackupCron,
+    webdavIgnoreCert = false
   } = appConfig || {}
   const [backuping, setBackuping] = useState(false)
   const [restoring, setRestoring] = useState(false)
@@ -32,7 +33,8 @@ const WebdavConfig: React.FC = () => {
     webdavPassword,
     webdavDir,
     webdavMaxBackups,
-    webdavBackupCron
+    webdavBackupCron,
+    webdavIgnoreCert
   })
   const setWebdavDebounce = debounce(
     ({ webdavUrl, webdavUsername, webdavPassword, webdavDir, webdavMaxBackups, webdavBackupCron }) => {
@@ -138,6 +140,16 @@ const WebdavConfig: React.FC = () => {
             <SelectItem key="15">15</SelectItem>
             <SelectItem key="20">20</SelectItem>
           </Select>
+        </SettingItem>
+        <SettingItem title={t('webdav.ignoreCert')} divider>
+          <Switch
+            size="sm"
+            isSelected={webdav.webdavIgnoreCert}
+            onValueChange={(v) => {
+              setWebdav({ ...webdav, webdavIgnoreCert: v })
+              patchAppConfig({ webdavIgnoreCert: v })
+            }}
+          />
         </SettingItem>
         <SettingItem title={t('webdav.backup.cron.title')} divider>
           <div className="flex w-[60%] gap-2">

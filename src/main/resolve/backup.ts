@@ -1,6 +1,7 @@
 import { getAppConfig } from '../config'
 import dayjs from 'dayjs'
 import AdmZip from 'adm-zip'
+import https from 'https'
 import {
   appConfigPath,
   controledMihomoConfigPath,
@@ -34,13 +35,22 @@ async function getWebDAVClient(): Promise<WebDAVContext> {
     webdavUsername = '',
     webdavPassword = '',
     webdavDir = 'clash-party',
-    webdavMaxBackups = 0
+    webdavMaxBackups = 0,
+    webdavIgnoreCert = false
   } = await getAppConfig()
 
-  const client = createClient(webdavUrl, {
+  const clientOptions: Parameters<typeof createClient>[1] = {
     username: webdavUsername,
     password: webdavPassword
-  })
+  }
+
+  if (webdavIgnoreCert) {
+    clientOptions.httpsAgent = new https.Agent({
+      rejectUnauthorized: false
+    })
+  }
+
+  const client = createClient(webdavUrl, clientOptions)
 
   return { client, webdavDir, webdavMaxBackups }
 }

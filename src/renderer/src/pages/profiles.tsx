@@ -149,8 +149,8 @@ const Profiles: React.FC = () => {
         const newOrder = sortedItems.slice()
         const activeIndex = newOrder.findIndex((item) => item.id === active.id)
         const overIndex = newOrder.findIndex((item) => item.id === over.id)
-        newOrder.splice(activeIndex, 1)
-        newOrder.splice(overIndex, 0, items[activeIndex])
+        const [movedItem] = newOrder.splice(activeIndex, 1)
+        newOrder.splice(overIndex, 0, movedItem)
         setSortedItems(newOrder)
         await setProfileConfig({ current, items: newOrder })
       }

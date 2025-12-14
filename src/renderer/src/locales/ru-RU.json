@@ -211,6 +211,7 @@
   "webdav.username": "Имя пользователя WebDAV",
   "webdav.password": "Пароль WebDAV",
   "webdav.maxBackups": "Максимум резервных копий",
+  "webdav.ignoreCert": "Игнорировать сертификат",
   "webdav.noLimit": "Без ограничений",
   "webdav.backup": "Резервное копирование",
   "webdav.backup.cron.title": "Расписание резервного копирования",

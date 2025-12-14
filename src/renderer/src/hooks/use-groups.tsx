@@ -20,11 +20,12 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   })
 
   React.useEffect(() => {
-    window.electron.ipcRenderer.on('groupsUpdated', () => {
+    const handler = (): void => {
       mutate()
-    })
+    }
+    window.electron.ipcRenderer.on('groupsUpdated', handler)
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('groupsUpdated')
+      window.electron.ipcRenderer.removeListener('groupsUpdated', handler)
     }
   }, [])
 

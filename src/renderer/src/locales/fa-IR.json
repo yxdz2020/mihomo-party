@@ -211,6 +211,7 @@
   "webdav.username": "نام کاربری WebDAV",
   "webdav.password": "رمز عبور WebDAV",
   "webdav.maxBackups": "حداکثر نسخه پشتیبان",
+  "webdav.ignoreCert": "نادیده گرفتن گواهی",
   "webdav.noLimit": "بدون محدودیت",
   "webdav.backup": "پشتیبان‌گیری",
   "webdav.backup.cron.title": "زمانبندی پشتیبان‌گیری پیکربندی",

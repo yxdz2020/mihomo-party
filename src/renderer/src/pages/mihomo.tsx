@@ -620,8 +620,10 @@ const Mihomo: React.FC = () => {
                       type="number"
                       value={smartCollectorSize.toString()}
                       onValueChange={async (v: string) => {
-                        let num = parseInt(v)
-                        await patchAppConfig({ smartCollectorSize: num })
+                        const num = parseInt(v)
+                        if (!isNaN(num)) {
+                          await patchAppConfig({ smartCollectorSize: num })
+                        }
                       }}
                       onBlur={async (e) => {
                         let num = parseInt(e.target.value)
@@ -690,9 +692,11 @@ const Mihomo: React.FC = () => {
                 min={0}
                 onValueChange={(v) => {
                   const port = parseInt(v)
-                  setMixedPortInput(port)
-                  patchAppConfig({ showMixedPort: port })
-                  setIsManualPortChange(true)
+                  if (!isNaN(port)) {
+                    setMixedPortInput(port)
+                    patchAppConfig({ showMixedPort: port })
+                    setIsManualPortChange(true)
+                  }
                 }}
               />
               <Button
@@ -749,9 +753,11 @@ const Mihomo: React.FC = () => {
                 min={0}
                 onValueChange={(v) => {
                   const port = parseInt(v)
-                  setSocksPortInput(port)
-                  patchAppConfig({ showSocksPort: port })
-                  setIsManualPortChange(true)
+                  if (!isNaN(port)) {
+                    setSocksPortInput(port)
+                    patchAppConfig({ showSocksPort: port })
+                    setIsManualPortChange(true)
+                  }
                 }}
               />
               <Button
@@ -808,9 +814,11 @@ const Mihomo: React.FC = () => {
                 min={0}
                 onValueChange={(v) => {
                   const port = parseInt(v)
-                  setHttpPortInput(port)
-                  patchAppConfig({ showHttpPort: port })
-                  setIsManualPortChange(true)
+                  if (!isNaN(port)) {
+                    setHttpPortInput(port)
+                    patchAppConfig({ showHttpPort: port })
+                    setIsManualPortChange(true)
+                  }
                 }}
               />
               <Button
@@ -868,9 +876,11 @@ const Mihomo: React.FC = () => {
                   min={0}
                   onValueChange={(v) => {
                     const port = parseInt(v)
-                    setRedirPortInput(port)
-                    patchAppConfig({ showRedirPort: port })
-                    setIsManualPortChange(true)
+                    if (!isNaN(port)) {
+                      setRedirPortInput(port)
+                      patchAppConfig({ showRedirPort: port })
+                      setIsManualPortChange(true)
+                    }
                   }}
                 />
                 <Button
@@ -929,9 +939,11 @@ const Mihomo: React.FC = () => {
                   min={0}
                   onValueChange={(v) => {
                     const port = parseInt(v)
-                    setTproxyPortInput(port)
-                    patchAppConfig({ showTproxyPort: port })
-                    setIsManualPortChange(true)
+                    if (!isNaN(port)) {
+                      setTproxyPortInput(port)
+                      patchAppConfig({ showTproxyPort: port })
+                      setIsManualPortChange(true)
+                    }
                   }}
                 />
                 <Button
@@ -1066,7 +1078,7 @@ const Mihomo: React.FC = () => {
           {allowLan && (
             <>
               <SettingItem title={t('mihomo.allowedIpSegments')}>
-                {lanAllowedIpsInput.join('') !== lanAllowedIps.join('') && (
+                {JSON.stringify(lanAllowedIpsInput) !== JSON.stringify(lanAllowedIps) && (
                   <Button
                     size="sm"
                     color="primary"
@@ -1116,7 +1128,7 @@ const Mihomo: React.FC = () => {
               </div>
               <Divider className="mb-2" />
               <SettingItem title={t('mihomo.disallowedIpSegments')}>
-                {lanDisallowedIpsInput.join('') !== lanDisallowedIps.join('') && (
+                {JSON.stringify(lanDisallowedIpsInput) !== JSON.stringify(lanDisallowedIps) && (
                   <Button
                     size="sm"
                     color="primary"
@@ -1170,7 +1182,7 @@ const Mihomo: React.FC = () => {
             </>
           )}
           <SettingItem title={t('mihomo.userVerification')}>
-            {authenticationInput.join('') !== authentication.join('') && (
+            {JSON.stringify(authenticationInput) !== JSON.stringify(authentication) && (
               <Button
                 size="sm"
                 color="primary"
@@ -1245,7 +1257,7 @@ const Mihomo: React.FC = () => {
           </div>
           <Divider className="mb-2" />
           <SettingItem title={t('mihomo.skipAuthPrefixes')}>
-            {skipAuthPrefixesInput.join('') !== skipAuthPrefixes.join('') && (
+            {JSON.stringify(skipAuthPrefixesInput) !== JSON.stringify(skipAuthPrefixes) && (
               <Button
                 size="sm"
                 color="primary"
@@ -1341,7 +1353,10 @@ const Mihomo: React.FC = () => {
               className="w-[100px]"
               value={maxLogDays.toString()}
               onValueChange={(v) => {
-                patchAppConfig({ maxLogDays: parseInt(v) })
+                const num = parseInt(v)
+                if (!isNaN(num)) {
+                  patchAppConfig({ maxLogDays: num })
+                }
               }}
             />
           </SettingItem>

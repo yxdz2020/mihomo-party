@@ -236,6 +236,7 @@
   "webdav.username": "WebDAV 用户名",
   "webdav.password": "WebDAV 密码",
   "webdav.maxBackups": "最大备份数",
+  "webdav.ignoreCert": "忽略证书验证",
   "webdav.noLimit": "不限制",
   "webdav.backup": "备份",
   "webdav.backup.cron.title": "定时备份配置",

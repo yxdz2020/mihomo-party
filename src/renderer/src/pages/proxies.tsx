@@ -61,19 +61,38 @@ const useProxyState = (groups: IMihomoMixedGroup[]): {
   const [isOpen, setIsOpen] = useState<boolean[]>(() => {
     try {
       const savedState = localStorage.getItem(GROUP_EXPAND_STATE_KEY)
-      return savedState ? JSON.parse(savedState) : Array(groups.length).fill(false)
+      if (savedState) {
+        const parsed = JSON.parse(savedState)
+        if (Array.isArray(parsed)) {
+          return parsed
+        }
+      }
     } catch (error) {
       console.error('Failed to load group expand state:', error)
-      return Array(groups.length).fill(false)
     }
+    return []
   })
+
+  // 同步展开状态数组长度与 groups 长度
+  useEffect(() => {
+    if (groups.length !== isOpen.length) {
+      setIsOpen((prev) => {
+        if (groups.length > prev.length) {
+          return [...prev, ...Array(groups.length - prev.length).fill(false)]
+        }
+        return prev.slice(0, groups.length)
+      })
+    }
+  }, [groups.length])
 
   // 保存展开状态
   useEffect(() => {
-    try {
-      localStorage.setItem(GROUP_EXPAND_STATE_KEY, JSON.stringify(isOpen))
-    } catch (error) {
-      console.error('Failed to save group expand state:', error)
+    if (isOpen.length > 0) {
+      try {
+        localStorage.setItem(GROUP_EXPAND_STATE_KEY, JSON.stringify(isOpen))
+      } catch (error) {
+        console.error('Failed to save group expand state:', error)
+      }
     }
   }, [isOpen])
 

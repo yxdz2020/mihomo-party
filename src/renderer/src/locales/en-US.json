@@ -236,6 +236,7 @@
   "webdav.username": "WebDAV Username",
   "webdav.password": "WebDAV Password",
   "webdav.maxBackups": "Max Backups",
+  "webdav.ignoreCert": "Ignore Certificate",
   "webdav.noLimit": "No Limit",
   "webdav.backup": "Backup",
   "webdav.backup.cron.title": "Schedule Config Backup",

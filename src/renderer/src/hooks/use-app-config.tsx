@@ -25,11 +25,12 @@ export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children 
   }
 
   React.useEffect(() => {
-    window.electron.ipcRenderer.on('appConfigUpdated', () => {
+    const handler = (): void => {
       mutateAppConfig()
-    })
+    }
+    window.electron.ipcRenderer.on('appConfigUpdated', handler)
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('appConfigUpdated')
+      window.electron.ipcRenderer.removeListener('appConfigUpdated', handler)
     }
   }, [])
 

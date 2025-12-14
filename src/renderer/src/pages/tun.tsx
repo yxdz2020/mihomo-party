@@ -223,7 +223,8 @@ const Tun: React.FC = () => {
               className="w-[100px]"
               value={values.mtu.toString()}
               onValueChange={(v) => {
-                setValues({ ...values, mtu: parseInt(v) })
+                const num = parseInt(v)
+                setValues({ ...values, mtu: isNaN(num) ? 1500 : num })
               }}
             />
           </SettingItem>
