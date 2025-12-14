@@ -200,7 +200,7 @@ const WebdavConfig: React.FC = () => {
             />
           </div>
         </SettingItem>
-        <div className="flex justify0between">
+        <div className="flex justify-between">
           <Button isLoading={backuping} fullWidth size="sm" className="mr-1" onPress={handleBackup}>
             {t('webdav.backup')}
           </Button>

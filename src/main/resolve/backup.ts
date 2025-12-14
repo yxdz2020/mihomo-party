@@ -59,15 +59,33 @@ export async function webdavBackup(): Promise<boolean> {
   const { client, webdavDir, webdavMaxBackups } = await getWebDAVClient()
   const zip = new AdmZip()
 
-  zip.addLocalFile(appConfigPath())
-  zip.addLocalFile(controledMihomoConfigPath())
-  zip.addLocalFile(profileConfigPath())
-  zip.addLocalFile(overrideConfigPath())
-  zip.addLocalFolder(themesDir(), 'themes')
-  zip.addLocalFolder(profilesDir(), 'profiles')
-  zip.addLocalFolder(overrideDir(), 'override')
-  zip.addLocalFolder(rulesDir(), 'rules')
-  zip.addLocalFolder(subStoreDir(), 'substore')
+  if (existsSync(appConfigPath())) {
+    zip.addLocalFile(appConfigPath())
+  }
+  if (existsSync(controledMihomoConfigPath())) {
+    zip.addLocalFile(controledMihomoConfigPath())
+  }
+  if (existsSync(profileConfigPath())) {
+    zip.addLocalFile(profileConfigPath())
+  }
+  if (existsSync(overrideConfigPath())) {
+    zip.addLocalFile(overrideConfigPath())
+  }
+  if (existsSync(themesDir())) {
+    zip.addLocalFolder(themesDir(), 'themes')
+  }
+  if (existsSync(profilesDir())) {
+    zip.addLocalFolder(profilesDir(), 'profiles')
+  }
+  if (existsSync(overrideDir())) {
+    zip.addLocalFolder(overrideDir(), 'override')
+  }
+  if (existsSync(rulesDir())) {
+    zip.addLocalFolder(rulesDir(), 'rules')
+  }
+  if (existsSync(subStoreDir())) {
+    zip.addLocalFolder(subStoreDir(), 'substore')
+  }
   const date = new Date()
   const zipFileName = `${process.platform}_${dayjs(date).format('YYYY-MM-DD_HH-mm-ss')}.zip`
 
