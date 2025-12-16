@@ -306,9 +306,28 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
 
 export async function getProfile(id: string | undefined): Promise<IMihomoConfig> {
   const profile = await getProfileStr(id)
-  let result = parse(profile)
-  if (typeof result !== 'object') result = {}
-  return result as IMihomoConfig
+
+  // 检测是否为 HTML 内容（订阅返回错误页面）
+  const trimmed = profile.trim()
+  if (
+    trimmed.startsWith('<!DOCTYPE') ||
+    trimmed.startsWith('<html') ||
+    trimmed.startsWith('<HTML') ||
+    /<style[^>]*>/i.test(trimmed.slice(0, 500))
+  ) {
+    throw new Error(
+      `Profile "${id}" contains HTML instead of YAML. The subscription may have returned an error page. Please re-import or update the subscription.`
+    )
+  }
+
+  try {
+    let result = parse(profile)
+    if (typeof result !== 'object') result = {}
+    return result as IMihomoConfig
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    throw new Error(`Failed to parse profile "${id}": ${msg}`)
+  }
 }
 
 // attachment;filename=xxx.yaml; filename*=UTF-8''%xx%xx%xx
