@@ -129,6 +129,60 @@ export async function getCurrentProfileItem(): Promise<IProfileItem> {
   return (await getProfileItem(current)) || { id: 'default', type: 'local', name: '空白订阅' }
 }
 
+interface FetchOptions {
+  url: string
+  useProxy: boolean
+  mixedPort: number
+  userAgent: string
+  authToken?: string
+  timeout: number
+  substore: boolean
+}
+
+interface FetchResult {
+  data: string
+  headers: Record<string, string>
+}
+
+async function fetchAndValidateSubscription(options: FetchOptions): Promise<FetchResult> {
+  const { url, useProxy, mixedPort, userAgent, authToken, timeout, substore } = options
+
+  const headers: Record<string, string> = { 'User-Agent': userAgent }
+  if (authToken) headers['Authorization'] = authToken
+
+  let res: chromeRequest.Response<string>
+  if (substore) {
+    const urlObj = new URL(`http://127.0.0.1:${subStorePort}${url}`)
+    urlObj.searchParams.set('target', 'ClashMeta')
+    urlObj.searchParams.set('noCache', 'true')
+    if (useProxy) {
+      urlObj.searchParams.set('proxy', `http://127.0.0.1:${mixedPort}`)
+    }
+    res = await chromeRequest.get(urlObj.toString(), { headers, responseType: 'text', timeout })
+  } else {
+    res = await chromeRequest.get(url, {
+      headers,
+      responseType: 'text',
+      timeout,
+      proxy: useProxy ? { protocol: 'http', host: '127.0.0.1', port: mixedPort } : false
+    })
+  }
+
+  if (res.status < 200 || res.status >= 300) {
+    throw new Error(`Subscription failed: Request status code ${res.status}`)
+  }
+
+  const parsed = parse(res.data) as Record<string, unknown> | null
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error('Subscription failed: Profile is not a valid YAML')
+  }
+  if (!parsed['proxies'] && !parsed['proxy-providers']) {
+    throw new Error('Subscription failed: Profile missing proxies or providers')
+  }
+
+  return { data: res.data, headers: res.headers }
+}
+
 export async function createProfile(item: Partial<IProfileItem>): Promise<IProfileItem> {
   const id = item.id || new Date().getTime().toString(16)
   const newItem = {
@@ -145,71 +199,54 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
     authToken: item.authToken,
     updated: new Date().getTime()
   } as IProfileItem
+
   switch (newItem.type) {
     case 'remote': {
       const { userAgent, subscriptionTimeout = 30000 } = await getAppConfig()
       const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
       if (!item.url) throw new Error('Empty URL')
-      let res: chromeRequest.Response<string>
-      if (newItem.substore) {
-        const urlObj = new URL(`http://127.0.0.1:${subStorePort}${item.url}`)
-        urlObj.searchParams.set('target', 'ClashMeta')
-        urlObj.searchParams.set('noCache', 'true')
-        if (newItem.useProxy) {
-          urlObj.searchParams.set('proxy', `http://127.0.0.1:${mixedPort}`)
-        } else {
-          urlObj.searchParams.delete('proxy')
-        }
-        const headers: Record<string, string> = {
-          'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
-        }
-        if (item.authToken) {
-          headers['Authorization'] = item.authToken
-        }
-        res = await chromeRequest.get(urlObj.toString(), {
-          headers,
-          responseType: 'text',
+
+      const baseOptions: Omit<FetchOptions, 'useProxy' | 'timeout'> = {
+        url: item.url,
+        mixedPort,
+        userAgent: userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`,
+        authToken: item.authToken,
+        substore: newItem.substore || false
+      }
+
+      let result: FetchResult
+      let finalUseProxy = newItem.useProxy
+
+      if (newItem.useProxy) {
+        result = await fetchAndValidateSubscription({
+          ...baseOptions,
+          useProxy: true,
           timeout: subscriptionTimeout
         })
       } else {
-        const headers: Record<string, string> = {
-          'User-Agent': userAgent || `mihomo.party/v${app.getVersion()} (clash.meta)`
+        const smartTimeout = 5000
+        try {
+          result = await fetchAndValidateSubscription({
+            ...baseOptions,
+            useProxy: false,
+            timeout: smartTimeout
+          })
+        } catch (directError) {
+          try {
+            result = await fetchAndValidateSubscription({
+              ...baseOptions,
+              useProxy: true,
+              timeout: smartTimeout
+            })
+            finalUseProxy = true
+          } catch {
+            throw directError
+          }
         }
-        if (item.authToken) {
-          headers['Authorization'] = item.authToken
-        }
-        res = await chromeRequest.get(item.url, {
-          proxy: newItem.useProxy
-            ? {
-                protocol: 'http',
-                host: '127.0.0.1',
-                port: mixedPort
-              }
-            : false,
-          headers,
-          responseType: 'text',
-          timeout: subscriptionTimeout
-        })
       }
 
-      // 检查状态码，例如：403
-      if (res.status < 200 || res.status >= 300) {
-        throw new Error(`Subscription failed: Request status code ${res.status}`)
-      }
-
-      const data = res.data
-      const headers = res.headers
-
-      // 校验是否为对象结构 (拦截 HTML字符串、普通文本、乱码)
-      const parsed = parse(data)
-      if (typeof parsed !== 'object' || parsed === null) {
-        throw new Error('Subscription failed: Profile is not a valid YAML')
-      }
-      // 检查是否包含必要的字段，防止空对象
-      const profile = parsed as any
-      if (!profile.proxies && !profile['proxy-providers']) {
-        throw new Error('Subscription failed: Profile missing proxies or providers')
-      }
+      newItem.useProxy = finalUseProxy
+      const { data, headers } = result
 
       if (headers['content-disposition'] && newItem.name === 'Remote File') {
         newItem.name = parseFilename(headers['content-disposition'])
@@ -217,10 +254,8 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       if (headers['profile-web-page-url']) {
         newItem.home = headers['profile-web-page-url']
       }
-      if (headers['profile-update-interval']) {
-        if (!item.allowFixedInterval) {
-          newItem.interval = parseInt(headers['profile-update-interval']) * 60
-        }
+      if (headers['profile-update-interval'] && !item.allowFixedInterval) {
+        newItem.interval = parseInt(headers['profile-update-interval']) * 60
       }
       if (headers['subscription-userinfo']) {
         newItem.extra = parseSubinfo(headers['subscription-userinfo'])
@@ -229,8 +264,7 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
       break
     }
     case 'local': {
-      const data = item.file || ''
-      await setProfileStr(id, data)
+      await setProfileStr(id, item.file || '')
       break
     }
   }
