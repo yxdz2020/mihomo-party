@@ -28,7 +28,7 @@ let runtimeConfig: IMihomoConfig
 // 辅助函数：处理带偏移量的规则
 function processRulesWithOffset(ruleStrings: string[], currentRules: string[], isAppend = false) {
   const normalRules: string[] = []
-  let rules = [...currentRules]
+  const rules = [...currentRules]
 
   ruleStrings.forEach((ruleStr) => {
     const parts = ruleStr.split(',')
@@ -65,7 +65,7 @@ export async function generateProfile(): Promise<void> {
     controlSniff = true,
     useNameserverPolicy
   } = await getAppConfig()
-  let currentProfile = await overrideProfile(current, await getProfile(current))
+  const currentProfile = await overrideProfile(current, await getProfile(current))
   let controledMihomoConfig = await getControledMihomoConfig()
 
   // 根据开关状态过滤控制配置
@@ -132,7 +132,7 @@ export async function generateProfile(): Promise<void> {
       }
     }
   } catch (error) {
-    console.error('读取或应用规则文件时出错:', error)
+    console.error('读取或应用规则文件时出错：', error)
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)

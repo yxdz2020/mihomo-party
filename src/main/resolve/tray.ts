@@ -395,7 +395,7 @@ export async function createTray(): Promise<void> {
       image.setTemplateImage(true)
       tray?.setImage(image)
     })
-    // macOS 默认行为: 左键显示窗口, 右键显示菜单
+    // macOS 默认行为：左键显示窗口，右键显示菜单
     tray?.addListener('click', async () => {
       if (swapTrayClick) {
         await updateTrayMenu()
@@ -537,7 +537,7 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
         tray.setImage(iconPath)
       }
     } catch (error) {
-      console.error('更新托盘图标失败:', error)
+      console.error('更新托盘图标失败：', error)
     }
   })
 }
@@ -560,6 +560,6 @@ export async function updateTrayIcon(): Promise<void> {
       tray.setImage(iconPath)
     }
   } catch (error) {
-    console.error('更新托盘图标失败:', error)
+    console.error('更新托盘图标失败：', error)
   }
 }

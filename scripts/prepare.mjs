@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import fs from 'fs'
 import AdmZip from 'adm-zip'
 import path from 'path'

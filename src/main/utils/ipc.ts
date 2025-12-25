@@ -147,7 +147,7 @@ function ipcErrorWrapper<T>( // eslint-disable-next-line @typescript-eslint/no-e
   }
 }
 
-// GitHub版本管理相关IPC处理程序
+// GitHub 版本管理相关 IPC 处理程序
 export async function fetchMihomoTags(
   forceRefresh = false
 ): Promise<{ name: string; zipball_url: string; tarball_url: string }[]> {
@@ -367,20 +367,20 @@ export function registerIpcMainHandlers(): void {
     ipcMain.emit('updateTrayMenu')
   })
 
-  // 注册获取Mihomo标签的IPC处理程序
+  // 注册获取 Mihomo 标签的 IPC 处理程序
   ipcMain.handle('fetchMihomoTags', (_e, forceRefresh) =>
     ipcErrorWrapper(fetchMihomoTags)(forceRefresh)
   )
 
-  // 注册安装特定版本Mihomo核心的IPC处理程序
+  // 注册安装特定版本 Mihomo 核心的 IPC 处理程序
   ipcMain.handle('installSpecificMihomoCore', (_e, version) =>
     ipcErrorWrapper(installSpecificMihomoCore)(version)
   )
 
-  // 注册清除版本缓存的IPC处理程序
+  // 注册清除版本缓存的 IPC 处理程序
   ipcMain.handle('clearMihomoVersionCache', () => ipcErrorWrapper(clearMihomoVersionCache)())
 
-  // 规则相关IPC处理程序
+  // 规则相关 IPC 处理程序
   ipcMain.handle('getRuleStr', (_e, id) => ipcErrorWrapper(getRuleStr)(id))
   ipcMain.handle('setRuleStr', (_e, id, str) => ipcErrorWrapper(setRuleStr)(id, str))
 }

@@ -418,7 +418,9 @@ export async function convertMrsRuleset(filePath: string, behavior: string): Pro
   } catch (error) {
     try {
       await unlink(tempFilePath)
-    } catch {}
+    } catch {
+      // ignore
+    }
     throw error
   }
 }

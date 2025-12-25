@@ -155,7 +155,7 @@ export async function webdavDelete(filename: string): Promise<void> {
 }
 
 /**
- * 初始化WebDAV定时备份任务
+ * 初始化 WebDAV 定时备份任务
  */
 export async function initWebdavBackupScheduler(): Promise<void> {
   try {
@@ -167,7 +167,7 @@ export async function initWebdavBackupScheduler(): Promise<void> {
 
     const { webdavBackupCron } = await getAppConfig()
 
-    // 如果配置了Cron表达式，则启动定时任务
+    // 如果配置了 Cron 表达式，则启动定时任务
     if (webdavBackupCron) {
       backupCronJob = new Cron(webdavBackupCron, async () => {
         try {
@@ -189,7 +189,7 @@ export async function initWebdavBackupScheduler(): Promise<void> {
 }
 
 /**
- * 停止WebDAV定时备份任务
+ * 停止 WebDAV 定时备份任务
  */
 export async function stopWebdavBackupScheduler(): Promise<void> {
   if (backupCronJob) {
@@ -200,7 +200,7 @@ export async function stopWebdavBackupScheduler(): Promise<void> {
 }
 
 /**
- * 重新初始化WebDAV定时备份任务
+ * 重新初始化 WebDAV 定时备份任务
  * 先停止现有任务，然后重新启动
  */
 export async function reinitScheduler(): Promise<void> {

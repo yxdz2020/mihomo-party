@@ -10,7 +10,7 @@ export async function initProfileUpdater(): Promise<void> {
   for (const item of items.filter((i) => i.id !== current)) {
     if (item.type === 'remote' && item.autoUpdate && item.interval) {
       if (typeof item.interval === 'number') {
-        // 数字间隔使用setInterval
+        // 数字间隔使用 setInterval
         intervalPool[item.id] = setInterval(
           async () => {
             try {
@@ -22,7 +22,7 @@ export async function initProfileUpdater(): Promise<void> {
           item.interval * 60 * 1000
         )
       } else if (typeof item.interval === 'string') {
-        // 字符串间隔使用Cron
+        // 字符串间隔使用 Cron
         intervalPool[item.id] = new Cron(item.interval, async () => {
           try {
             await addProfileItem(item)

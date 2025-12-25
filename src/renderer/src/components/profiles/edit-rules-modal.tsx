@@ -411,17 +411,16 @@ interface RuleListItemProps {
   onRemove: (index: number) => void
 }
 
-const RuleListItem = memo<RuleListItemProps>(
-  ({
-    rule,
-    originalIndex,
-    isDeleted,
-    isPrependOrAppend,
-    rulesLength,
-    onMoveUp,
-    onMoveDown,
-    onRemove
-  }) => {
+const RuleListItemBase: React.FC<RuleListItemProps> = ({
+  rule,
+  originalIndex,
+  isDeleted,
+  isPrependOrAppend,
+  rulesLength,
+  onMoveUp,
+  onMoveDown,
+  onRemove
+}) => {
     let bgColorClass = 'bg-content2'
     let textStyleClass = ''
 
@@ -496,17 +495,19 @@ const RuleListItem = memo<RuleListItemProps>(
         </div>
       </div>
     )
-  },
-  (prevProps, nextProps) => {
-    return (
-      prevProps.rule === nextProps.rule &&
-      prevProps.originalIndex === nextProps.originalIndex &&
-      prevProps.isDeleted === nextProps.isDeleted &&
-      prevProps.isPrependOrAppend === nextProps.isPrependOrAppend &&
-      prevProps.rulesLength === nextProps.rulesLength
-    )
-  }
-)
+}
+
+const RuleListItem = memo(RuleListItemBase, (prevProps, nextProps) => {
+  return (
+    prevProps.rule === nextProps.rule &&
+    prevProps.originalIndex === nextProps.originalIndex &&
+    prevProps.isDeleted === nextProps.isDeleted &&
+    prevProps.isPrependOrAppend === nextProps.isPrependOrAppend &&
+    prevProps.rulesLength === nextProps.rulesLength
+  )
+})
+
+RuleListItem.displayName = 'RuleListItem'
 
 const EditRulesModal: React.FC<Props> = (props) => {
   const { id, onClose } = props
@@ -563,7 +564,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
       const content = await getProfileStr(id)
       setProfileContent(content)
 
-      const parsed = yaml.load(content) as any
+      const parsed = yaml.load(content) as Record<string, unknown> | undefined
       let initialRules: RuleItem[] = []
 
       if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
@@ -593,11 +594,19 @@ const EditRulesModal: React.FC<Props> = (props) => {
 
         // 添加代理组和代理名称
         if (Array.isArray(parsed['proxy-groups'])) {
-          groups.push(...parsed['proxy-groups'].map((group: any) => group?.name).filter(Boolean))
+          groups.push(
+            ...((parsed['proxy-groups'] as Array<Record<string, unknown>>)
+              .map((group) => (group && typeof group['name'] === 'string' ? (group['name'] as string) : ''))
+              .filter(Boolean) as string[])
+          )
         }
 
         if (Array.isArray(parsed['proxies'])) {
-          groups.push(...parsed['proxies'].map((proxy: any) => proxy?.name).filter(Boolean))
+          groups.push(
+            ...((parsed['proxies'] as Array<Record<string, unknown>>)
+              .map((proxy) => (proxy && typeof proxy['name'] === 'string' ? (proxy['name'] as string) : ''))
+              .filter(Boolean) as string[])
+          )
         }
 
         // 预置出站 https://wiki.metacubex.one/config/proxies/built-in/
@@ -710,7 +719,7 @@ const EditRulesModal: React.FC<Props> = (props) => {
         }
       } catch (ruleError) {
         // 规则文件读取失败
-        console.debug('规则文件读取失败:', ruleError)
+        console.debug('规则文件读取失败：', ruleError)
         setRules(initialRules)
         // 清空规则标记
         setPrependRules(new Set())

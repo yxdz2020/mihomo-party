@@ -2,7 +2,7 @@ import { triggerAutoProxy, triggerManualProxy } from '@mihomo-party/sysproxy'
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { pacPort, startPacServer, stopPacServer } from '../resolve/server'
 import { promisify } from 'util'
-import { execFile } from 'child_process'
+import { exec, execFile } from 'child_process'
 import path from 'path'
 import { resourcesFilesDir } from '../utils/dirs'
 import { net } from 'electron'
@@ -164,8 +164,6 @@ function isSocketFileExists(): boolean {
 async function requestSocketRecreation(): Promise<void> {
   try {
     // Send SIGUSR1 signal to helper process to recreate socket
-    const { exec } = require('child_process')
-    const { promisify } = require('util')
     const execPromise = promisify(exec)
 
     // Use osascript with administrator privileges (same pattern as grantTunPermissions)

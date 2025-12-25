@@ -17,7 +17,7 @@ export interface RequestOptions {
   maxRedirects?: number
 }
 
-export interface Response<T = any> {
+export interface Response<T = unknown> {
   data: T
   status: number
   statusText: string
@@ -29,7 +29,7 @@ export interface Response<T = any> {
  * Make HTTP request using Chromium's network stack (via electron.net)
  * This provides better compatibility, HTTP/2 support, and system certificate integration
  */
-export async function request<T = any>(
+export async function request<T = unknown>(
   url: string,
   options: RequestOptions = {}
 ): Promise<Response<T>> {
@@ -45,7 +45,7 @@ export async function request<T = any>(
   } = options
 
   return new Promise((resolve, reject) => {
-    let sessionToUse = session.defaultSession
+    let sessionToUse: Electron.Session | undefined = session.defaultSession
     let tempPartition: string | null = null
 
     // Set up proxy if specified
@@ -64,7 +64,7 @@ export async function request<T = any>(
       if (tempPartition) {
         // Note: Electron doesn't provide session.destroy(), but temporary sessions
         // will be garbage collected when no longer referenced
-        sessionToUse = null as any
+        sessionToUse = undefined
       }
     }
 
@@ -125,7 +125,7 @@ export async function request<T = any>(
             if (timeoutId) clearTimeout(timeoutId)
 
             const buffer = Buffer.concat(chunks)
-            let data: any
+            let data: unknown
 
             try {
               switch (responseType) {
@@ -141,25 +141,25 @@ export async function request<T = any>(
               }
 
               resolve({
-                data,
+                data: data as T,
                 status: statusCode,
                 statusText: statusMessage,
                 headers: responseHeaders,
                 url: url
               })
-            } catch (error) {
-              reject(new Error(`Failed to parse response: ${error}`))
+            } catch (error: unknown) {
+              reject(new Error(`Failed to parse response: ${String(error)}`))
             }
           })
 
-          res.on('error', (error) => {
+          res.on('error', (error: unknown) => {
             cleanup()
             if (timeoutId) clearTimeout(timeoutId)
             reject(error)
           })
         })
 
-        req.on('error', (error) => {
+        req.on('error', (error: unknown) => {
           cleanup()
           if (timeoutId) clearTimeout(timeoutId)
           reject(error)
@@ -182,9 +182,9 @@ export async function request<T = any>(
 
         req.end()
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         cleanup()
-        reject(new Error(`Failed to setup proxy: ${error}`))
+        reject(new Error(`Failed to setup proxy: ${String(error)}`))
       })
   })
 }
@@ -192,7 +192,7 @@ export async function request<T = any>(
 /**
  * Convenience method for GET requests
  */
-export const get = <T = any>(
+export const get = <T = unknown>(
   url: string,
   options?: Omit<RequestOptions, 'method' | 'body'>
 ): Promise<Response<T>> => request<T>(url, { ...options, method: 'GET' })
@@ -200,9 +200,9 @@ export const get = <T = any>(
 /**
  * Convenience method for POST requests
  */
-export const post = <T = any>(
+export const post = <T = unknown>(
   url: string,
-  data: any,
+  data: unknown,
   options?: Omit<RequestOptions, 'method' | 'body'>
 ): Promise<Response<T>> => {
   const body = typeof data === 'string' ? data : JSON.stringify(data)
@@ -216,9 +216,9 @@ export const post = <T = any>(
 /**
  * Convenience method for PUT requests
  */
-export const put = <T = any>(
+export const put = <T = unknown>(
   url: string,
-  data: any,
+  data: unknown,
   options?: Omit<RequestOptions, 'method' | 'body'>
 ): Promise<Response<T>> => {
   const body = typeof data === 'string' ? data : JSON.stringify(data)
@@ -232,7 +232,7 @@ export const put = <T = any>(
 /**
  * Convenience method for DELETE requests
  */
-export const del = <T = any>(
+export const del = <T = unknown>(
   url: string,
   options?: Omit<RequestOptions, 'method' | 'body'>
 ): Promise<Response<T>> => request<T>(url, { ...options, method: 'DELETE' })
@@ -240,9 +240,9 @@ export const del = <T = any>(
 /**
  * Convenience method for PATCH requests
  */
-export const patch = <T = any>(
+export const patch = <T = unknown>(
   url: string,
-  data: any,
+  data: unknown,
   options?: Omit<RequestOptions, 'method' | 'body'>
 ): Promise<Response<T>> => {
   const body = typeof data === 'string' ? data : JSON.stringify(data)

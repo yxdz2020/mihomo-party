@@ -42,7 +42,7 @@ const PLATFORM_MAP: Record<string, string> = {
 const versionCache = new Map<string, VersionCache>()
 
 /**
- * 获取GitHub仓库的标签列表（带缓存）
+ * 获取 GitHub 仓库的标签列表（带缓存）
  * @param owner 仓库所有者
  * @param repo 仓库名称
  * @param forceRefresh 是否强制刷新缓存
@@ -109,8 +109,8 @@ export function clearVersionCache(owner: string, repo: string): void {
 }
 
 /**
- * 下载GitHub Release资产
- * @param url 下载URL
+ * 下载 GitHub Release 资产
+ * @param url 下载 URL
  * @param outputPath 输出路径
  */
 async function downloadGitHubAsset(url: string, outputPath: string): Promise<void> {
@@ -133,7 +133,7 @@ async function downloadGitHubAsset(url: string, outputPath: string): Promise<voi
 }
 
 /**
- * 安装特定版本的mihomo核心
+ * 安装特定版本的 mihomo 核心
  * @param version 版本号
  */
 export async function installMihomoCore(version: string): Promise<void> {
@@ -141,9 +141,9 @@ export async function installMihomoCore(version: string): Promise<void> {
     console.log(`[GitHub] Installing mihomo core version ${version}`)
 
     const plat = platform()
-    let arch = process.arch
+    const arch = process.arch
 
-    // 映射平台和架构到GitHub Release文件名
+    // 映射平台和架构到 GitHub Release 文件名
     const key = `${plat}-${arch}`
     const name = PLATFORM_MAP[key]
 
@@ -185,7 +185,7 @@ export async function installMihomoCore(version: string): Promise<void> {
         throw new Error(`Executable file not found in zip: ${exeFile}`)
       }
     } else {
-      // 处理.gz文件
+      // 处理.gz 文件
       console.log(`[GitHub] Extracting GZ file ${tempZip}`)
       const readStream = createReadStream(tempZip)
       const writeStream = createWriteStream(targetPath)

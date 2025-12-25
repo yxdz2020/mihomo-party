@@ -130,7 +130,7 @@ const Mihomo: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [refreshing, setRefreshing] = useState(false)
 
-  // WebUI管理状态
+  // WebUI 管理状态
   const [isWebUIModalOpen, setIsWebUIModalOpen] = useState(false)
   const [allPanels, setAllPanels] = useState<WebUIPanel[]>([])
   const [editingPanel, setEditingPanel] = useState<WebUIPanel | null>(null)
@@ -150,10 +150,10 @@ const Mihomo: React.FC = () => {
 
   const { host, port } = parseController()
 
-  // 生成随机端口(范围1024-65535)
+  // 生成随机端口 (范围 1024-65535)
   const generateRandomPort = () => Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024
 
-  // 默认WebUI面板选项
+  // 默认 WebUI 面板选项
   const defaultWebUIPanels: WebUIPanel[] = [
     {
       id: 'metacubexd',
@@ -185,14 +185,14 @@ const Mihomo: React.FC = () => {
     }
   }, [])
 
-  // 保存面板列表到localStorage
+  // 保存面板列表到 localStorage
   useEffect(() => {
     if (allPanels.length > 0) {
       localStorage.setItem('webui-panels', JSON.stringify(allPanels))
     }
   }, [allPanels])
 
-  // 在URL输入框光标处插入或替换变量
+  // 在 URL 输入框光标处插入或替换变量
   const insertVariableAtCursor = (variable: string) => {
     if (!urlInputRef.current) return
 
@@ -216,7 +216,7 @@ const Mihomo: React.FC = () => {
     }, 0)
   }
 
-  // 打开WebUI面板
+  // 打开 WebUI 面板
   const openWebUI = (panel: WebUIPanel) => {
     const url = panel.url.replace('%host', host).replace('%port', port).replace('%secret', secret)
     window.open(url, '_blank')
@@ -274,7 +274,7 @@ const Mihomo: React.FC = () => {
     setAllPanels(defaultWebUIPanels)
   }
 
-  // 用于高亮显示URL中的变量
+  // 用于高亮显示 URL 中的变量
   const HighlightedUrl: React.FC<{ url: string }> = ({ url }) => {
     const parts = url.split(/(%host|%port|%secret)/g)
 
@@ -314,7 +314,7 @@ const Mihomo: React.FC = () => {
     await restartCore()
   }
 
-  const handleConfigChangeWithRestart = async (key: string, value: any) => {
+  const handleConfigChangeWithRestart = async (key: string, value: unknown) => {
     try {
       await patchAppConfig({ [key]: value })
       await restartCore()
@@ -328,14 +328,14 @@ const Mihomo: React.FC = () => {
     }
   }
 
-  // 获取GitHub标签列表（带缓存）
+  // 获取 GitHub 标签列表（带缓存）
   const fetchTags = async (forceRefresh = false) => {
     setLoadingTags(true)
     try {
       const data = await fetchMihomoTags(forceRefresh)
       setTags(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error('Failed to fetch tags:', error)
+    } catch (error: unknown) {
+      console.error('Failed to fetch tags:', String(error))
       setTags([])
       toast.error(t('mihomo.error.fetchTagsFailed'))
     } finally {
@@ -538,7 +538,7 @@ const Mihomo: React.FC = () => {
                     | 'mihomo-alpha'
                     | 'mihomo-smart'
                     | 'mihomo-specific'
-                  // 如果切换到特定版本但没有设置specificVersion，则打开选择模态框
+                  // 如果切换到特定版本但没有设置 specificVersion，则打开选择模态框
                   if (selectedCore === 'mihomo-specific' && !specificVersion) {
                     handleOpenModal()
                   } else {

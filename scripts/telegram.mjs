@@ -9,9 +9,7 @@ import {
 } from './version-utils.mjs'
 
 const chat_id = '@MihomoPartyChannel'
-const pkg = readFileSync('package.json', 'utf-8')
 const changelog = readFileSync('changelog.md', 'utf-8')
-const { version: packageVersion } = JSON.parse(pkg)
 
 // 获取处理后的版本号
 const version = getProcessedVersion()

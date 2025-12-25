@@ -78,7 +78,7 @@ export async function createOverride(item: Partial<IOverrideItem>): Promise<IOve
         },
         responseType: 'text'
       })
-      const data = res.data
+      const data = res.data as string
       await setOverride(id, newItem.ext, data)
       break
     }

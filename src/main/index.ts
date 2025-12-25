@@ -231,7 +231,7 @@ app.whenReady().then(async () => {
     const [startPromise] = await startCore()
     startPromise.then(async () => {
       await initProfileUpdater()
-      await initWebdavBackupScheduler() // 初始化WebDAV定时备份任务
+      await initWebdavBackupScheduler() // 初始化 WebDAV 定时备份任务
       // 上次是否为了开启 TUN 而重启
       await checkAdminRestartForTun()
     })

@@ -9,7 +9,7 @@ import { floatingWindowLogger } from '../utils/logger'
 
 export let floatingWindow: BrowserWindow | null = null
 
-function logError(message: string, error?: any): void {
+function logError(message: string, error?: unknown): void {
   floatingWindowLogger.log(`FloatingWindow Error: ${message}`, error).catch(() => {})
 }
 

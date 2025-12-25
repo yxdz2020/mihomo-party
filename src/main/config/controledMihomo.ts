@@ -49,7 +49,7 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
 
   // 从不接管状态恢复
   if (controlDns) {
-    // 确保DNS配置包含所有必要的默认字段，特别是新增的fallback等
+    // 确保 DNS 配置包含所有必要的默认字段，特别是新增的 fallback 等
     controledMihomoConfig.dns = deepMerge(
       defaultControledMihomoConfig.dns || {},
       controledMihomoConfig.dns || {}

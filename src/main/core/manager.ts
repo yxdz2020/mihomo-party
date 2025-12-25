@@ -330,8 +330,8 @@ async function cleanupWindowsNamedPipes(): Promise<void> {
                 process.kill(pid, 0)
                 process.kill(pid, 'SIGTERM')
                 await managerLogger.info(`Terminated process ${pid} to free pipe`)
-              } catch (error: any) {
-                if (error.code !== 'ESRCH') {
+              } catch (error: unknown) {
+                if ((error as { code?: string })?.code !== 'ESRCH') {
                   await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
                 }
               }
@@ -351,8 +351,8 @@ async function cleanupWindowsNamedPipes(): Promise<void> {
                   process.kill(pid, 0)
                   process.kill(pid, 'SIGTERM')
                   await managerLogger.info(`Terminated process ${pid} to free pipe`)
-                } catch (error: any) {
-                  if (error.code !== 'ESRCH') {
+                } catch (error: unknown) {
+                  if ((error as { code?: string })?.code !== 'ESRCH') {
                     await managerLogger.warn(`Failed to terminate process ${pid}:`, error)
                   }
                 }
@@ -589,8 +589,8 @@ export async function checkAdminPrivileges(): Promise<boolean> {
     await execPromise('chcp 65001 >nul 2>&1 && fltmc', { encoding: 'utf8' })
     await managerLogger.info('Admin privileges confirmed via fltmc')
     return true
-  } catch (fltmcError: any) {
-    const errorCode = fltmcError?.code || 0
+  } catch (fltmcError: unknown) {
+    const errorCode = (fltmcError as { code?: number })?.code || 0
     await managerLogger.debug(`fltmc failed with code ${errorCode}, trying net session as fallback`)
 
     try {
@@ -598,8 +598,8 @@ export async function checkAdminPrivileges(): Promise<boolean> {
       await execPromise('chcp 65001 >nul 2>&1 && net session', { encoding: 'utf8' })
       await managerLogger.info('Admin privileges confirmed via net session')
       return true
-    } catch (netSessionError: any) {
-      const netErrorCode = netSessionError?.code || 0
+    } catch (netSessionError: unknown) {
+      const netErrorCode = (netSessionError as { code?: number })?.code || 0
       await managerLogger.debug(
         `Both fltmc and net session failed, no admin privileges. Error codes: fltmc=${errorCode}, net=${netErrorCode}`
       )
@@ -618,7 +618,8 @@ export async function showTunPermissionDialog(): Promise<boolean> {
 
   const title = i18next.t('tun.permissions.title') || '需要管理员权限'
   const message =
-    i18next.t('tun.permissions.message') || '启用TUN模式需要管理员权限，是否现在重启应用获取权限？'
+    i18next.t('tun.permissions.message') ||
+    '启用 TUN 模式需要管理员权限，是否现在重启应用获取权限？'
   const confirmText = i18next.t('common.confirm') || '确认'
   const cancelText = i18next.t('common.cancel') || '取消'
 
@@ -679,7 +680,7 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
 
     await managerLogger.info('Restarting as administrator with command', command)
 
-    // 执行PowerShell命令
+    // 执行 PowerShell 命令
     exec(command, { windowsHide: true }, async (error, _stdout, stderr) => {
       if (error) {
         await managerLogger.error('PowerShell execution error', error)
@@ -703,7 +704,7 @@ export async function checkMihomoCorePermissions(): Promise<boolean> {
 
   try {
     if (process.platform === 'win32') {
-      // Windows权限检查
+      // Windows 权限检查
       return await checkAdminPrivileges()
     }
 
@@ -834,7 +835,9 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
                 }
               }
             }
-          } catch (error) {}
+          } catch (error) {
+            // ignore
+          }
         }
 
         if (!foundProcesses) {
@@ -851,7 +854,7 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
   return false
 }
 
-// TUN模式获取权限
+// TUN 模式获取权限
 export async function requestTunPermissions(): Promise<void> {
   if (process.platform === 'win32') {
     await restartAsAdmin()
@@ -894,7 +897,7 @@ export async function checkAdminRestartForTun(): Promise<void> {
       await managerLogger.error('Failed to auto-enable TUN after admin restart', error)
     }
   } else {
-    // 检查TUN配置与权限的匹配，但不自动开启 TUN
+    // 检查 TUN 配置与权限的匹配，但不自动开启 TUN
     await validateTunPermissionsOnStartup()
   }
 }

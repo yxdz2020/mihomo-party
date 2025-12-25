@@ -1,6 +1,5 @@
 import React, { createContext, ReactNode, useContext } from 'react'
 import { showError } from '@renderer/utils/error-display'
-import { toast } from '@renderer/components/base/toast'
 import useSWR from 'swr'
 import {
   addProfileItem as add,
@@ -104,7 +103,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
         // 异步执行后台切换，不阻塞 UI
         await pendingTask.current
       } catch (e) {
-        const errorMsg = (e as any)?.message || String(e)
+        const errorMsg = (e as { message?: string })?.message || String(e)
         // 处理 IPC 超时错误
         if (errorMsg.includes('reply was never sent')) {
           setTimeout(() => mutateProfileConfig(), 1000)

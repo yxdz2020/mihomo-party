@@ -140,7 +140,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                         value={values.interval?.toString() ?? ''}
                         onValueChange={(v) => {
                           // 输入限制
-                          if (/^[\d\s*\-,\/]*$/.test(v)) {
+                          if (/^[\d\s*\-,/]*$/.test(v)) {
                             // 纯数字
                             if (/^\d+$/.test(v)) {
                               setValues({ ...values, interval: parseInt(v, 10) || 0 })

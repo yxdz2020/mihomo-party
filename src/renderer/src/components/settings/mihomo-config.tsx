@@ -59,7 +59,7 @@ const MihomoConfig: React.FC = () => {
             type="number"
             value={(subscriptionTimeout / 1000)?.toString()}
             onValueChange={async (v: string) => {
-              let num = parseInt(v)
+              const num = parseInt(v)
               await patchAppConfig({ subscriptionTimeout: num * 1000 })
             }}
             onBlur={async (e) => {

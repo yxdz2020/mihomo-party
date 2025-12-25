@@ -14,13 +14,13 @@ class Logger {
     return new Date().toISOString()
   }
 
-  private formatLogMessage(level: LogLevel, message: string, error?: any): string {
+  private formatLogMessage(level: LogLevel, message: string, error?: unknown): string {
     const timestamp = this.formatTimestamp()
-    const errorStr = error ? `: ${error}` : ''
+    const errorStr = error ? `: ${String(error)}` : ''
     return `[${timestamp}] [${level.toUpperCase()}] [${this.moduleName}] ${message}${errorStr}\n`
   }
 
-  private async writeToFile(level: LogLevel, message: string, error?: any): Promise<void> {
+  private async writeToFile(level: LogLevel, message: string, error?: unknown): Promise<void> {
     try {
       const appLogPath = logPath()
       const logMessage = this.formatLogMessage(level, message, error)
@@ -35,7 +35,7 @@ class Logger {
     }
   }
 
-  private logToConsole(level: LogLevel, message: string, error?: any): void {
+  private logToConsole(level: LogLevel, message: string, error?: unknown): void {
     const prefix = `[${this.moduleName}] ${message}`
 
     switch (level) {
@@ -54,28 +54,28 @@ class Logger {
     }
   }
 
-  async debug(message: string, error?: any): Promise<void> {
+  async debug(message: string, error?: unknown): Promise<void> {
     await this.writeToFile('debug', message, error)
     this.logToConsole('debug', message, error)
   }
 
-  async info(message: string, error?: any): Promise<void> {
+  async info(message: string, error?: unknown): Promise<void> {
     await this.writeToFile('info', message, error)
     this.logToConsole('info', message, error)
   }
 
-  async warn(message: string, error?: any): Promise<void> {
+  async warn(message: string, error?: unknown): Promise<void> {
     await this.writeToFile('warn', message, error)
     this.logToConsole('warn', message, error)
   }
 
-  async error(message: string, error?: any): Promise<void> {
+  async error(message: string, error?: unknown): Promise<void> {
     await this.writeToFile('error', message, error)
     this.logToConsole('error', message, error)
   }
 
   // 兼容原有的 logFloatingWindow 函数签名
-  async log(message: string, error?: any): Promise<void> {
+  async log(message: string, error?: unknown): Promise<void> {
     if (error) {
       await this.error(message, error)
     } else {

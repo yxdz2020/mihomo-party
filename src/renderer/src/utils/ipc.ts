@@ -9,7 +9,7 @@ function ipcErrorWrapper(response: any): any {
   }
 }
 
-// GitHub版本管理相关IPC调用
+// GitHub 版本管理相关 IPC 调用
 export async function fetchMihomoTags(
   forceRefresh = false
 ): Promise<{ name: string; zipball_url: string; tarball_url: string }[]> {

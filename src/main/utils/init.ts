@@ -84,7 +84,7 @@ async function fixDataDirPermissions(): Promise<void> {
   }
 }
 
-// 比较修改geodata文件修改时间
+// 比较修改 geodata 文件修改时间
 async function isSourceNewer(sourcePath: string, targetPath: string): Promise<boolean> {
   try {
     const sourceStats = await stat(sourcePath)

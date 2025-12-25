@@ -332,7 +332,7 @@ const ConnectionTable: React.FC<Props> = ({
   const handleSort = useCallback(
     (columnKey: string) => {
       let newDirection: 'asc' | 'desc' = 'asc'
-      let newColumn = columnKey
+      const newColumn = columnKey
 
       if (sortColumn === columnKey) {
         newDirection = sortDirection === 'asc' ? 'desc' : 'asc'

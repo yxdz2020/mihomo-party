@@ -7,9 +7,7 @@ import {
   generateDownloadLinksMarkdown
 } from './version-utils.mjs'
 
-const pkg = readFileSync('package.json', 'utf-8')
 let changelog = readFileSync('changelog.md', 'utf-8')
-const { version: packageVersion } = JSON.parse(pkg)
 
 // 获取处理后的版本号
 const version = getProcessedVersion()

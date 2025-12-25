@@ -208,7 +208,7 @@ const GeneralConfig: React.FC = () => {
                 type="number"
                 value={autoQuitWithoutCoreDelay.toString()}
                 onValueChange={async (v: string) => {
-                  let num = parseInt(v)
+                  const num = parseInt(v)
                   await patchAppConfig({ autoQuitWithoutCoreDelay: num })
                 }}
                 onBlur={async (e) => {
