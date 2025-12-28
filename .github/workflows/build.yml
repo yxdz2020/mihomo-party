@@ -26,7 +26,7 @@ jobs:
             jq -r '.id // empty')
 
           if [ ! -z "$RELEASE_ID" ] && [ "$RELEASE_ID" != "empty" ]; then
-            echo "‚úÖ Found dev release with ID: $RELEASE_ID"
+            echo "‚ú?Found dev release with ID: $RELEASE_ID"
 
             echo "üìã Getting list of assets with pagination..."
             ALL_ASSETS="[]"
@@ -63,16 +63,16 @@ jobs:
               # Delete each asset with detailed logging
               echo "$ALL_ASSETS" | jq -r '.[].id' | while read asset_id; do
                 if [ ! -z "$asset_id" ]; then
-                  echo "üóëÔ∏è  Deleting asset ID: $asset_id"
+                  echo "üóëÔ∏? Deleting asset ID: $asset_id"
                   RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X DELETE \
                     -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                     "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id")
                   
                   HTTP_CODE=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
                   if [ "$HTTP_CODE" = "204" ]; then
-                    echo "‚úÖ Successfully deleted asset $asset_id"
+                    echo "‚ú?Successfully deleted asset $asset_id"
                   else
-                    echo "‚ùå Failed to delete asset $asset_id (HTTP: $HTTP_CODE)"
+                    echo "‚ù?Failed to delete asset $asset_id (HTTP: $HTTP_CODE)"
                     echo "Response: $(echo $RESPONSE | sed -e 's/HTTPSTATUS:.*//')"
                   fi
                   # Add small delay to avoid rate limiting
@@ -102,9 +102,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
       - name: Install Dependencies
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -136,7 +141,7 @@ jobs:
         run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Windows ${{ matrix.arch }}
           path: |
@@ -178,9 +183,14 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
       - name: Install Dependencies
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -214,7 +224,7 @@ jobs:
         run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Win7 ${{ matrix.arch }}
           path: |
@@ -256,9 +266,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
       - name: Install Dependencies
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -285,7 +300,7 @@ jobs:
         run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Linux ${{ matrix.arch }}
           path: |
@@ -327,9 +342,14 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
       - name: Install Dependencies
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -357,7 +377,7 @@ jobs:
           chmod +x build/pkg-scripts/postinstall build/pkg-scripts/preinstall
           pnpm build:mac --${{ matrix.arch }}
       - name: Setup temporary installer signing keychain
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.CSC_INSTALLER_LINK }}
           p12-password: ${{ secrets.CSC_INSTALLER_KEY_PASSWORD }}
@@ -381,7 +401,7 @@ jobs:
         run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: MacOS ${{ matrix.arch }}
           path: |
@@ -420,9 +440,14 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
       - name: Install Dependencies
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -452,7 +477,7 @@ jobs:
           chmod +x build/pkg-scripts/postinstall build/pkg-scripts/preinstall
           pnpm build:mac --${{ matrix.arch }}
       - name: Setup temporary installer signing keychain
-        uses: apple-actions/import-codesign-certs@v3
+        uses: apple-actions/import-codesign-certs@v6
         with:
           p12-file-base64: ${{ secrets.CSC_INSTALLER_LINK }}
           p12-password: ${{ secrets.CSC_INSTALLER_KEY_PASSWORD }}
@@ -476,7 +501,7 @@ jobs:
         run: pnpm copy-legacy
       - name: Upload Artifacts
         if: startsWith(github.ref, 'refs/heads/')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Catalina ${{ matrix.arch }}
           path: |
@@ -509,9 +534,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Setup pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'pnpm'
       - name: Install Dependencies
         run: pnpm install
       - name: Update Version for Dev Build
@@ -566,7 +596,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Update Version
         run: |
           sed -i "s/pkgver=.*/pkgver=$(echo ${{ github.ref }} | tr -d 'refs/tags/v')/" aur/${{ matrix.pkgname }}/PKGBUILD
@@ -601,7 +631,7 @@ jobs:
     if: startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: update version

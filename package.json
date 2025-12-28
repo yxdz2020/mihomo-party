@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "pnpm run typecheck:node && pnpm run typecheck:web",
     "prepare": "node scripts/prepare.mjs",
     "prepare:dev": "node scripts/update-version.mjs && node scripts/prepare.mjs",
     "updater": "node scripts/updater.mjs",
@@ -23,11 +23,11 @@
     "dev": "electron-vite dev",
     "postinstall": "electron-builder install-app-deps && node node_modules/electron/install.js",
     "build:win": "electron-vite build && electron-builder --publish never --win",
-    "build:win:dev": "npm run prepare:dev && electron-vite build && electron-builder --publish never --win",
+    "build:win:dev": "pnpm run prepare:dev && electron-vite build && electron-builder --publish never --win",
     "build:mac": "electron-vite build && electron-builder --publish never --mac",
-    "build:mac:dev": "npm run prepare:dev && electron-vite build && electron-builder --publish never --mac",
+    "build:mac:dev": "pnpm run prepare:dev && electron-vite build && electron-builder --publish never --mac",
     "build:linux": "electron-vite build && electron-builder --publish never --linux",
-    "build:linux:dev": "npm run prepare:dev && electron-vite build && electron-builder --publish never --linux"
+    "build:linux:dev": "pnpm run prepare:dev && electron-vite build && electron-builder --publish never --linux"
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
