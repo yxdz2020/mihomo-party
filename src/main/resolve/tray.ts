@@ -120,7 +120,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
         groupsMenu = groupItems
         groupsMenu.unshift({ type: 'separator' })
       }
-    } catch (e) {
+    } catch {
       // ignore
       // 避免出错时无法创建托盘菜单
     }
@@ -206,7 +206,7 @@ export const buildContextMenu = async (): Promise<Menu> => {
           await patchAppConfig({ sysProxy: { enable } })
           mainWindow?.webContents.send('appConfigUpdated')
           floatingWindow?.webContents.send('appConfigUpdated')
-        } catch (e) {
+        } catch {
           // ignore
         } finally {
           ipcMain.emit('updateTrayMenu')

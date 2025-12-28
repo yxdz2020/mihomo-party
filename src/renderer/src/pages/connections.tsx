@@ -170,7 +170,8 @@ const Connections: React.FC = () => {
   }
 
   useEffect(() => {
-    const handler = (_e: unknown, info: IMihomoConnectionsInfo): void => {
+    const handler = (_e: unknown, ...args: unknown[]): void => {
+      const info = args[0] as IMihomoConnectionsInfo
       setConnectionsInfo(info)
 
       if (!info.connections) return

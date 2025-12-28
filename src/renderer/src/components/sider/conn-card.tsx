@@ -126,7 +126,8 @@ const ConnCard: React.FC<Props> = (props) => {
 
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
   useEffect(() => {
-    window.electron.ipcRenderer.on('mihomoTraffic', async (_e, info: IMihomoTrafficInfo) => {
+    window.electron.ipcRenderer.on('mihomoTraffic', async (_e, ...args) => {
+      const info = args[0] as IMihomoTrafficInfo
       setUpload(info.up)
       setDownload(info.down)
       const data = series

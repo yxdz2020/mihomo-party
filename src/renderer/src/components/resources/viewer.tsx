@@ -66,7 +66,7 @@ const Viewer: React.FC<Props> = (props) => {
             })
           )
         }
-      } catch (error) {
+      } catch {
         setCurrData(fileContent)
       }
     } finally {

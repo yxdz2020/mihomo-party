@@ -15,7 +15,7 @@ export async function initProfileUpdater(): Promise<void> {
           async () => {
             try {
               await addProfileItem(item)
-            } catch (e) {
+            } catch {
               /* ignore */
             }
           },
@@ -26,7 +26,7 @@ export async function initProfileUpdater(): Promise<void> {
         intervalPool[item.id] = new Cron(item.interval, async () => {
           try {
             await addProfileItem(item)
-          } catch (e) {
+          } catch {
             /* ignore */
           }
         })
@@ -34,7 +34,7 @@ export async function initProfileUpdater(): Promise<void> {
 
       try {
         await addProfileItem(item)
-      } catch (e) {
+      } catch {
         /* ignore */
       }
     }
@@ -46,7 +46,7 @@ export async function initProfileUpdater(): Promise<void> {
         async () => {
           try {
             await addProfileItem(currentItem)
-          } catch (e) {
+          } catch {
             /* ignore */
           }
         },
@@ -57,7 +57,7 @@ export async function initProfileUpdater(): Promise<void> {
         async () => {
           try {
             await addProfileItem(currentItem)
-          } catch (e) {
+          } catch {
             /* ignore */
           }
         },
@@ -67,7 +67,7 @@ export async function initProfileUpdater(): Promise<void> {
       intervalPool[currentItem.id] = new Cron(currentItem.interval, async () => {
         try {
           await addProfileItem(currentItem)
-        } catch (e) {
+        } catch {
           /* ignore */
         }
       })
@@ -75,7 +75,7 @@ export async function initProfileUpdater(): Promise<void> {
 
     try {
       await addProfileItem(currentItem)
-    } catch (e) {
+    } catch {
       /* ignore */
     }
   }
@@ -96,7 +96,7 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
         async () => {
           try {
             await addProfileItem(item)
-          } catch (e) {
+          } catch {
             /* ignore */
           }
         },
@@ -106,7 +106,7 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
       intervalPool[item.id] = new Cron(item.interval, async () => {
         try {
           await addProfileItem(item)
-        } catch (e) {
+        } catch {
           /* ignore */
         }
       })

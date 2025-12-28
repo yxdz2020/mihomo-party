@@ -149,7 +149,7 @@ const EditInfoModal: React.FC<Props> = (props) => {
                             // 非纯数字
                             try {
                               setValues({ ...values, interval: v })
-                            } catch (e) {
+                            } catch {
                               // ignore
                             }
                           }

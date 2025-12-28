@@ -86,7 +86,7 @@ const App: React.FC = () => {
         options.color = window.getComputedStyle(document.documentElement).backgroundColor
         options.symbolColor = window.getComputedStyle(document.documentElement).color
         setTitleBarOverlay(options)
-      } catch (e) {
+      } catch {
         // ignore
       }
     }

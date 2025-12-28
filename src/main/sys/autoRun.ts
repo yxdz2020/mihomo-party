@@ -61,7 +61,7 @@ export async function checkAutoRun(): Promise<boolean> {
         `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
       )
       return stdout.includes(appName)
-    } catch (e) {
+    } catch {
       return false
     }
   }
@@ -96,7 +96,7 @@ export async function enableAutoRun(): Promise<void> {
         await execPromise(
           `powershell  -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/create', '/tn', '${appName}', '/xml', '${taskFilePath}', '/f' -WindowStyle Hidden"`
         )
-      } catch (e) {
+      } catch {
         await managerLogger.info('Maybe the user rejected the UAC dialog?')
       }
     }
@@ -144,7 +144,7 @@ export async function disableAutoRun(): Promise<void> {
         await execPromise(
           `powershell  -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/delete', '/tn', '${appName}', '/f' -WindowStyle Hidden"`
         )
-      } catch (e) {
+      } catch {
         await managerLogger.info('Maybe the user rejected the UAC dialog?')
       }
     }

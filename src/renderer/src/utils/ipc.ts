@@ -1,8 +1,8 @@
 import { TitleBarOverlayOptions } from 'electron'
 
-function checkIpcError<T>(response: T | { invokeError: unknown }): T {
+function checkIpcError<T>(response: unknown): T {
   if (response && typeof response === 'object' && 'invokeError' in response) {
-    throw response.invokeError
+    throw (response as { invokeError: unknown }).invokeError
   }
   return response as T
 }

@@ -562,7 +562,7 @@ async function waitForCoreReady(): Promise<void> {
       await axios.get('/')
       await managerLogger.info(`Core ready after ${i + 1} attempts (${(i + 1) * retryInterval}ms)`)
       return
-    } catch (error) {
+    } catch {
       if (i === 0) {
         await managerLogger.info('Waiting for core to be ready...')
       }
@@ -791,7 +791,7 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
                   if (processJson.Name.includes('mihomo') && processJson.Path === null) {
                     return true
                   }
-                } catch (error) {
+                } catch {
                   await managerLogger.info(
                     `Cannot get info for process ${pid}, might be high privilege`
                   )
@@ -835,7 +835,7 @@ async function checkHighPrivilegeMihomoProcess(): Promise<boolean> {
                 }
               }
             }
-          } catch (error) {
+          } catch {
             // ignore
           }
         }

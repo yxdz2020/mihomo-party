@@ -26,7 +26,8 @@ const cachedLogs: {
   }
 }
 
-window.electron.ipcRenderer.on('mihomoLogs', (_e, log: IMihomoLogInfo) => {
+window.electron.ipcRenderer.on('mihomoLogs', (_e, ...args) => {
+  const log = args[0] as IMihomoLogInfo
   log.time = new Date().toLocaleString()
   cachedLogs.log.push(log)
   if (cachedLogs.log.length >= 500) {

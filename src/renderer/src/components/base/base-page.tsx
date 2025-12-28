@@ -32,7 +32,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
         // @ts-ignore windowControlsOverlay
         const windowControlsOverlay = window.navigator.windowControlsOverlay
         setOverlayWidth(window.innerWidth - windowControlsOverlay.getTitlebarAreaRect().width)
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
