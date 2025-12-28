@@ -13,6 +13,8 @@ import { join } from 'path'
 import { app } from 'electron'
 import { mihomoUpgradeConfig } from '../core/mihomoApi'
 
+import i18next from 'i18next'
+
 let profileConfig: IProfileConfig // profile.yaml
 // 最终选中订阅ID
 let targetProfileId: string | null = null
@@ -33,7 +35,8 @@ export async function setProfileConfig(config: IProfileConfig): Promise<void> {
 
 export async function getProfileItem(id: string | undefined): Promise<IProfileItem | undefined> {
   const { items } = await getProfileConfig()
-  if (!id || id === 'default') return { id: 'default', type: 'local', name: '空白订阅' }
+  if (!id || id === 'default')
+    return { id: 'default', type: 'local', name: i18next.t('profiles.emptyProfile') }
   return items.find((item) => item.id === id)
 }
 
@@ -126,7 +129,13 @@ export async function removeProfileItem(id: string): Promise<void> {
 
 export async function getCurrentProfileItem(): Promise<IProfileItem> {
   const { current } = await getProfileConfig()
-  return (await getProfileItem(current)) || { id: 'default', type: 'local', name: '空白订阅' }
+  return (
+    (await getProfileItem(current)) || {
+      id: 'default',
+      type: 'local',
+      name: i18next.t('profiles.emptyProfile')
+    }
+  )
 }
 
 interface FetchOptions {

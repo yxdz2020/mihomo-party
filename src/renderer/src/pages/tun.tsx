@@ -113,7 +113,7 @@ const Tun: React.FC = () => {
                     new Notification(t('tun.notifications.firewallResetSuccess'))
                     await restartCore()
                   } catch (e) {
-                    showErrorSync(e, '防火墙设置失败')
+                    showErrorSync(e, t('common.error.firewallSetupFailed'))
                   } finally {
                     setLoading(false)
                   }
@@ -134,7 +134,7 @@ const Tun: React.FC = () => {
                     new Notification(t('tun.notifications.coreAuthSuccess'))
                     await restartCore()
                   } catch (e) {
-                    showErrorSync(e, '内核授权失败')
+                    showErrorSync(e, t('common.error.coreAuthFailed'))
                   }
                 }}
               >

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
 import useSWR from 'swr'
 import { getAppConfig, patchAppConfig as patch } from '@renderer/utils/ipc'
@@ -12,13 +13,14 @@ interface AppConfigContextType {
 const AppConfigContext = createContext<AppConfigContextType | undefined>(undefined)
 
 export const AppConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { t } = useTranslation()
   const { data: appConfig, mutate: mutateAppConfig } = useSWR('getConfig', () => getAppConfig())
 
   const patchAppConfig = async (value: Partial<IAppConfig>): Promise<void> => {
     try {
       await patch(value)
     } catch (e) {
-      await showError(e, '更新应用配置失败')
+      await showError(e, t('common.error.updateAppConfigFailed'))
     } finally {
       mutateAppConfig()
     }

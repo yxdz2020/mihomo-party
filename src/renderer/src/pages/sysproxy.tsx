@@ -106,7 +106,7 @@ const Sysproxy: React.FC = () => {
     } catch (e) {
       setValues({ ...values, enable: previousState })
       setChanged(true)
-      showErrorSync(e, '系统代理设置失败')
+      showErrorSync(e, t('common.error.sysproxySetupFailed'))
 
       await patchAppConfig({ sysProxy: { enable: false } })
     }

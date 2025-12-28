@@ -1,4 +1,5 @@
 import { toast } from '@renderer/components/base/toast'
+import i18next from 'i18next'
 
 const DETAILED_ERROR_KEYWORDS = [
   'yaml',
@@ -33,9 +34,10 @@ function shouldShowDetailedError(message: string): boolean {
 
 export async function showError(error: unknown, title?: string): Promise<void> {
   const message = error instanceof Error ? error.message : String(error)
+  const defaultTitle = i18next.t('common.error.default')
 
   if (shouldShowDetailedError(message)) {
-    toast.detailedError(message, title || '错误')
+    toast.detailedError(message, title || defaultTitle)
   } else {
     toast.error(message, title)
   }
@@ -43,9 +45,10 @@ export async function showError(error: unknown, title?: string): Promise<void> {
 
 export function showErrorSync(error: unknown, title?: string): void {
   const message = error instanceof Error ? error.message : String(error)
+  const defaultTitle = i18next.t('common.error.default')
 
   if (shouldShowDetailedError(message)) {
-    toast.detailedError(message, title || '错误')
+    toast.detailedError(message, title || defaultTitle)
   } else {
     toast.error(message, title)
   }

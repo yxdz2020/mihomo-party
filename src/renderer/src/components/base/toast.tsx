@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { IoCheckmark, IoClose, IoAlertSharp, IoInformationSharp, IoCopy } from 'react-icons/io5'
+import i18next from 'i18next'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -125,7 +126,9 @@ const ToastItem: React.FC<{
             >
               {icon}
             </div>
-            <p className="text-base font-semibold text-foreground">{data.title || '错误'}</p>
+            <p className="text-base font-semibold text-foreground">
+              {data.title || i18next.t('common.error.default')}
+            </p>
           </div>
           <div className="relative" style={{ zIndex: 99999 }}>
             <button
@@ -145,7 +148,7 @@ const ToastItem: React.FC<{
               className={`absolute top-full mt-1 left-1/2 -translate-x-1/2 px-2 py-1 text-xs text-foreground bg-content2 border border-default-200 rounded shadow-md whitespace-nowrap transition-all duration-200 ${copied ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
               style={{ zIndex: 99999 }}
             >
-              已复制
+              {i18next.t('common.copied')}
             </div>
           </div>
         </div>
@@ -158,7 +161,7 @@ const ToastItem: React.FC<{
           onClick={handleClose}
           className="self-end px-4 py-1.5 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger/90 transition-colors"
         >
-          确定
+          {i18next.t('common.ok')}
         </button>
       </div>
     )

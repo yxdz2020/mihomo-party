@@ -146,7 +146,7 @@ const DNS: React.FC = () => {
         await restartCore()
       }
     } catch (e) {
-      showErrorSync(e, 'DNS 配置保存失败')
+      showErrorSync(e, t('common.error.dnsConfigSaveFailed'))
     }
   }
 

@@ -71,7 +71,7 @@ const Sniffer: React.FC = () => {
         await restartCore()
       }
     } catch (e) {
-      showErrorSync(e, '嵅探配置保存失败')
+      showErrorSync(e, t('common.error.snifferConfigSaveFailed'))
     }
   }
 

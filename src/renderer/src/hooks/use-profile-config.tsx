@@ -1,4 +1,5 @@
 import React, { createContext, ReactNode, useContext } from 'react'
+import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
 import useSWR from 'swr'
 import {
@@ -23,6 +24,7 @@ interface ProfileConfigContextType {
 const ProfileConfigContext = createContext<ProfileConfigContextType | undefined>(undefined)
 
 export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { t } = useTranslation()
   const { data: profileConfig, mutate: mutateProfileConfig } = useSWR('getProfileConfig', () =>
     getProfileConfig()
   )
@@ -33,7 +35,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await set(config)
     } catch (e) {
-      await showError(e, '保存配置失败')
+      await showError(e, t('common.error.saveProfileConfigFailed'))
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -44,7 +46,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await add(item)
     } catch (e) {
-      await showError(e, '添加配置失败')
+      await showError(e, t('common.error.addProfileFailed'))
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -55,7 +57,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await remove(id)
     } catch (e) {
-      await showError(e, '删除配置失败')
+      await showError(e, t('common.error.deleteProfileFailed'))
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -66,7 +68,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     try {
       await update(item)
     } catch (e) {
-      await showError(e, '更新配置失败')
+      await showError(e, t('common.error.updateProfileFailed'))
     } finally {
       mutateProfileConfig()
       window.electron.ipcRenderer.send('updateTrayMenu')
@@ -108,7 +110,7 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
         if (errorMsg.includes('reply was never sent')) {
           setTimeout(() => mutateProfileConfig(), 1000)
         } else {
-          await showError(errorMsg, '切换配置失败')
+          await showError(errorMsg, t('common.error.switchProfileFailed'))
           mutateProfileConfig()
         }
       } finally {

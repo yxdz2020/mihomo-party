@@ -11,10 +11,11 @@ import {
   profilePath,
   resourcesDir
 } from '../utils/dirs'
+import i18next from 'i18next'
 
 export function getFilePath(ext: string[]): string[] | undefined {
   return dialog.showOpenDialogSync({
-    title: '选择订阅文件',
+    title: i18next.t('common.dialog.selectSubscriptionFile'),
     filters: [{ name: `${ext} file`, extensions: ext }],
     properties: ['openFile']
   })

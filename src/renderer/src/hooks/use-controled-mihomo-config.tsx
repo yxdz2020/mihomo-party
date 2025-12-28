@@ -1,4 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
 import useSWR from 'swr'
 import { getControledMihomoConfig, patchControledMihomoConfig as patch } from '@renderer/utils/ipc'
@@ -14,6 +15,7 @@ const ControledMihomoConfigContext = createContext<ControledMihomoConfigContextT
 )
 
 export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { t } = useTranslation()
   const { data: controledMihomoConfig, mutate: mutateControledMihomoConfig } = useSWR(
     'getControledMihomoConfig',
     () => getControledMihomoConfig()
@@ -23,7 +25,7 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     try {
       await patch(value)
     } catch (e) {
-      await showError(e, '更新内核配置失败')
+      await showError(e, t('common.error.updateCoreConfigFailed'))
     } finally {
       mutateControledMihomoConfig()
     }

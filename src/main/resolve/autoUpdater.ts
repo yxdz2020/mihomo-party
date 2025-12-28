@@ -11,6 +11,7 @@ import { exec, execSync, spawn } from 'child_process'
 import { promisify } from 'util'
 import { appLogger } from '../utils/logger'
 import { checkAdminPrivileges } from '../core/manager'
+import i18next from 'i18next'
 
 export async function checkUpdate(): Promise<IAppVersion | undefined> {
   const { 'mixed-port': mixedPort = 7890 } = await getControledMihomoConfig()
@@ -68,7 +69,7 @@ export async function downloadAndInstallUpdate(version: string): Promise<void> {
     file = file.replace('-setup.exe', '-portable.7z')
   }
   if (!file) {
-    throw new Error('不支持自动更新，请手动下载更新')
+    throw new Error(i18next.t('common.error.autoUpdateNotSupported'))
   }
   if (process.platform === 'win32' && parseInt(os.release()) < 10) {
     file = file.replace('windows', 'win7')
