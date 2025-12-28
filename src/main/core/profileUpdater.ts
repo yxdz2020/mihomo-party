@@ -1,5 +1,6 @@
 import { addProfileItem, getCurrentProfileItem, getProfileConfig } from '../config'
 import { Cron } from 'croner'
+import { logger } from '../utils/logger'
 
 const intervalPool: Record<string, Cron | NodeJS.Timeout> = {}
 
@@ -15,8 +16,8 @@ export async function initProfileUpdater(): Promise<void> {
           async () => {
             try {
               await addProfileItem(item)
-            } catch {
-              /* ignore */
+            } catch (e) {
+              await logger.warn(`[ProfileUpdater] Failed to update profile ${item.name}:`, e)
             }
           },
           item.interval * 60 * 1000
@@ -26,16 +27,16 @@ export async function initProfileUpdater(): Promise<void> {
         intervalPool[item.id] = new Cron(item.interval, async () => {
           try {
             await addProfileItem(item)
-          } catch {
-            /* ignore */
+          } catch (e) {
+            await logger.warn(`[ProfileUpdater] Failed to update profile ${item.name}:`, e)
           }
         })
       }
 
       try {
         await addProfileItem(item)
-      } catch {
-        /* ignore */
+      } catch (e) {
+        await logger.warn(`[ProfileUpdater] Failed to init profile ${item.name}:`, e)
       }
     }
   }
@@ -46,8 +47,8 @@ export async function initProfileUpdater(): Promise<void> {
         async () => {
           try {
             await addProfileItem(currentItem)
-          } catch {
-            /* ignore */
+          } catch (e) {
+            await logger.warn(`[ProfileUpdater] Failed to update current profile:`, e)
           }
         },
         currentItem.interval * 60 * 1000
@@ -57,8 +58,8 @@ export async function initProfileUpdater(): Promise<void> {
         async () => {
           try {
             await addProfileItem(currentItem)
-          } catch {
-            /* ignore */
+          } catch (e) {
+            await logger.warn(`[ProfileUpdater] Failed to update current profile:`, e)
           }
         },
         currentItem.interval * 60 * 1000 + 10000 // +10s
@@ -67,16 +68,16 @@ export async function initProfileUpdater(): Promise<void> {
       intervalPool[currentItem.id] = new Cron(currentItem.interval, async () => {
         try {
           await addProfileItem(currentItem)
-        } catch {
-          /* ignore */
+        } catch (e) {
+          await logger.warn(`[ProfileUpdater] Failed to update current profile:`, e)
         }
       })
     }
 
     try {
       await addProfileItem(currentItem)
-    } catch {
-      /* ignore */
+    } catch (e) {
+      await logger.warn(`[ProfileUpdater] Failed to init current profile:`, e)
     }
   }
 }
@@ -96,8 +97,8 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
         async () => {
           try {
             await addProfileItem(item)
-          } catch {
-            /* ignore */
+          } catch (e) {
+            await logger.warn(`[ProfileUpdater] Failed to update profile ${item.name}:`, e)
           }
         },
         item.interval * 60 * 1000
@@ -106,8 +107,8 @@ export async function addProfileUpdater(item: IProfileItem): Promise<void> {
       intervalPool[item.id] = new Cron(item.interval, async () => {
         try {
           await addProfileItem(item)
-        } catch {
-          /* ignore */
+        } catch (e) {
+          await logger.warn(`[ProfileUpdater] Failed to update profile ${item.name}:`, e)
         }
       })
     }

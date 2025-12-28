@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import MihomoIcon from './components/base/mihomo-icon'
 import { calcTraffic } from './utils/calc'
 import { showContextMenu, triggerMainWindow } from './utils/ipc'
@@ -48,16 +48,18 @@ const FloatingApp: React.FC = () => {
     }
   }, [spinSpeed, spinFloatingIcon])
 
-  useEffect(() => {
-    window.electron.ipcRenderer.on('mihomoTraffic', async (_e, ...args) => {
-      const info = args[0] as IMihomoTrafficInfo
-      setUpload(info.up)
-      setDownload(info.down)
-    })
-    return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('mihomoTraffic')
-    }
+  const handleTraffic = useCallback((_e: unknown, ...args: unknown[]) => {
+    const info = args[0] as IMihomoTrafficInfo
+    setUpload(info.up)
+    setDownload(info.down)
   }, [])
+
+  useEffect(() => {
+    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
+    return (): void => {
+      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
+    }
+  }, [handleTraffic])
 
   return (
     <div className="app-drag h-screen w-screen overflow-hidden">

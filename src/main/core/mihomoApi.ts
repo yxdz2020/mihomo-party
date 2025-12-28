@@ -19,6 +19,8 @@ let logsRetry = 10
 let mihomoConnectionsWs: WebSocket | null = null
 let connectionsRetry = 10
 
+const MAX_RETRY = 10
+
 export const getAxios = async (force: boolean = false): Promise<AxiosInstance> => {
   const dynamicIpcPath = getMihomoIpcPath()
 
@@ -233,6 +235,7 @@ export const mihomoSmartFlushCache = async (configName?: string): Promise<void> 
 }
 
 export const startMihomoTraffic = async (): Promise<void> => {
+  trafficRetry = MAX_RETRY
   await mihomoTraffic()
 }
 
@@ -258,7 +261,7 @@ const mihomoTraffic = async (): Promise<void> => {
   mihomoTrafficWs.onmessage = async (e): Promise<void> => {
     const data = e.data as string
     const json = JSON.parse(data) as IMihomoTrafficInfo
-    trafficRetry = 10
+    trafficRetry = MAX_RETRY
     try {
       mainWindow?.webContents.send('mihomoTraffic', json)
       if (process.platform !== 'linux') {
@@ -292,6 +295,7 @@ const mihomoTraffic = async (): Promise<void> => {
 }
 
 export const startMihomoMemory = async (): Promise<void> => {
+  memoryRetry = MAX_RETRY
   await mihomoMemory()
 }
 
@@ -314,7 +318,7 @@ const mihomoMemory = async (): Promise<void> => {
 
   mihomoMemoryWs.onmessage = (e): void => {
     const data = e.data as string
-    memoryRetry = 10
+    memoryRetry = MAX_RETRY
     try {
       mainWindow?.webContents.send('mihomoMemory', JSON.parse(data) as IMihomoMemoryInfo)
     } catch {
@@ -338,6 +342,7 @@ const mihomoMemory = async (): Promise<void> => {
 }
 
 export const startMihomoLogs = async (): Promise<void> => {
+  logsRetry = MAX_RETRY
   await mihomoLogs()
 }
 
@@ -362,7 +367,7 @@ const mihomoLogs = async (): Promise<void> => {
 
   mihomoLogsWs.onmessage = (e): void => {
     const data = e.data as string
-    logsRetry = 10
+    logsRetry = MAX_RETRY
     try {
       mainWindow?.webContents.send('mihomoLogs', JSON.parse(data) as IMihomoLogInfo)
     } catch {
@@ -386,6 +391,7 @@ const mihomoLogs = async (): Promise<void> => {
 }
 
 export const startMihomoConnections = async (): Promise<void> => {
+  connectionsRetry = MAX_RETRY
   await mihomoConnections()
 }
 
@@ -408,7 +414,7 @@ const mihomoConnections = async (): Promise<void> => {
 
   mihomoConnectionsWs.onmessage = (e): void => {
     const data = e.data as string
-    connectionsRetry = 10
+    connectionsRetry = MAX_RETRY
     try {
       mainWindow?.webContents.send('mihomoConnections', JSON.parse(data) as IMihomoConnectionsInfo)
     } catch {

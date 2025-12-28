@@ -2,7 +2,7 @@ import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { FaCircleArrowDown, FaCircleArrowUp } from 'react-icons/fa6'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { calcTraffic } from '@renderer/utils/calc'
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { IoLink } from 'react-icons/io5'
@@ -24,11 +24,6 @@ import { useTranslation } from 'react-i18next'
 
 // 注册 Chart.js 组件
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler)
-
-let currentUpload: number | undefined = undefined
-let currentDownload: number | undefined = undefined
-let hasShowTraffic = false
-let drawing = false
 
 interface Props {
   iconOnly?: boolean
@@ -60,6 +55,12 @@ const ConnCard: React.FC<Props> = (props) => {
     id: 'connection'
   })
   const [series, setSeries] = useState(Array(10).fill(0))
+
+  // 使用 useRef 替代模块级变量
+  const currentUploadRef = useRef<number | undefined>(undefined)
+  const currentDownloadRef = useRef<number | undefined>(undefined)
+  const hasShowTrafficRef = useRef(false)
+  const drawingRef = useRef(false)
 
   // Chart.js 配置
   const chartData = useMemo(() => {
@@ -125,36 +126,45 @@ const ConnCard: React.FC<Props> = (props) => {
   }
 
   const transform = tf ? { x: tf.x, y: tf.y, scaleX: 1, scaleY: 1 } : null
-  useEffect(() => {
-    window.electron.ipcRenderer.on('mihomoTraffic', async (_e, ...args) => {
+
+  // 使用 useCallback 创建稳定的 handler 引用
+  const handleTraffic = useCallback(
+    async (_e: unknown, ...args: unknown[]) => {
       const info = args[0] as IMihomoTrafficInfo
       setUpload(info.up)
       setDownload(info.down)
-      const data = series
-      data.shift()
-      data.push(info.up + info.down)
-      setSeries([...data])
+      setSeries((prev) => {
+        const data = [...prev]
+        data.shift()
+        data.push(info.up + info.down)
+        return data
+      })
       if (platform === 'darwin' && showTraffic) {
-        if (drawing) return
-        drawing = true
+        if (drawingRef.current) return
+        drawingRef.current = true
         try {
-          await drawSvg(info.up, info.down)
-          hasShowTraffic = true
+          await drawSvg(info.up, info.down, currentUploadRef, currentDownloadRef)
+          hasShowTrafficRef.current = true
         } catch {
           // ignore
         } finally {
-          drawing = false
+          drawingRef.current = false
         }
       } else {
-        if (!hasShowTraffic) return
+        if (!hasShowTrafficRef.current) return
         window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64)
-        hasShowTraffic = false
+        hasShowTrafficRef.current = false
       }
-    })
+    },
+    [showTraffic]
+  )
+
+  useEffect(() => {
+    window.electron.ipcRenderer.on('mihomoTraffic', handleTraffic)
     return (): void => {
-      window.electron.ipcRenderer.removeAllListeners('mihomoTraffic')
+      window.electron.ipcRenderer.removeListener('mihomoTraffic', handleTraffic)
     }
-  }, [showTraffic])
+  }, [handleTraffic])
 
   if (iconOnly) {
     return (
@@ -274,10 +284,15 @@ const ConnCard: React.FC<Props> = (props) => {
 
 export default ConnCard
 
-const drawSvg = async (upload: number, download: number): Promise<void> => {
-  if (upload === currentUpload && download === currentDownload) return
-  currentUpload = upload
-  currentDownload = download
+const drawSvg = async (
+  upload: number,
+  download: number,
+  currentUploadRef: React.RefObject<number | undefined>,
+  currentDownloadRef: React.RefObject<number | undefined>
+): Promise<void> => {
+  if (upload === currentUploadRef.current && download === currentDownloadRef.current) return
+  currentUploadRef.current = upload
+  currentDownloadRef.current = download
   const svg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 36"><image height="36" width="36" href="${trayIconBase64}"/><text x="140" y="15" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(upload)}/s</text><text x="140" y="34" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(download)}/s</text></svg>`
   const image = await loadImage(svg)
   window.electron.ipcRenderer.send('trayIconUpdate', image)
