@@ -15,9 +15,8 @@ import { mihomoUpgradeConfig } from '../core/mihomoApi'
 
 import i18next from 'i18next'
 
-let profileConfig: IProfileConfig // profile.yaml
+let profileConfig: IProfileConfig
 let profileConfigWriteQueue: Promise<void> = Promise.resolve()
-// 最终选中订阅ID
 let targetProfileId: string | null = null
 
 export async function getProfileConfig(force = false): Promise<IProfileConfig> {
@@ -26,7 +25,7 @@ export async function getProfileConfig(force = false): Promise<IProfileConfig> {
     profileConfig = parse(data) || { items: [] }
   }
   if (typeof profileConfig !== 'object') profileConfig = { items: [] }
-  return profileConfig
+  return structuredClone(profileConfig)
 }
 
 export async function setProfileConfig(config: IProfileConfig): Promise<void> {
@@ -37,6 +36,22 @@ export async function setProfileConfig(config: IProfileConfig): Promise<void> {
   await profileConfigWriteQueue
 }
 
+export async function updateProfileConfig(
+  updater: (config: IProfileConfig) => IProfileConfig | Promise<IProfileConfig>
+): Promise<IProfileConfig> {
+  let result: IProfileConfig
+  profileConfigWriteQueue = profileConfigWriteQueue.then(async () => {
+    const data = await readFile(profileConfigPath(), 'utf-8')
+    profileConfig = parse(data) || { items: [] }
+    if (typeof profileConfig !== 'object') profileConfig = { items: [] }
+    profileConfig = await updater(structuredClone(profileConfig))
+    result = profileConfig
+    await writeFile(profileConfigPath(), stringify(profileConfig), 'utf-8')
+  })
+  await profileConfigWriteQueue
+  return structuredClone(result!)
+}
+
 export async function getProfileItem(id: string | undefined): Promise<IProfileItem | undefined> {
   const { items } = await getProfileConfig()
   if (!id || id === 'default')
@@ -45,8 +60,7 @@ export async function getProfileItem(id: string | undefined): Promise<IProfileIt
 }
 
 export async function changeCurrentProfile(id: string): Promise<void> {
-  const config = await getProfileConfig()
-  const current = config.current
+  const { current } = await getProfileConfig()
 
   if (current === id && targetProfileId !== id) {
     return
@@ -54,13 +68,12 @@ export async function changeCurrentProfile(id: string): Promise<void> {
 
   targetProfileId = id
 
-  config.current = id
-  const configSavePromise = setProfileConfig(config)
-
   try {
-    await configSavePromise
+    await updateProfileConfig((config) => {
+      config.current = id
+      return config
+    })
 
-    // 检查订阅切换是否中断
     if (targetProfileId !== id) {
       return
     }
@@ -70,8 +83,10 @@ export async function changeCurrentProfile(id: string): Promise<void> {
     }
   } catch (e) {
     if (targetProfileId === id) {
-      config.current = current
-      await setProfileConfig(config)
+      await updateProfileConfig((config) => {
+        config.current = current
+        return config
+      })
       targetProfileId = null
       throw e
     }
@@ -79,47 +94,51 @@ export async function changeCurrentProfile(id: string): Promise<void> {
 }
 
 export async function updateProfileItem(item: IProfileItem): Promise<void> {
-  const config = await getProfileConfig()
-  const index = config.items.findIndex((i) => i.id === item.id)
-  if (index === -1) {
-    throw new Error('Profile not found')
-  }
-  config.items[index] = item
-  await setProfileConfig(config)
+  await updateProfileConfig((config) => {
+    const index = config.items.findIndex((i) => i.id === item.id)
+    if (index === -1) {
+      throw new Error('Profile not found')
+    }
+    config.items[index] = item
+    return config
+  })
 }
 
 export async function addProfileItem(item: Partial<IProfileItem>): Promise<void> {
   const newItem = await createProfile(item)
-  const config = await getProfileConfig()
-  if (await getProfileItem(newItem.id)) {
-    await updateProfileItem(newItem)
-  } else {
-    config.items.push(newItem)
-  }
-  await setProfileConfig(config)
+  let shouldChangeCurrent = false
+  await updateProfileConfig((config) => {
+    const existingIndex = config.items.findIndex((i) => i.id === newItem.id)
+    if (existingIndex !== -1) {
+      config.items[existingIndex] = newItem
+    } else {
+      config.items.push(newItem)
+    }
+    if (!config.current) {
+      shouldChangeCurrent = true
+    }
+    return config
+  })
 
-  if (!config.current) {
+  if (shouldChangeCurrent) {
     await changeCurrentProfile(newItem.id)
   }
   await addProfileUpdater(newItem)
 }
 
 export async function removeProfileItem(id: string): Promise<void> {
-  // 先清理自动更新定时器，防止已删除的订阅重新出现
   await removeProfileUpdater(id)
 
-  const config = await getProfileConfig()
-  config.items = config.items?.filter((item) => item.id !== id)
   let shouldRestart = false
-  if (config.current === id) {
-    shouldRestart = true
-    if (config.items.length > 0) {
-      config.current = config.items[0].id
-    } else {
-      config.current = undefined
+  await updateProfileConfig((config) => {
+    config.items = config.items?.filter((item) => item.id !== id)
+    if (config.current === id) {
+      shouldRestart = true
+      config.current = config.items.length > 0 ? config.items[0].id : undefined
     }
-  }
-  await setProfileConfig(config)
+    return config
+  })
+
   if (existsSync(profilePath(id))) {
     await rm(profilePath(id))
   }
