@@ -6,6 +6,7 @@ import * as chromeRequest from '../utils/chromeRequest'
 import { parse, stringify } from '../utils/yaml'
 
 let overrideConfig: IOverrideConfig // override.yaml
+let overrideConfigWriteQueue: Promise<void> = Promise.resolve()
 
 export async function getOverrideConfig(force = false): Promise<IOverrideConfig> {
   if (force || !overrideConfig) {
@@ -17,8 +18,11 @@ export async function getOverrideConfig(force = false): Promise<IOverrideConfig>
 }
 
 export async function setOverrideConfig(config: IOverrideConfig): Promise<void> {
-  overrideConfig = config
-  await writeFile(overrideConfigPath(), stringify(overrideConfig), 'utf-8')
+  overrideConfigWriteQueue = overrideConfigWriteQueue.then(async () => {
+    overrideConfig = config
+    await writeFile(overrideConfigPath(), stringify(overrideConfig), 'utf-8')
+  })
+  await overrideConfigWriteQueue
 }
 
 export async function getOverrideItem(id: string | undefined): Promise<IOverrideItem | undefined> {

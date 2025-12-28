@@ -5,6 +5,7 @@ import { deepMerge } from '../utils/merge'
 import { defaultConfig } from '../utils/template'
 
 let appConfig: IAppConfig // config.yaml
+let appConfigWriteQueue: Promise<void> = Promise.resolve()
 
 export async function getAppConfig(force = false): Promise<IAppConfig> {
   if (force || !appConfig) {
@@ -22,9 +23,12 @@ export async function getAppConfig(force = false): Promise<IAppConfig> {
 }
 
 export async function patchAppConfig(patch: Partial<IAppConfig>): Promise<void> {
-  if (patch.nameserverPolicy) {
-    appConfig.nameserverPolicy = patch.nameserverPolicy
-  }
-  appConfig = deepMerge(appConfig, patch)
-  await writeFile(appConfigPath(), stringify(appConfig))
+  appConfigWriteQueue = appConfigWriteQueue.then(async () => {
+    if (patch.nameserverPolicy) {
+      appConfig.nameserverPolicy = patch.nameserverPolicy
+    }
+    appConfig = deepMerge(appConfig, patch)
+    await writeFile(appConfigPath(), stringify(appConfig))
+  })
+  await appConfigWriteQueue
 }

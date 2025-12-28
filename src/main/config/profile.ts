@@ -16,6 +16,7 @@ import { mihomoUpgradeConfig } from '../core/mihomoApi'
 import i18next from 'i18next'
 
 let profileConfig: IProfileConfig // profile.yaml
+let profileConfigWriteQueue: Promise<void> = Promise.resolve()
 // 最终选中订阅ID
 let targetProfileId: string | null = null
 
@@ -29,8 +30,11 @@ export async function getProfileConfig(force = false): Promise<IProfileConfig> {
 }
 
 export async function setProfileConfig(config: IProfileConfig): Promise<void> {
-  profileConfig = config
-  await writeFile(profileConfigPath(), stringify(config), 'utf-8')
+  profileConfigWriteQueue = profileConfigWriteQueue.then(async () => {
+    profileConfig = config
+    await writeFile(profileConfigPath(), stringify(config), 'utf-8')
+  })
+  await profileConfigWriteQueue
 }
 
 export async function getProfileItem(id: string | undefined): Promise<IProfileItem | undefined> {

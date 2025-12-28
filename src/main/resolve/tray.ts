@@ -390,6 +390,8 @@ export async function createTray(): Promise<void> {
     if (!useDockIcon) {
       hideDockIcon()
     }
+    // 移除旧监听器防止累积
+    ipcMain.removeAllListeners('trayIconUpdate')
     ipcMain.on('trayIconUpdate', async (_, png: string) => {
       const image = nativeImage.createFromDataURL(png).resize({ height: 16 })
       image.setTemplateImage(true)
@@ -435,6 +437,8 @@ export async function createTray(): Promise<void> {
         triggerMainWindow()
       }
     })
+    // 移除旧监听器防止累积
+    ipcMain.removeAllListeners('updateTrayMenu')
     ipcMain.on('updateTrayMenu', async () => {
       await updateTrayMenu()
     })
