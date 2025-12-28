@@ -56,7 +56,7 @@ function processRulesWithOffset(ruleStrings: string[], currentRules: string[], i
   return { normalRules, insertRules: rules }
 }
 
-export async function generateProfile(): Promise<void> {
+export async function generateProfile(): Promise<string | undefined> {
   // 读取最新的配置
   const { current } = await getProfileConfig(true)
   const {
@@ -150,6 +150,7 @@ export async function generateProfile(): Promise<void> {
     diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work'),
     runtimeConfigStr
   )
+  return current
 }
 
 async function prepareProfileWorkDir(current: string | undefined): Promise<void> {

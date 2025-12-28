@@ -13,7 +13,6 @@ import { generateProfile } from './factory'
 import {
   getAppConfig,
   getControledMihomoConfig,
-  getProfileConfig,
   patchAppConfig,
   patchControledMihomoConfig,
   manageSmartOverride
@@ -130,15 +129,15 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
       await rm(path.join(dataDir(), 'core.pid'))
     }
   }
-  const { current } = await getProfileConfig(true)
   const { tun } = await getControledMihomoConfig()
   const corePath = mihomoCorePath(core)
 
   // 管理 Smart 内核覆写配置
   await manageSmartOverride()
 
-  await generateProfile()
-  await checkProfile()
+  // generateProfile 返回实际使用的 current，确保内核工作目录与配置文件一致
+  const current = await generateProfile()
+  await checkProfile(current)
   await stopCore()
 
   await cleanupSocketFile()
@@ -453,9 +452,8 @@ export async function quitWithoutCore(): Promise<void> {
   app.exit()
 }
 
-async function checkProfile(): Promise<void> {
+async function checkProfile(current: string | undefined): Promise<void> {
   const { core = 'mihomo', diffWorkDir = false } = await getAppConfig()
-  const { current } = await getProfileConfig()
   const corePath = mihomoCorePath(core)
   const execFilePromise = promisify(execFile)
 
