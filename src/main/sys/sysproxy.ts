@@ -160,18 +160,33 @@ function isSocketFileExists(): boolean {
   }
 }
 
-// Helper function to send signal to recreate socket
+// Check if helper process is running (no admin privileges needed)
+async function isHelperRunning(): Promise<boolean> {
+  try {
+    const execPromise = promisify(exec)
+    const { stdout } = await execPromise('pgrep -f party.mihomo.helper')
+    return stdout.trim().length > 0
+  } catch {
+    return false
+  }
+}
+
+// Start or restart helper service via launchctl
+async function startHelperService(): Promise<void> {
+  const execPromise = promisify(exec)
+  const shell = `launchctl kickstart -k system/party.mihomo.helper`
+  const command = `do shell script "${shell}" with administrator privileges`
+  await execPromise(`osascript -e '${command}'`)
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+}
+
+// Send signal to recreate socket (only if process is running)
 async function requestSocketRecreation(): Promise<void> {
   try {
-    // Send SIGUSR1 signal to helper process to recreate socket
     const execPromise = promisify(exec)
-
-    // Use osascript with administrator privileges (same pattern as grantTunPermissions)
     const shell = `pkill -USR1 -f party.mihomo.helper`
     const command = `do shell script "${shell}" with administrator privileges`
     await execPromise(`osascript -e '${command}'`)
-
-    // Wait a bit for socket recreation
     await new Promise((resolve) => setTimeout(resolve, 1000))
   } catch (error) {
     await proxyLogger.error('Failed to send signal to helper', error)
@@ -180,7 +195,7 @@ async function requestSocketRecreation(): Promise<void> {
 }
 
 // Wrapper function for helper requests with auto-retry on socket issues
-async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 1): Promise<unknown> {
+async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 2): Promise<unknown> {
   let lastError: Error | null = null
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -188,21 +203,34 @@ async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 1):
       return await requestFn()
     } catch (error) {
       lastError = error as Error
+      const errCode = (error as NodeJS.ErrnoException).code
+      const errMsg = (error as Error).message || ''
 
-      // Check if it's a connection error and socket file doesn't exist
       if (
         attempt < maxRetries &&
-        ((error as NodeJS.ErrnoException).code === 'ECONNREFUSED' ||
-          (error as NodeJS.ErrnoException).code === 'ENOENT' ||
-          (error as Error).message?.includes('connect ECONNREFUSED') ||
-          (error as Error).message?.includes('ENOENT'))
+        (errCode === 'ECONNREFUSED' ||
+          errCode === 'ENOENT' ||
+          errMsg.includes('connect ECONNREFUSED') ||
+          errMsg.includes('ENOENT'))
       ) {
         await proxyLogger.info(
-          `Helper request failed (attempt ${attempt + 1}), checking socket file...`
+          `Helper request failed (attempt ${attempt + 1}/${maxRetries + 1}), checking helper status...`
         )
 
-        if (!isSocketFileExists()) {
-          await proxyLogger.info('Socket file missing, requesting recreation...')
+        const helperRunning = await isHelperRunning()
+        const socketExists = isSocketFileExists()
+
+        if (!helperRunning) {
+          await proxyLogger.info('Helper process not running, starting service...')
+          try {
+            await startHelperService()
+            await proxyLogger.info('Helper service started, retrying...')
+            continue
+          } catch (startError) {
+            await proxyLogger.warn('Failed to start helper service', startError)
+          }
+        } else if (!socketExists) {
+          await proxyLogger.info('Socket file missing but helper running, requesting recreation...')
           try {
             await requestSocketRecreation()
             await proxyLogger.info('Socket recreation requested, retrying...')
@@ -213,7 +241,6 @@ async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 1):
         }
       }
 
-      // If not a connection error or we've exhausted retries, throw the error
       if (attempt === maxRetries) {
         throw lastError
       }
