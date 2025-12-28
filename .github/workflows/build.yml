@@ -26,7 +26,7 @@ jobs:
             jq -r '.id // empty')
 
           if [ ! -z "$RELEASE_ID" ] && [ "$RELEASE_ID" != "empty" ]; then
-            echo "‚ú?Found dev release with ID: $RELEASE_ID"
+            echo "‚úÖ Found dev release with ID: $RELEASE_ID"
 
             echo "üìã Getting list of assets with pagination..."
             ALL_ASSETS="[]"
@@ -63,16 +63,16 @@ jobs:
               # Delete each asset with detailed logging
               echo "$ALL_ASSETS" | jq -r '.[].id' | while read asset_id; do
                 if [ ! -z "$asset_id" ]; then
-                  echo "üóëÔ∏? Deleting asset ID: $asset_id"
+                  echo "üóëÔ∏è Deleting asset ID: $asset_id"
                   RESPONSE=$(curl -s -w "HTTPSTATUS:%{http_code}" -X DELETE \
                     -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
                     "https://api.github.com/repos/${{ github.repository }}/releases/assets/$asset_id")
                   
                   HTTP_CODE=$(echo $RESPONSE | tr -d '\n' | sed -e 's/.*HTTPSTATUS://')
                   if [ "$HTTP_CODE" = "204" ]; then
-                    echo "‚ú?Successfully deleted asset $asset_id"
+                    echo "‚úÖ Successfully deleted asset $asset_id"
                   else
-                    echo "‚ù?Failed to delete asset $asset_id (HTTP: $HTTP_CODE)"
+                    echo "‚ùå Failed to delete asset $asset_id (HTTP: $HTTP_CODE)"
                     echo "Response: $(echo $RESPONSE | sed -e 's/HTTPSTATUS:.*//')"
                   fi
                   # Add small delay to avoid rate limiting
