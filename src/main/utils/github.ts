@@ -9,6 +9,9 @@ import { join } from 'path'
 import { existsSync, rmSync } from 'fs'
 import { createGunzip } from 'zlib'
 import { stopCore } from '../core/manager'
+import { createLogger } from './logger'
+
+const log = createLogger('GitHub')
 
 export interface GitHubTag {
   name: string
@@ -60,13 +63,13 @@ export async function getGitHubTags(
     const cache = versionCache.get(cacheKey)!
     // 检查缓存是否过期
     if (Date.now() - cache.timestamp < CACHE_EXPIRY) {
-      console.log(`[GitHub] Returning cached tags for ${owner}/${repo}`)
+      log.debug(`Returning cached tags for ${owner}/${repo}`)
       return cache.data
     }
   }
 
   try {
-    console.log(`[GitHub] Fetching tags for ${owner}/${repo}`)
+    log.debug(`Fetching tags for ${owner}/${repo}`)
     const response = await chromeRequest.get<GitHubTag[]>(
       `${GITHUB_API_CONFIG.BASE_URL}/repos/${owner}/${repo}/tags?per_page=${GITHUB_API_CONFIG.TAGS_PER_PAGE}`,
       {
@@ -85,10 +88,10 @@ export async function getGitHubTags(
       timestamp: Date.now()
     })
 
-    console.log(`[GitHub] Successfully fetched ${response.data.length} tags for ${owner}/${repo}`)
+    log.debug(`Successfully fetched ${response.data.length} tags for ${owner}/${repo}`)
     return response.data
   } catch (error) {
-    console.error(`[GitHub] Failed to fetch tags for ${owner}/${repo}:`, error)
+    log.error(`Failed to fetch tags for ${owner}/${repo}`, error)
     if (error instanceof Error) {
       throw new Error(`GitHub API error: ${error.message}`)
     }
@@ -105,7 +108,7 @@ export function clearVersionCache(owner: string, repo: string): void {
   const cacheKey = `${owner}/${repo}`
   const hasCache = versionCache.has(cacheKey)
   versionCache.delete(cacheKey)
-  console.log(`[GitHub] Cache ${hasCache ? 'cleared' : 'not found'} for ${owner}/${repo}`)
+  log.debug(`Cache ${hasCache ? 'cleared' : 'not found'} for ${owner}/${repo}`)
 }
 
 /**
@@ -115,16 +118,16 @@ export function clearVersionCache(owner: string, repo: string): void {
  */
 async function downloadGitHubAsset(url: string, outputPath: string): Promise<void> {
   try {
-    console.log(`[GitHub] Downloading asset from ${url}`)
+    log.debug(`Downloading asset from ${url}`)
     const response = await chromeRequest.get(url, {
       responseType: 'arraybuffer',
       timeout: 30000
     })
 
     await writeFile(outputPath, Buffer.from(response.data as Buffer))
-    console.log(`[GitHub] Successfully downloaded asset to ${outputPath}`)
+    log.debug(`Successfully downloaded asset to ${outputPath}`)
   } catch (error) {
-    console.error(`[GitHub] Failed to download asset from ${url}:`, error)
+    log.error(`Failed to download asset from ${url}`, error)
     if (error instanceof Error) {
       throw new Error(`Download error: ${error.message}`)
     }
@@ -138,7 +141,7 @@ async function downloadGitHubAsset(url: string, outputPath: string): Promise<voi
  */
 export async function installMihomoCore(version: string): Promise<void> {
   try {
-    console.log(`[GitHub] Installing mihomo core version ${version}`)
+    log.info(`Installing mihomo core version ${version}`)
 
     const plat = platform()
     const arch = process.arch
@@ -163,7 +166,7 @@ export async function installMihomoCore(version: string): Promise<void> {
 
     // 如果目标文件已存在，先停止核心
     if (existsSync(targetPath)) {
-      console.log('[GitHub] Stopping core before extracting new core file')
+      log.debug('Stopping core before extracting new core file')
       // 先停止核心
       await stopCore(true)
     }
@@ -173,26 +176,26 @@ export async function installMihomoCore(version: string): Promise<void> {
 
     // 解压文件
     if (urlExt === 'zip') {
-      console.log(`[GitHub] Extracting ZIP file ${tempZip}`)
+      log.debug(`Extracting ZIP file ${tempZip}`)
       const zip = new AdmZip(tempZip)
       const entries = zip.getEntries()
       const entry = entries.find((e) => e.entryName.includes(exeFile))
 
       if (entry) {
         zip.extractEntryTo(entry, coreDir, false, true, false, targetFile)
-        console.log(`[GitHub] Successfully extracted ${exeFile} to ${targetPath}`)
+        log.debug(`Successfully extracted ${exeFile} to ${targetPath}`)
       } else {
         throw new Error(`Executable file not found in zip: ${exeFile}`)
       }
     } else {
       // 处理.gz 文件
-      console.log(`[GitHub] Extracting GZ file ${tempZip}`)
+      log.debug(`Extracting GZ file ${tempZip}`)
       const readStream = createReadStream(tempZip)
       const writeStream = createWriteStream(targetPath)
 
       await new Promise<void>((resolve, reject) => {
         const onError = (error: Error) => {
-          console.error('[GitHub] Gzip decompression failed:', error.message)
+          log.error('Gzip decompression failed', error)
           reject(new Error(`Gzip decompression failed: ${error.message}`))
         }
 
@@ -200,12 +203,12 @@ export async function installMihomoCore(version: string): Promise<void> {
           .pipe(createGunzip().on('error', onError))
           .pipe(writeStream)
           .on('finish', () => {
-            console.log('[GitHub] Gunzip finished')
+            log.debug('Gunzip finished')
             try {
               execSync(`chmod 755 ${targetPath}`)
-              console.log('[GitHub] Chmod binary finished')
+              log.debug('Chmod binary finished')
             } catch (chmodError) {
-              console.warn('[GitHub] Failed to chmod binary:', chmodError)
+              log.warn('Failed to chmod binary', chmodError)
             }
             resolve()
           })
@@ -214,12 +217,12 @@ export async function installMihomoCore(version: string): Promise<void> {
     }
 
     // 清理临时文件
-    console.log(`[GitHub] Cleaning up temporary file ${tempZip}`)
+    log.debug(`Cleaning up temporary file ${tempZip}`)
     rmSync(tempZip)
 
-    console.log(`[GitHub] Successfully installed mihomo core version ${version}`)
+    log.info(`Successfully installed mihomo core version ${version}`)
   } catch (error) {
-    console.error('[GitHub] Failed to install mihomo core:', error)
+    log.error('Failed to install mihomo core', error)
     throw new Error(
       `Failed to install core: ${error instanceof Error ? error.message : String(error)}`
     )

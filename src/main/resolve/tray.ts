@@ -540,8 +540,8 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
       } else if (process.platform === 'linux') {
         tray.setImage(iconPath)
       }
-    } catch (error) {
-      console.error('更新托盘图标失败：', error)
+    } catch {
+      // Failed to update tray icon
     }
   })
 }
@@ -563,7 +563,7 @@ export async function updateTrayIcon(): Promise<void> {
     } else if (process.platform === 'linux') {
       tray.setImage(iconPath)
     }
-  } catch (error) {
-    console.error('更新托盘图标失败：', error)
+  } catch {
+    // Failed to update tray icon
   }
 }
