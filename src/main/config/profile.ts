@@ -20,7 +20,7 @@ const profileLogger = createLogger('Profile')
 
 let profileConfig: IProfileConfig
 let profileConfigWriteQueue: Promise<void> = Promise.resolve()
-let targetProfileId: string | null = null
+let changeProfileQueue: Promise<void> = Promise.resolve()
 
 export async function getProfileConfig(force = false): Promise<IProfileConfig> {
   if (force || !profileConfig) {
@@ -63,37 +63,27 @@ export async function getProfileItem(id: string | undefined): Promise<IProfileIt
 }
 
 export async function changeCurrentProfile(id: string): Promise<void> {
-  const { current } = await getProfileConfig()
+  // 使用队列确保 profile 切换串行执行，避免竞态条件
+  changeProfileQueue = changeProfileQueue.then(async () => {
+    const { current } = await getProfileConfig()
+    if (current === id) return
 
-  if (current === id && targetProfileId !== id) {
-    return
-  }
-
-  targetProfileId = id
-
-  try {
-    await updateProfileConfig((config) => {
-      config.current = id
-      return config
-    })
-
-    if (targetProfileId !== id) {
-      return
-    }
-    await restartCore()
-    if (targetProfileId === id) {
-      targetProfileId = null
-    }
-  } catch (e) {
-    if (targetProfileId === id) {
+    try {
+      await updateProfileConfig((config) => {
+        config.current = id
+        return config
+      })
+      await restartCore()
+    } catch (e) {
+      // 回滚配置
       await updateProfileConfig((config) => {
         config.current = current
         return config
       })
-      targetProfileId = null
       throw e
     }
-  }
+  })
+  await changeProfileQueue
 }
 
 export async function updateProfileItem(item: IProfileItem): Promise<void> {

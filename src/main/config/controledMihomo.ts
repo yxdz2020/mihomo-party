@@ -11,6 +11,7 @@ import { createLogger } from '../utils/logger'
 const controledMihomoLogger = createLogger('ControledMihomo')
 
 let controledMihomoConfig: Partial<IMihomoConfig> // mihomo.yaml
+let controledMihomoWriteQueue: Promise<void> = Promise.resolve()
 
 export async function getControledMihomoConfig(force = false): Promise<Partial<IMihomoConfig>> {
   if (force || !controledMihomoConfig) {
@@ -39,29 +40,32 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
 }
 
 export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>): Promise<void> {
-  const { controlDns = true, controlSniff = true } = await getAppConfig()
+  controledMihomoWriteQueue = controledMihomoWriteQueue.then(async () => {
+    const { controlDns = true, controlSniff = true } = await getAppConfig()
 
-  if (patch.hosts) {
-    controledMihomoConfig.hosts = patch.hosts
-  }
-  if (patch.dns?.['nameserver-policy']) {
-    controledMihomoConfig.dns = controledMihomoConfig.dns || {}
-    controledMihomoConfig.dns['nameserver-policy'] = patch.dns['nameserver-policy']
-  }
-  controledMihomoConfig = deepMerge(controledMihomoConfig, patch)
+    if (patch.hosts) {
+      controledMihomoConfig.hosts = patch.hosts
+    }
+    if (patch.dns?.['nameserver-policy']) {
+      controledMihomoConfig.dns = controledMihomoConfig.dns || {}
+      controledMihomoConfig.dns['nameserver-policy'] = patch.dns['nameserver-policy']
+    }
+    controledMihomoConfig = deepMerge(controledMihomoConfig, patch)
 
-  // 从不接管状态恢复
-  if (controlDns) {
-    // 确保 DNS 配置包含所有必要的默认字段，特别是新增的 fallback 等
-    controledMihomoConfig.dns = deepMerge(
-      defaultControledMihomoConfig.dns || {},
-      controledMihomoConfig.dns || {}
-    )
-  }
-  if (controlSniff && !controledMihomoConfig.sniffer) {
-    controledMihomoConfig.sniffer = defaultControledMihomoConfig.sniffer
-  }
+    // 从不接管状态恢复
+    if (controlDns) {
+      // 确保 DNS 配置包含所有必要的默认字段，特别是新增的 fallback 等
+      controledMihomoConfig.dns = deepMerge(
+        defaultControledMihomoConfig.dns || {},
+        controledMihomoConfig.dns || {}
+      )
+    }
+    if (controlSniff && !controledMihomoConfig.sniffer) {
+      controledMihomoConfig.sniffer = defaultControledMihomoConfig.sniffer
+    }
 
-  await generateProfile()
-  await writeFile(controledMihomoConfigPath(), stringify(controledMihomoConfig), 'utf-8')
+    await generateProfile()
+    await writeFile(controledMihomoConfigPath(), stringify(controledMihomoConfig), 'utf-8')
+  })
+  await controledMihomoWriteQueue
 }

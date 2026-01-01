@@ -6,7 +6,7 @@ import { getAppConfig } from './config'
 import { quitWithoutCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import { hideDockIcon, showDockIcon } from './resolve/tray'
-import icon from '../resources/icon.png?asset'
+import icon from '../../resources/icon.png?asset'
 
 export let mainWindow: BrowserWindow | null = null
 let quitTimeout: NodeJS.Timeout | null = null
@@ -78,7 +78,8 @@ function setupWindowEvents(
       scheduleQuitWithoutCore(autoQuitWithoutCoreDelay)
     }
 
-    if (!silentStart) {
+    // 开发模式下始终显示窗口
+    if (!silentStart || is.dev) {
       clearQuitTimeout()
       window.show()
       window.focusOnWebView()
