@@ -707,8 +707,8 @@ const Mihomo: React.FC = () => {
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
-                  const port = parseInt(v)
-                  if (!isNaN(port)) {
+                  const port = v === '' ? 0 : parseInt(v)
+                  if (!isNaN(port) && port >= 0 && port <= 65535) {
                     setMixedPortInput(port)
                     patchAppConfig({ showMixedPort: port })
                     setIsManualPortChange(true)
@@ -768,8 +768,8 @@ const Mihomo: React.FC = () => {
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
-                  const port = parseInt(v)
-                  if (!isNaN(port)) {
+                  const port = v === '' ? 0 : parseInt(v)
+                  if (!isNaN(port) && port >= 0 && port <= 65535) {
                     setSocksPortInput(port)
                     patchAppConfig({ showSocksPort: port })
                     setIsManualPortChange(true)
@@ -829,8 +829,8 @@ const Mihomo: React.FC = () => {
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
-                  const port = parseInt(v)
-                  if (!isNaN(port)) {
+                  const port = v === '' ? 0 : parseInt(v)
+                  if (!isNaN(port) && port >= 0 && port <= 65535) {
                     setHttpPortInput(port)
                     patchAppConfig({ showHttpPort: port })
                     setIsManualPortChange(true)
@@ -891,8 +891,8 @@ const Mihomo: React.FC = () => {
                   max={65535}
                   min={0}
                   onValueChange={(v) => {
-                    const port = parseInt(v)
-                    if (!isNaN(port)) {
+                    const port = v === '' ? 0 : parseInt(v)
+                    if (!isNaN(port) && port >= 0 && port <= 65535) {
                       setRedirPortInput(port)
                       patchAppConfig({ showRedirPort: port })
                       setIsManualPortChange(true)
@@ -954,8 +954,8 @@ const Mihomo: React.FC = () => {
                   max={65535}
                   min={0}
                   onValueChange={(v) => {
-                    const port = parseInt(v)
-                    if (!isNaN(port)) {
+                    const port = v === '' ? 0 : parseInt(v)
+                    if (!isNaN(port) && port >= 0 && port <= 65535) {
                       setTproxyPortInput(port)
                       patchAppConfig({ showTproxyPort: port })
                       setIsManualPortChange(true)
