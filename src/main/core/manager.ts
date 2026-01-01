@@ -977,7 +977,10 @@ async function getOriginDNS(): Promise<void> {
 async function setDNS(dns: string): Promise<void> {
   const service = await getDefaultService()
   const execPromise = promisify(exec)
-  await execPromise(`networksetup -setdnsservers "${service}" ${dns}`)
+  // networksetup 需要 root 权限，通过 osascript 请求管理员权限执行
+  const shell = `networksetup -setdnsservers "${service}" ${dns}`
+  const command = `do shell script "${shell}" with administrator privileges`
+  await execPromise(`osascript -e '${command}'`)
 }
 
 async function setPublicDNS(): Promise<void> {
