@@ -104,7 +104,7 @@ import {
   updateTrayIconImmediate
 } from '../resolve/tray'
 import { registerShortcut } from '../resolve/shortcut'
-import { closeMainWindow, mainWindow, showMainWindow, triggerMainWindow } from '..'
+import { closeMainWindow, mainWindow, showMainWindow, triggerMainWindow } from '../window'
 import {
   applyTheme,
   fetchThemes,

@@ -163,11 +163,7 @@ const validListenChannels = [
 ] as const
 
 // 允许的 send channels 白名单
-const validSendChannels = [
-  'updateTrayMenu',
-  'updateFloatingWindow',
-  'trayIconUpdate'
-] as const
+const validSendChannels = ['updateTrayMenu', 'updateFloatingWindow', 'trayIconUpdate'] as const
 
 type InvokeChannel = (typeof validInvokeChannels)[number]
 type ListenChannel = (typeof validListenChannels)[number]

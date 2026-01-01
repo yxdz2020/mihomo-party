@@ -23,7 +23,7 @@ import {
   getTrayIconStatus,
   calculateTrayIconStatus
 } from '../core/mihomoApi'
-import { mainWindow, showMainWindow, triggerMainWindow } from '..'
+import { mainWindow, showMainWindow, triggerMainWindow } from '../window'
 import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
 import { triggerSysProxy } from '../sys/sysproxy'

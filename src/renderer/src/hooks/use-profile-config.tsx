@@ -125,6 +125,8 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
     }
     window.electron.ipcRenderer.on('profileConfigUpdated', handler)
     return (): void => {
+      // 清理待处理任务，防止内存泄漏
+      targetProfileId.current = null
       window.electron.ipcRenderer.removeListener('profileConfigUpdated', handler)
     }
   }, [])

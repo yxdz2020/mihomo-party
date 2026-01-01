@@ -421,80 +421,80 @@ const RuleListItemBase: React.FC<RuleListItemProps> = ({
   onMoveDown,
   onRemove
 }) => {
-    let bgColorClass = 'bg-content2'
-    let textStyleClass = ''
+  let bgColorClass = 'bg-content2'
+  let textStyleClass = ''
 
-    if (isDeleted) {
-      bgColorClass = 'bg-danger-50 opacity-70'
-      textStyleClass = 'line-through text-foreground-500'
-    } else if (isPrependOrAppend) {
-      bgColorClass = 'bg-success-50'
-    }
+  if (isDeleted) {
+    bgColorClass = 'bg-danger-50 opacity-70'
+    textStyleClass = 'line-through text-foreground-500'
+  } else if (isPrependOrAppend) {
+    bgColorClass = 'bg-success-50'
+  }
 
-    return (
-      <div className={`flex items-center gap-2 p-2 rounded-lg ${bgColorClass}`}>
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1">
-            <Chip size="sm" variant="flat">
-              {rule.type}
-            </Chip>
-            {/* 显示附加参数 */}
-            <div className="flex gap-1">
-              {rule.additionalParams &&
-                rule.additionalParams.length > 0 &&
-                rule.additionalParams.map((param, idx) => (
-                  <Chip key={idx} size="sm" variant="flat" color="secondary">
-                    {param}
-                  </Chip>
-                ))}
-            </div>
+  return (
+    <div className={`flex items-center gap-2 p-2 rounded-lg ${bgColorClass}`}>
+      <div className="flex flex-col">
+        <div className="flex items-center gap-1">
+          <Chip size="sm" variant="flat">
+            {rule.type}
+          </Chip>
+          {/* 显示附加参数 */}
+          <div className="flex gap-1">
+            {rule.additionalParams &&
+              rule.additionalParams.length > 0 &&
+              rule.additionalParams.map((param, idx) => (
+                <Chip key={idx} size="sm" variant="flat" color="secondary">
+                  {param}
+                </Chip>
+              ))}
           </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className={`font-medium truncate ${textStyleClass}`}>
-            {rule.type === 'MATCH' ? rule.proxy : rule.payload}
-          </div>
-          {rule.proxy && rule.type !== 'MATCH' && (
-            <div className={`text-sm text-foreground-500 truncate ${textStyleClass}`}>
-              {rule.proxy}
-            </div>
-          )}
-        </div>
-        <div className="flex gap-1">
-          <Button
-            size="sm"
-            variant="light"
-            onPress={() => originalIndex !== -1 && onMoveUp(originalIndex)}
-            isIconOnly
-            isDisabled={originalIndex === -1 || originalIndex === 0 || isDeleted}
-          >
-            <IoMdArrowUp className="text-lg" />
-          </Button>
-          <Button
-            size="sm"
-            variant="light"
-            onPress={() => originalIndex !== -1 && onMoveDown(originalIndex)}
-            isIconOnly
-            isDisabled={originalIndex === -1 || originalIndex === rulesLength - 1 || isDeleted}
-          >
-            <IoMdArrowDown className="text-lg" />
-          </Button>
-          <Button
-            size="sm"
-            color={originalIndex !== -1 && isDeleted ? 'success' : 'danger'}
-            variant="light"
-            onPress={() => originalIndex !== -1 && onRemove(originalIndex)}
-            isIconOnly
-          >
-            {originalIndex !== -1 && isDeleted ? (
-              <IoMdUndo className="text-lg" />
-            ) : (
-              <IoMdTrash className="text-lg" />
-            )}
-          </Button>
         </div>
       </div>
-    )
+      <div className="flex-1 min-w-0">
+        <div className={`font-medium truncate ${textStyleClass}`}>
+          {rule.type === 'MATCH' ? rule.proxy : rule.payload}
+        </div>
+        {rule.proxy && rule.type !== 'MATCH' && (
+          <div className={`text-sm text-foreground-500 truncate ${textStyleClass}`}>
+            {rule.proxy}
+          </div>
+        )}
+      </div>
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          variant="light"
+          onPress={() => originalIndex !== -1 && onMoveUp(originalIndex)}
+          isIconOnly
+          isDisabled={originalIndex === -1 || originalIndex === 0 || isDeleted}
+        >
+          <IoMdArrowUp className="text-lg" />
+        </Button>
+        <Button
+          size="sm"
+          variant="light"
+          onPress={() => originalIndex !== -1 && onMoveDown(originalIndex)}
+          isIconOnly
+          isDisabled={originalIndex === -1 || originalIndex === rulesLength - 1 || isDeleted}
+        >
+          <IoMdArrowDown className="text-lg" />
+        </Button>
+        <Button
+          size="sm"
+          color={originalIndex !== -1 && isDeleted ? 'success' : 'danger'}
+          variant="light"
+          onPress={() => originalIndex !== -1 && onRemove(originalIndex)}
+          isIconOnly
+        >
+          {originalIndex !== -1 && isDeleted ? (
+            <IoMdUndo className="text-lg" />
+          ) : (
+            <IoMdTrash className="text-lg" />
+          )}
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 const RuleListItem = memo(RuleListItemBase, (prevProps, nextProps) => {
@@ -596,7 +596,9 @@ const EditRulesModal: React.FC<Props> = (props) => {
         if (Array.isArray(parsed['proxy-groups'])) {
           groups.push(
             ...((parsed['proxy-groups'] as Array<Record<string, unknown>>)
-              .map((group) => (group && typeof group['name'] === 'string' ? (group['name'] as string) : ''))
+              .map((group) =>
+                group && typeof group['name'] === 'string' ? (group['name'] as string) : ''
+              )
               .filter(Boolean) as string[])
           )
         }
@@ -604,7 +606,9 @@ const EditRulesModal: React.FC<Props> = (props) => {
         if (Array.isArray(parsed['proxies'])) {
           groups.push(
             ...((parsed['proxies'] as Array<Record<string, unknown>>)
-              .map((proxy) => (proxy && typeof proxy['name'] === 'string' ? (proxy['name'] as string) : ''))
+              .map((proxy) =>
+                proxy && typeof proxy['name'] === 'string' ? (proxy['name'] as string) : ''
+              )
               .filter(Boolean) as string[])
           )
         }

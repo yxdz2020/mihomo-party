@@ -33,16 +33,13 @@ import { platform } from '@renderer/utils/init'
 import { TitleBarOverlayOptions } from 'electron'
 import SubStoreCard from '@renderer/components/sider/substore-card'
 import MihomoIcon from './components/base/mihomo-icon'
-import { driver } from 'driver.js'
+import { createTourDriver, getDriver, startTourIfNeeded } from '@renderer/utils/tour'
 import 'driver.js/dist/driver.css'
 import { useTranslation } from 'react-i18next'
 
 let navigate: NavigateFunction
-let driverInstance: ReturnType<typeof driver> | null = null
 
-export function getDriver(): ReturnType<typeof driver> | null {
-  return driverInstance
-}
+export { getDriver }
 
 const App: React.FC = () => {
   const { t } = useTranslation()
@@ -74,11 +71,13 @@ const App: React.FC = () => {
   const siderWidthValueRef = useRef(siderWidthValue)
   const [resizing, setResizing] = useState(false)
   const resizingRef = useRef(resizing)
+  const tourInitialized = useRef(false)
   const sensors = useSensors(useSensor(PointerSensor))
   const { setTheme, systemTheme } = useTheme()
   navigate = useNavigate()
   const location = useLocation()
   const page = useRoutes(routes)
+
   const setTitlebar = (): void => {
     if (!useWindowFrame && platform !== 'darwin') {
       const options = { height: 48 } as TitleBarOverlayOptions
@@ -103,186 +102,10 @@ const App: React.FC = () => {
   }, [siderWidthValue, resizing])
 
   useEffect(() => {
-    driverInstance = driver({
-      showProgress: true,
-      nextBtnText: t('common.next'),
-      prevBtnText: t('common.prev'),
-      doneBtnText: t('common.done'),
-      progressText: '{{current}} / {{total}}',
-      overlayOpacity: 0.9,
-      steps: [
-        {
-          element: 'none',
-          popover: {
-            title: t('guide.welcome.title'),
-            description: t('guide.welcome.description'),
-            side: 'over',
-            align: 'center'
-          }
-        },
-        {
-          element: '.side',
-          popover: {
-            title: t('guide.sider.title'),
-            description: t('guide.sider.description'),
-            side: 'right',
-            align: 'center'
-          }
-        },
-        {
-          element: '.sysproxy-card',
-          popover: {
-            title: t('guide.card.title'),
-            description: t('guide.card.description'),
-            side: 'right',
-            align: 'start'
-          }
-        },
-        {
-          element: '.main',
-          popover: {
-            title: t('guide.main.title'),
-            description: t('guide.main.description'),
-            side: 'left',
-            align: 'center'
-          }
-        },
-        {
-          element: '.profile-card',
-          popover: {
-            title: t('guide.profile.title'),
-            description: t('guide.profile.description'),
-            side: 'right',
-            align: 'start',
-            onNextClick: async (): Promise<void> => {
-              navigate('/profiles')
-              setTimeout(() => {
-                driverInstance?.moveNext()
-              }, 0)
-            }
-          }
-        },
-        {
-          element: '.profiles-sticky',
-          popover: {
-            title: t('guide.import.title'),
-            description: t('guide.import.description'),
-            side: 'bottom',
-            align: 'start'
-          }
-        },
-        {
-          element: '.substore-import',
-          popover: {
-            title: t('guide.substore.title'),
-            description: t('guide.substore.description'),
-            side: 'bottom',
-            align: 'start'
-          }
-        },
-        {
-          element: '.new-profile',
-          popover: {
-            title: t('guide.localProfile.title'),
-            description: t('guide.localProfile.description'),
-            side: 'bottom',
-            align: 'start'
-          }
-        },
-        {
-          element: '.sysproxy-card',
-          popover: {
-            title: t('guide.sysproxy.title'),
-            description: t('guide.sysproxy.description'),
-            side: 'right',
-            align: 'start',
-            onNextClick: async (): Promise<void> => {
-              navigate('/sysproxy')
-              setTimeout(() => {
-                driverInstance?.moveNext()
-              }, 0)
-            }
-          }
-        },
-        {
-          element: '.sysproxy-settings',
-          popover: {
-            title: t('guide.sysproxySetting.title'),
-            description: t('guide.sysproxySetting.description'),
-            side: 'top',
-            align: 'start'
-          }
-        },
-        {
-          element: '.tun-card',
-          popover: {
-            title: t('guide.tun.title'),
-            description: t('guide.tun.description'),
-            side: 'right',
-            align: 'start',
-            onNextClick: async (): Promise<void> => {
-              navigate('/tun')
-              setTimeout(() => {
-                driverInstance?.moveNext()
-              }, 0)
-            }
-          }
-        },
-        {
-          element: '.tun-settings',
-          popover: {
-            title: t('guide.tunSetting.title'),
-            description: t('guide.tunSetting.description'),
-            side: 'bottom',
-            align: 'start'
-          }
-        },
-        {
-          element: '.override-card',
-          popover: {
-            title: t('guide.override.title'),
-            description: t('guide.override.description'),
-            side: 'right',
-            align: 'center'
-          }
-        },
-        {
-          element: '.dns-card',
-          popover: {
-            title: t('guide.dns.title'),
-            description: t('guide.dns.description'),
-            side: 'right',
-            align: 'center',
-            onNextClick: async (): Promise<void> => {
-              navigate('/profiles')
-              setTimeout(() => {
-                driverInstance?.moveNext()
-              }, 0)
-            }
-          }
-        },
-        {
-          element: 'none',
-          popover: {
-            title: t('guide.end.title'),
-            description: t('guide.end.description'),
-            side: 'top',
-            align: 'center',
-            onNextClick: async (): Promise<void> => {
-              navigate('/profiles')
-              setTimeout(() => {
-                driverInstance?.destroy()
-              }, 0)
-            }
-          }
-        }
-      ]
-    })
-
-    const tourShown = window.localStorage.getItem('tourShown')
-    if (!tourShown) {
-      window.localStorage.setItem('tourShown', 'true')
-      driverInstance.drive()
+    if (!tourInitialized.current) {
+      tourInitialized.current = true
+      createTourDriver(t, navigate)
+      startTourIfNeeded()
     }
   }, [t])
 

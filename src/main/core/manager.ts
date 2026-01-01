@@ -33,7 +33,7 @@ import {
 import chokidar from 'chokidar'
 import { readFile, rm, writeFile } from 'fs/promises'
 import { promisify } from 'util'
-import { mainWindow } from '..'
+import { mainWindow } from '../window'
 import path from 'path'
 import os from 'os'
 import { createWriteStream, existsSync } from 'fs'

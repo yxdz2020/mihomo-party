@@ -1,5 +1,5 @@
 import { app, globalShortcut, ipcMain, Notification } from 'electron'
-import { mainWindow, triggerMainWindow } from '..'
+import { mainWindow, triggerMainWindow } from '../window'
 import {
   getAppConfig,
   getControledMihomoConfig,

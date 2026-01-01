@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios'
 import { getAppConfig, getControledMihomoConfig } from '../config'
-import { mainWindow } from '..'
+import { mainWindow } from '../window'
 import WebSocket from 'ws'
 import { tray } from '../resolve/tray'
 import { calcTraffic } from '../utils/calc'

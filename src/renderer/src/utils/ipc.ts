@@ -113,8 +113,7 @@ export const convertMrsRuleset = (path: string, behavior: string): Promise<strin
 export const getRuntimeConfig = (): Promise<IMihomoConfig> => invoke('getRuntimeConfig')
 export const getRuntimeConfigStr = (): Promise<string> => invoke('getRuntimeConfigStr')
 export const getRuleStr = (id: string): Promise<string> => invoke('getRuleStr', id)
-export const setRuleStr = (id: string, str: string): Promise<void> =>
-  invoke('setRuleStr', id, str)
+export const setRuleStr = (id: string, str: string): Promise<void> => invoke('setRuleStr', id, str)
 export const getFilePath = (ext: string[]): Promise<string[] | undefined> =>
   invoke('getFilePath', ext)
 export const readTextFile = (filePath: string): Promise<string> => invoke('readTextFile', filePath)
@@ -130,8 +129,7 @@ export const startMonitor = (): Promise<void> => invoke('startMonitor')
 export const quitWithoutCore = (): Promise<void> => invoke('quitWithoutCore')
 
 // System
-export const triggerSysProxy = (enable: boolean): Promise<void> =>
-  invoke('triggerSysProxy', enable)
+export const triggerSysProxy = (enable: boolean): Promise<void> => invoke('triggerSysProxy', enable)
 export const checkTunPermissions = (): Promise<boolean> => invoke('checkTunPermissions')
 export const grantTunPermissions = (): Promise<void> => invoke('grantTunPermissions')
 export const manualGrantCorePermition = (): Promise<void> => invoke('manualGrantCorePermition')
@@ -168,8 +166,7 @@ export const clearMihomoVersionCache = (): Promise<void> => invoke('clearMihomoV
 
 // Backup
 export const webdavBackup = (): Promise<boolean> => invoke('webdavBackup')
-export const webdavRestore = (filename: string): Promise<void> =>
-  invoke('webdavRestore', filename)
+export const webdavRestore = (filename: string): Promise<void> => invoke('webdavRestore', filename)
 export const listWebdavBackups = (): Promise<string[]> => invoke('listWebdavBackups')
 export const webdavDelete = (filename: string): Promise<void> => invoke('webdavDelete', filename)
 export const reinitWebdavBackupScheduler = (): Promise<void> =>
@@ -180,10 +177,8 @@ export const importLocalBackup = (): Promise<boolean> => invoke('importLocalBack
 // SubStore
 export const startSubStoreFrontendServer = (): Promise<void> =>
   invoke('startSubStoreFrontendServer')
-export const stopSubStoreFrontendServer = (): Promise<void> =>
-  invoke('stopSubStoreFrontendServer')
-export const startSubStoreBackendServer = (): Promise<void> =>
-  invoke('startSubStoreBackendServer')
+export const stopSubStoreFrontendServer = (): Promise<void> => invoke('stopSubStoreFrontendServer')
+export const startSubStoreBackendServer = (): Promise<void> => invoke('startSubStoreBackendServer')
 export const stopSubStoreBackendServer = (): Promise<void> => invoke('stopSubStoreBackendServer')
 export const downloadSubStore = (): Promise<void> => invoke('downloadSubStore')
 export const subStorePort = (): Promise<number> => invoke('subStorePort')

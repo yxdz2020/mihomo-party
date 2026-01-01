@@ -5,7 +5,7 @@ import * as chromeRequest from '../utils/chromeRequest'
 import AdmZip from 'adm-zip'
 import { getControledMihomoConfig } from '../config'
 import { existsSync } from 'fs'
-import { mainWindow } from '..'
+import { mainWindow } from '../window'
 import { floatingWindow } from './floatingWindow'
 import { t } from 'i18next'
 
