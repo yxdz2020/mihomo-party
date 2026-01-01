@@ -54,9 +54,12 @@ export async function addOverrideItem(item: Partial<IOverrideItem>): Promise<voi
 export async function removeOverrideItem(id: string): Promise<void> {
   const config = await getOverrideConfig()
   const item = await getOverrideItem(id)
-  config.items = config.items?.filter((item) => item.id !== id)
+  if (!item) return
+  config.items = config.items?.filter((i) => i.id !== id)
   await setOverrideConfig(config)
-  await rm(overridePath(id, item?.ext || 'js'))
+  if (existsSync(overridePath(id, item.ext))) {
+    await rm(overridePath(id, item.ext))
+  }
 }
 
 export async function createOverride(item: Partial<IOverrideItem>): Promise<IOverrideItem> {

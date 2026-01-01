@@ -14,8 +14,7 @@ done
 ${process.argv.join(' ')} & disown
 exit
 `
-  spawn('sh', ['-c', `"${script}"`], {
-    shell: true,
+  spawn('sh', ['-c', script], {
     detached: true,
     stdio: 'ignore'
   })
@@ -57,7 +56,7 @@ export function setupPlatformSpecifics(): void {
 export function setupAppLifecycle(): void {
   app.on('before-quit', async (e) => {
     e.preventDefault()
-    triggerSysProxy(false)
+    await triggerSysProxy(false)
     await stopCore()
     app.exit()
   })

@@ -196,10 +196,11 @@ export const writeTheme = (theme: string, css: string): Promise<void> =>
   invoke('writeTheme', theme, css)
 
 let applyThemeRunning = false
-const applyThemeWaitList: string[] = []
+let pendingTheme: string | null = null
+
 export async function applyTheme(theme: string): Promise<void> {
   if (applyThemeRunning) {
-    applyThemeWaitList.push(theme)
+    pendingTheme = theme
     return
   }
   applyThemeRunning = true
@@ -207,11 +208,10 @@ export async function applyTheme(theme: string): Promise<void> {
     await invoke<void>('applyTheme', theme)
   } finally {
     applyThemeRunning = false
-    if (applyThemeWaitList.length > 0) {
-      const nextTheme = applyThemeWaitList.shift()
-      if (nextTheme) {
-        await applyTheme(nextTheme)
-      }
+    if (pendingTheme !== null) {
+      const nextTheme = pendingTheme
+      pendingTheme = null
+      await applyTheme(nextTheme)
     }
   }
 }

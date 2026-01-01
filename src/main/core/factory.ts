@@ -25,8 +25,8 @@ import { createLogger } from '../utils/logger'
 
 const factoryLogger = createLogger('Factory')
 
-let runtimeConfigStr: string
-let runtimeConfig: IMihomoConfig
+let runtimeConfigStr: string = ''
+let runtimeConfig: IMihomoConfig = {} as IMihomoConfig
 
 // 辅助函数：处理带偏移量的规则
 function processRulesWithOffset(ruleStrings: string[], currentRules: string[], isAppend = false) {

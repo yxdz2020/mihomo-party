@@ -368,12 +368,16 @@ export async function getProfile(id: string | undefined): Promise<IMihomoConfig>
 // attachment;filename=xxx.yaml; filename*=UTF-8''%xx%xx%xx
 function parseFilename(str: string): string {
   if (str.match(/filename\*=.*''/)) {
-    const filename = decodeURIComponent(str.split(/filename\*=.*''/)[1])
-    return filename
-  } else {
-    const filename = str.split('filename=')[1]
-    return filename
+    const parts = str.split(/filename\*=.*''/)
+    if (parts[1]) {
+      return decodeURIComponent(parts[1])
+    }
   }
+  const parts = str.split('filename=')
+  if (parts[1]) {
+    return parts[1].replace(/^["']|["']$/g, '')
+  }
+  return 'Remote File'
 }
 
 // subscription-userinfo: upload=1234; download=2234; total=1024000; expire=2218532293

@@ -118,7 +118,7 @@ function setupWindowEvents(
   })
 
   window.on('session-end', async () => {
-    triggerSysProxy(false)
+    await triggerSysProxy(false)
     await stopCore()
   })
 
