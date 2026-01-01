@@ -14,6 +14,9 @@ import { app } from 'electron'
 import { mihomoUpgradeConfig } from '../core/mihomoApi'
 
 import i18next from 'i18next'
+import { createLogger } from '../utils/logger'
+
+const profileLogger = createLogger('Profile')
 
 let profileConfig: IProfileConfig
 let profileConfigWriteQueue: Promise<void> = Promise.resolve()
@@ -320,16 +323,16 @@ export async function setProfileStr(id: string, content: string): Promise<void> 
       const { generateProfile } = await import('../core/factory')
       await generateProfile()
       await mihomoUpgradeConfig()
-      console.log('[Profile] Config reloaded successfully using mihomoUpgradeConfig')
+      profileLogger.info('Config reloaded successfully using mihomoUpgradeConfig')
     } catch (error) {
-      console.error('[Profile] Failed to reload config with mihomoUpgradeConfig:', error)
+      profileLogger.error('Failed to reload config with mihomoUpgradeConfig', error)
       try {
-        console.log('[Profile] Falling back to restart core')
+        profileLogger.info('Falling back to restart core')
         const { restartCore } = await import('../core/manager')
         await restartCore()
-        console.log('[Profile] Core restarted successfully')
+        profileLogger.info('Core restarted successfully')
       } catch (restartError) {
-        console.error('[Profile] Failed to restart core:', restartError)
+        profileLogger.error('Failed to restart core', restartError)
         throw restartError
       }
     }

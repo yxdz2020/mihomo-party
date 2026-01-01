@@ -19,7 +19,10 @@ import { showFloatingWindow } from './resolve/floatingWindow'
 import { initI18n } from '../shared/i18n'
 import i18next from 'i18next'
 import { logger } from './utils/logger'
+import { createLogger } from './utils/logger'
 import { initWebdavBackupScheduler } from './resolve/backup'
+
+const mainLogger = createLogger('Main')
 import {
   createWindow,
   mainWindow,
@@ -93,7 +96,7 @@ async function checkHighPrivilegeCoreEarly(): Promise<void> {
       process.exit(0)
     }
   } catch (e) {
-    console.error('Failed to check high privilege core:', e)
+    mainLogger.error('Failed to check high privilege core', e)
   }
 }
 
@@ -105,7 +108,7 @@ async function initHardwareAcceleration(): Promise<void> {
       app.disableHardwareAcceleration()
     }
   } catch (e) {
-    console.warn('Failed to read hardware acceleration config:', e)
+    mainLogger.warn('Failed to read hardware acceleration config', e)
   }
 }
 

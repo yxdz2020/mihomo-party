@@ -6,6 +6,9 @@ import { getAppConfig } from './app'
 import { defaultControledMihomoConfig } from '../utils/template'
 import { deepMerge } from '../utils/merge'
 import { existsSync } from 'fs'
+import { createLogger } from '../utils/logger'
+
+const controledMihomoLogger = createLogger('ControledMihomo')
 
 let controledMihomoConfig: Partial<IMihomoConfig> // mihomo.yaml
 
@@ -23,7 +26,7 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
           'utf-8'
         )
       } catch (error) {
-        console.error('Failed to create mihomo.yaml file:', error)
+        controledMihomoLogger.error('Failed to create mihomo.yaml file', error)
       }
     }
 

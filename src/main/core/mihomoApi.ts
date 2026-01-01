@@ -7,6 +7,9 @@ import { calcTraffic } from '../utils/calc'
 import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
 import { getMihomoIpcPath } from './manager'
+import { createLogger } from '../utils/logger'
+
+const mihomoApiLogger = createLogger('MihomoApi')
 
 let axiosIns: AxiosInstance = null!
 let currentIpcPath: string = ''
@@ -30,7 +33,7 @@ export const getAxios = async (force: boolean = false): Promise<AxiosInstance> =
   }
 
   currentIpcPath = dynamicIpcPath
-  console.log(`[mihomoApi] Creating axios instance with path: ${dynamicIpcPath}`)
+  mihomoApiLogger.info(`Creating axios instance with path: ${dynamicIpcPath}`)
 
   axiosIns = axios.create({
     baseURL: `http://localhost`,
@@ -44,9 +47,9 @@ export const getAxios = async (force: boolean = false): Promise<AxiosInstance> =
     },
     (error) => {
       if (error.code === 'ENOENT') {
-        console.debug(`[mihomoApi] Pipe not ready: ${error.config?.socketPath}`)
+        mihomoApiLogger.debug(`Pipe not ready: ${error.config?.socketPath}`)
       } else {
-        console.error(`[mihomoApi] Axios error with path ${dynamicIpcPath}:`, error.message)
+        mihomoApiLogger.error(`Axios error with path ${dynamicIpcPath}: ${error.message}`)
       }
 
       if (error.response && error.response.data) {
@@ -191,28 +194,28 @@ export const mihomoUpgradeUI = async (): Promise<void> => {
 }
 
 export const mihomoUpgradeConfig = async (): Promise<void> => {
-  console.log('[mihomoApi] mihomoUpgradeConfig called')
+  mihomoApiLogger.info('mihomoUpgradeConfig called')
 
   try {
     const instance = await getAxios()
-    console.log('[mihomoApi] axios instance obtained')
+    mihomoApiLogger.info('axios instance obtained')
     const { diffWorkDir = false } = await getAppConfig()
     const { current } = await import('../config').then((mod) => mod.getProfileConfig(true))
     const { mihomoWorkConfigPath } = await import('../utils/dirs')
     const configPath = diffWorkDir ? mihomoWorkConfigPath(current) : mihomoWorkConfigPath('work')
-    console.log('[mihomoApi] config path:', configPath)
+    mihomoApiLogger.info(`config path: ${configPath}`)
     const { existsSync } = await import('fs')
     if (!existsSync(configPath)) {
-      console.log('[mihomoApi] config file does not exist, generating...')
+      mihomoApiLogger.info('config file does not exist, generating...')
       const { generateProfile } = await import('./factory')
       await generateProfile()
     }
     const response = await instance.put('/configs?force=true', {
       path: configPath
     })
-    console.log('[mihomoApi] config upgrade request completed', response?.status || 'no status')
+    mihomoApiLogger.info(`config upgrade request completed ${response?.status || 'no status'}`)
   } catch (error) {
-    console.error('[mihomoApi] Failed to upgrade config:', error)
+    mihomoApiLogger.error('Failed to upgrade config', error)
     throw error
   }
 }
@@ -255,7 +258,7 @@ const mihomoTraffic = async (): Promise<void> => {
   const dynamicIpcPath = getMihomoIpcPath()
   const wsUrl = `ws+unix:${dynamicIpcPath}:/traffic`
 
-  console.log(`[mihomoApi] Creating traffic WebSocket with URL: ${wsUrl}`)
+  mihomoApiLogger.info(`Creating traffic WebSocket with URL: ${wsUrl}`)
   mihomoTrafficWs = new WebSocket(wsUrl)
 
   mihomoTrafficWs.onmessage = async (e): Promise<void> => {
@@ -286,7 +289,7 @@ const mihomoTraffic = async (): Promise<void> => {
   }
 
   mihomoTrafficWs.onerror = (error): void => {
-    console.error(`[mihomoApi] Traffic WebSocket error:`, error)
+    mihomoApiLogger.error('Traffic WebSocket error', error)
     if (mihomoTrafficWs) {
       mihomoTrafficWs.close()
       mihomoTrafficWs = null

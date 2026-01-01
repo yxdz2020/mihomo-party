@@ -21,6 +21,9 @@ import { deepMerge } from '../utils/merge'
 import vm from 'vm'
 import { existsSync, writeFileSync } from 'fs'
 import path from 'path'
+import { createLogger } from '../utils/logger'
+
+const factoryLogger = createLogger('Factory')
 
 let runtimeConfigStr: string
 let runtimeConfig: IMihomoConfig
@@ -132,7 +135,7 @@ export async function generateProfile(): Promise<string | undefined> {
       }
     }
   } catch (error) {
-    console.error('读取或应用规则文件时出错：', error)
+    factoryLogger.error('Failed to read or apply rule file', error)
   }
 
   const profile = deepMerge(currentProfile, controledMihomoConfig)
