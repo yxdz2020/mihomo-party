@@ -3,6 +3,7 @@ import { Cron } from 'croner'
 import { logger } from '../utils/logger'
 
 const intervalPool: Record<string, Cron | NodeJS.Timeout> = {}
+const delayedUpdatePool: Record<string, NodeJS.Timeout> = {}
 
 async function updateProfile(id: string): Promise<void> {
   const item = await getProfileItem(id)
@@ -61,8 +62,9 @@ export async function initProfileUpdater(): Promise<void> {
         currentItem.interval * 60 * 1000
       )
 
-      setTimeout(
+      delayedUpdatePool[currentId] = setTimeout(
         async () => {
+          delete delayedUpdatePool[currentId]
           try {
             await updateProfile(currentId)
           } catch (e) {
@@ -131,5 +133,9 @@ export async function removeProfileUpdater(id: string): Promise<void> {
       clearInterval(intervalPool[id] as NodeJS.Timeout)
     }
     delete intervalPool[id]
+  }
+  if (delayedUpdatePool[id]) {
+    clearTimeout(delayedUpdatePool[id])
+    delete delayedUpdatePool[id]
   }
 }

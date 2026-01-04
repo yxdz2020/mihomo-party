@@ -32,6 +32,8 @@ export async function getCurrentSSID(): Promise<string | undefined> {
 }
 
 let lastSSID: string | undefined
+let ssidCheckInterval: NodeJS.Timeout | null = null
+
 export async function checkSSID(): Promise<void> {
   try {
     const { pauseSSID = [] } = await getAppConfig()
@@ -56,8 +58,18 @@ export async function checkSSID(): Promise<void> {
 }
 
 export async function startSSIDCheck(): Promise<void> {
+  if (ssidCheckInterval) {
+    clearInterval(ssidCheckInterval)
+  }
   await checkSSID()
-  setInterval(checkSSID, 30000)
+  ssidCheckInterval = setInterval(checkSSID, 30000)
+}
+
+export function stopSSIDCheck(): void {
+  if (ssidCheckInterval) {
+    clearInterval(ssidCheckInterval)
+    ssidCheckInterval = null
+  }
 }
 
 async function getSSIDByAirport(): Promise<string | undefined> {
