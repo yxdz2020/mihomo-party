@@ -149,14 +149,49 @@ async function initConfig(): Promise<void> {
   }
 }
 
+async function killOldMihomoProcesses(): Promise<void> {
+  const execPromise = promisify(exec)
+  try {
+    const { stdout } = await execPromise(
+      'powershell -NoProfile -Command "Get-Process | Where-Object {$_.ProcessName -like \'*mihomo*\'} | Select-Object Id | ConvertTo-Json"',
+      { encoding: 'utf8' }
+    )
+
+    if (!stdout.trim()) return
+
+    const processes = JSON.parse(stdout)
+    const processArray = Array.isArray(processes) ? processes : [processes]
+
+    for (const proc of processArray) {
+      const pid = proc.Id
+      if (pid && pid !== process.pid) {
+        try {
+          process.kill(pid, 'SIGTERM')
+          await initLogger.info(`Terminated old mihomo process ${pid}`)
+        } catch {
+          // 进程可能退出
+        }
+      }
+    }
+
+    // 等待进程完全退出
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  } catch {
+  }
+}
+
 async function initFiles(): Promise<void> {
+  // 结束旧 mihomo 进程
+  if (process.platform === 'win32') {
+    await killOldMihomoProcesses()
+  }
+
   const copy = async (file: string): Promise<void> => {
     const targetPath = path.join(mihomoWorkDir(), file)
     const testTargetPath = path.join(mihomoTestDir(), file)
     const sourcePath = path.join(resourcesFilesDir(), file)
 
     try {
-      // 检查是否需要复制
       if (existsSync(sourcePath)) {
         const shouldCopyToWork =
           !existsSync(targetPath) || (await isSourceNewer(sourcePath, targetPath))
