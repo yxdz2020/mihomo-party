@@ -55,37 +55,42 @@ async function getWebDAVClient(): Promise<WebDAVContext> {
   return { client, webdavDir, webdavMaxBackups }
 }
 
-export async function webdavBackup(): Promise<boolean> {
-  const { client, webdavDir, webdavMaxBackups } = await getWebDAVClient()
+function createBackupZip(): AdmZip {
   const zip = new AdmZip()
 
-  if (existsSync(appConfigPath())) {
-    zip.addLocalFile(appConfigPath())
+  const files = [
+    appConfigPath(),
+    controledMihomoConfigPath(),
+    profileConfigPath(),
+    overrideConfigPath()
+  ]
+
+  const folders = [
+    { path: themesDir(), name: 'themes' },
+    { path: profilesDir(), name: 'profiles' },
+    { path: overrideDir(), name: 'override' },
+    { path: rulesDir(), name: 'rules' },
+    { path: subStoreDir(), name: 'substore' }
+  ]
+
+  for (const file of files) {
+    if (existsSync(file)) {
+      zip.addLocalFile(file)
+    }
   }
-  if (existsSync(controledMihomoConfigPath())) {
-    zip.addLocalFile(controledMihomoConfigPath())
+
+  for (const { path, name } of folders) {
+    if (existsSync(path)) {
+      zip.addLocalFolder(path, name)
+    }
   }
-  if (existsSync(profileConfigPath())) {
-    zip.addLocalFile(profileConfigPath())
-  }
-  if (existsSync(overrideConfigPath())) {
-    zip.addLocalFile(overrideConfigPath())
-  }
-  if (existsSync(themesDir())) {
-    zip.addLocalFolder(themesDir(), 'themes')
-  }
-  if (existsSync(profilesDir())) {
-    zip.addLocalFolder(profilesDir(), 'profiles')
-  }
-  if (existsSync(overrideDir())) {
-    zip.addLocalFolder(overrideDir(), 'override')
-  }
-  if (existsSync(rulesDir())) {
-    zip.addLocalFolder(rulesDir(), 'rules')
-  }
-  if (existsSync(subStoreDir())) {
-    zip.addLocalFolder(subStoreDir(), 'substore')
-  }
+
+  return zip
+}
+
+export async function webdavBackup(): Promise<boolean> {
+  const { client, webdavDir, webdavMaxBackups } = await getWebDAVClient()
+  const zip = createBackupZip()
   const date = new Date()
   const zipFileName = `${process.platform}_${dayjs(date).format('YYYY-MM-DD_HH-mm-ss')}.zip`
 
@@ -214,34 +219,7 @@ export async function reinitScheduler(): Promise<void> {
  * 导出本地备份
  */
 export async function exportLocalBackup(): Promise<boolean> {
-  const zip = new AdmZip()
-  if (existsSync(appConfigPath())) {
-    zip.addLocalFile(appConfigPath())
-  }
-  if (existsSync(controledMihomoConfigPath())) {
-    zip.addLocalFile(controledMihomoConfigPath())
-  }
-  if (existsSync(profileConfigPath())) {
-    zip.addLocalFile(profileConfigPath())
-  }
-  if (existsSync(overrideConfigPath())) {
-    zip.addLocalFile(overrideConfigPath())
-  }
-  if (existsSync(themesDir())) {
-    zip.addLocalFolder(themesDir(), 'themes')
-  }
-  if (existsSync(profilesDir())) {
-    zip.addLocalFolder(profilesDir(), 'profiles')
-  }
-  if (existsSync(overrideDir())) {
-    zip.addLocalFolder(overrideDir(), 'override')
-  }
-  if (existsSync(subStoreDir())) {
-    zip.addLocalFolder(subStoreDir(), 'substore')
-  }
-  if (existsSync(rulesDir())) {
-    zip.addLocalFolder(rulesDir(), 'rules')
-  }
+  const zip = createBackupZip()
 
   const date = new Date()
   const zipFileName = `clash-party-backup-${dayjs(date).format('YYYY-MM-DD_HH-mm-ss')}.zip`
