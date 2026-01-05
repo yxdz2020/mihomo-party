@@ -47,7 +47,6 @@ import { initLogger } from './logger'
 
 let isInitBasicCompleted = false
 
-// 安全错误处理
 export function safeShowErrorBox(titleKey: string, message: string): void {
   let title: string
   try {
@@ -84,12 +83,9 @@ async function fixDataDirPermissions(): Promise<void> {
   }
 }
 
-// 比较修改 geodata 文件修改时间
 async function isSourceNewer(sourcePath: string, targetPath: string): Promise<boolean> {
   try {
-    const sourceStats = await stat(sourcePath)
-    const targetStats = await stat(targetPath)
-
+    const [sourceStats, targetStats] = await Promise.all([stat(sourcePath), stat(targetPath)])
     return sourceStats.mtime > targetStats.mtime
   } catch {
     return true
@@ -99,7 +95,6 @@ async function isSourceNewer(sourcePath: string, targetPath: string): Promise<bo
 async function initDirs(): Promise<void> {
   await fixDataDirPermissions()
 
-  // 按依赖顺序创建目录
   const dirsToCreate = [
     dataDir(),
     themesDir(),
@@ -112,16 +107,13 @@ async function initDirs(): Promise<void> {
     subStoreDir()
   ]
 
-  for (const dir of dirsToCreate) {
-    try {
+  await Promise.all(
+    dirsToCreate.map(async (dir) => {
       if (!existsSync(dir)) {
         await mkdir(dir, { recursive: true })
       }
-    } catch (error) {
-      await initLogger.error(`Failed to create directory ${dir}`, error)
-      throw new Error(`Failed to create directory ${dir}: ${error}`)
-    }
-  }
+    })
+  )
 }
 
 async function initConfig(): Promise<void> {
@@ -137,19 +129,18 @@ async function initConfig(): Promise<void> {
     }
   ]
 
-  for (const config of configs) {
-    try {
+  await Promise.all(
+    configs.map(async (config) => {
       if (!existsSync(config.path)) {
         await writeFile(config.path, stringify(config.content))
       }
-    } catch (error) {
-      await initLogger.error(`Failed to create ${config.name} at ${config.path}`, error)
-      throw new Error(`Failed to create ${config.name}: ${error}`)
-    }
-  }
+    })
+  )
 }
 
 async function killOldMihomoProcesses(): Promise<void> {
+  if (process.platform !== 'win32') return
+
   const execPromise = promisify(exec)
   try {
     const { stdout } = await execPromise(
@@ -174,95 +165,84 @@ async function killOldMihomoProcesses(): Promise<void> {
       }
     }
 
-    // 等待进程完全退出
     await new Promise((resolve) => setTimeout(resolve, 500))
   } catch {
+    // 忽略错误
   }
 }
 
 async function initFiles(): Promise<void> {
-  // 结束旧 mihomo 进程
-  if (process.platform === 'win32') {
-    await killOldMihomoProcesses()
-  }
+  await killOldMihomoProcesses()
 
-  const copy = async (file: string): Promise<void> => {
-    const targetPath = path.join(mihomoWorkDir(), file)
-    const testTargetPath = path.join(mihomoTestDir(), file)
+  const copyFile = async (file: string): Promise<void> => {
     const sourcePath = path.join(resourcesFilesDir(), file)
+    if (!existsSync(sourcePath)) return
 
-    try {
-      if (existsSync(sourcePath)) {
-        const shouldCopyToWork =
-          !existsSync(targetPath) || (await isSourceNewer(sourcePath, targetPath))
-        if (shouldCopyToWork) {
+    const targets = [
+      path.join(mihomoWorkDir(), file),
+      path.join(mihomoTestDir(), file)
+    ]
+
+    await Promise.all(
+      targets.map(async (targetPath) => {
+        const shouldCopy = !existsSync(targetPath) || (await isSourceNewer(sourcePath, targetPath))
+        if (shouldCopy) {
           await cp(sourcePath, targetPath, { recursive: true, force: true })
         }
-      }
-      if (existsSync(sourcePath)) {
-        const shouldCopyToTest =
-          !existsSync(testTargetPath) || (await isSourceNewer(sourcePath, testTargetPath))
-        if (shouldCopyToTest) {
-          await cp(sourcePath, testTargetPath, { recursive: true, force: true })
-        }
-      }
-    } catch (error) {
-      await initLogger.error(`Failed to copy ${file}`, error)
-      if (['country.mmdb', 'geoip.dat', 'geosite.dat'].includes(file)) {
-        throw new Error(`Failed to copy critical file ${file}: ${error}`)
+      })
+    )
+  }
+
+  const files = [
+    'country.mmdb',
+    'geoip.metadb',
+    'geoip.dat',
+    'geosite.dat',
+    'ASN.mmdb',
+    'sub-store.bundle.cjs',
+    'sub-store-frontend'
+  ]
+
+  const criticalFiles = ['country.mmdb', 'geoip.dat', 'geosite.dat']
+
+  const results = await Promise.allSettled(files.map(copyFile))
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i]
+    if (result.status === 'rejected') {
+      const file = files[i]
+      await initLogger.error(`Failed to copy ${file}`, result.reason)
+      if (criticalFiles.includes(file)) {
+        throw new Error(`Failed to copy critical file ${file}: ${result.reason}`)
       }
     }
   }
-
-  // 确保工作目录存在
-  if (!existsSync(mihomoWorkDir())) {
-    await mkdir(mihomoWorkDir(), { recursive: true })
-  }
-  if (!existsSync(mihomoTestDir())) {
-    await mkdir(mihomoTestDir(), { recursive: true })
-  }
-
-  await Promise.all([
-    copy('country.mmdb'),
-    copy('geoip.metadb'),
-    copy('geoip.dat'),
-    copy('geosite.dat'),
-    copy('ASN.mmdb'),
-    copy('sub-store.bundle.cjs'),
-    copy('sub-store-frontend')
-  ])
 }
 
 async function cleanup(): Promise<void> {
-  // update cache
-  const files = await readdir(dataDir())
-  for (const file of files) {
-    if (file.endsWith('.exe') || file.endsWith('.pkg') || file.endsWith('.7z')) {
-      try {
-        await rm(path.join(dataDir(), file))
-      } catch {
-        // ignore
-      }
-    }
-  }
-  // logs
+  const [dataFiles, logFiles] = await Promise.all([readdir(dataDir()), readdir(logDir())])
+
+  // 清理更新缓存
+  const cacheExtensions = ['.exe', '.pkg', '.7z']
+  const cacheCleanup = dataFiles
+    .filter((file) => cacheExtensions.some((ext) => file.endsWith(ext)))
+    .map((file) => rm(path.join(dataDir(), file)).catch(() => {}))
+
+  // 清理过期日志
   const { maxLogDays = 7 } = await getAppConfig()
-  const logs = await readdir(logDir())
+  const maxAge = maxLogDays * 24 * 60 * 60 * 1000
   const datePattern = /^\d{4}-\d{2}-\d{2}/
-  for (const log of logs) {
-    const match = log.match(datePattern)
-    if (!match) continue
-    const date = new Date(match[0])
-    if (isNaN(date.getTime())) continue
-    const diff = Date.now() - date.getTime()
-    if (diff > maxLogDays * 24 * 60 * 60 * 1000) {
-      try {
-        await rm(path.join(logDir(), log))
-      } catch {
-        // ignore
-      }
-    }
-  }
+
+  const logCleanup = logFiles
+    .filter((log) => {
+      const match = log.match(datePattern)
+      if (!match) return false
+      const date = new Date(match[0])
+      return !isNaN(date.getTime()) && Date.now() - date.getTime() > maxAge
+    })
+    .map((log) => rm(path.join(logDir(), log)).catch(() => {}))
+
+  await Promise.all([...cacheCleanup, ...logCleanup])
 }
 
 async function migrateSubStoreFiles(): Promise<void> {
@@ -278,109 +258,95 @@ async function migrateSubStoreFiles(): Promise<void> {
   }
 }
 
-async function migration(): Promise<void> {
-  const {
-    siderOrder = [
-      'sysproxy',
-      'tun',
-      'profile',
-      'proxy',
-      'rule',
-      'resource',
-      'override',
-      'connection',
-      'mihomo',
-      'dns',
-      'sniff',
-      'log',
-      'substore'
-    ],
-    appTheme = 'system',
-    envType = [process.platform === 'win32' ? 'powershell' : 'bash'],
-    useSubStore = true,
-    showFloatingWindow = false,
-    disableTray = false,
-    encryptedPassword
-  } = await getAppConfig()
-  const {
-    'external-controller-pipe': externalControllerPipe,
-    'external-controller-unix': externalControllerUnix,
-    'external-controller': externalController,
-    'skip-auth-prefixes': skipAuthPrefixes,
-    authentication,
-    'bind-address': bindAddress,
-    'lan-allowed-ips': lanAllowedIps,
-    'lan-disallowed-ips': lanDisallowedIps,
-    tun
-  } = await getControledMihomoConfig()
-  // add substore sider card
+// 迁移：添加 substore 到侧边栏
+async function migrateSiderOrder(): Promise<void> {
+  const { siderOrder = [], useSubStore = true } = await getAppConfig()
   if (useSubStore && !siderOrder.includes('substore')) {
     await patchAppConfig({ siderOrder: [...siderOrder, 'substore'] })
   }
-  // add default skip auth prefix
-  if (!skipAuthPrefixes) {
-    await patchControledMihomoConfig({ 'skip-auth-prefixes': ['127.0.0.1/32', '::1/128'] })
-  } else if (skipAuthPrefixes.length >= 1 && skipAuthPrefixes[0] === '127.0.0.1/32') {
-    const filteredPrefixes = skipAuthPrefixes.filter((ip) => ip !== '::1/128')
-    const newPrefixes = [filteredPrefixes[0], '::1/128', ...filteredPrefixes.slice(1)]
-    if (JSON.stringify(newPrefixes) !== JSON.stringify(skipAuthPrefixes)) {
-      await patchControledMihomoConfig({ 'skip-auth-prefixes': newPrefixes })
-    }
-  }
-  // add default authentication
-  if (!authentication) {
-    await patchControledMihomoConfig({ authentication: [] })
-  }
-  // add default bind address
-  if (!bindAddress) {
-    await patchControledMihomoConfig({ 'bind-address': '*' })
-  }
-  // add default lan allowed ips
-  if (!lanAllowedIps) {
-    await patchControledMihomoConfig({ 'lan-allowed-ips': ['0.0.0.0/0', '::/0'] })
-  }
-  // add default lan disallowed ips
-  if (!lanDisallowedIps) {
-    await patchControledMihomoConfig({ 'lan-disallowed-ips': [] })
-  }
-  // default tun device
-  if (!tun?.device || (process.platform === 'darwin' && tun.device === 'Mihomo')) {
-    const defaultDevice = process.platform === 'darwin' ? 'utun1500' : 'Mihomo'
-    await patchControledMihomoConfig({
-      tun: {
-        ...tun,
-        device: defaultDevice
-      }
-    })
-  }
-  // remove custom app theme
+}
+
+// 迁移：修复 appTheme
+async function migrateAppTheme(): Promise<void> {
+  const { appTheme = 'system' } = await getAppConfig()
   if (!['system', 'light', 'dark'].includes(appTheme)) {
     await patchAppConfig({ appTheme: 'system' })
   }
-  // change env type
+}
+
+// 迁移：envType 字符串转数组
+async function migrateEnvType(): Promise<void> {
+  const { envType } = await getAppConfig()
   if (typeof envType === 'string') {
     await patchAppConfig({ envType: [envType] })
   }
-  // use unix socket
-  if (externalControllerUnix) {
-    await patchControledMihomoConfig({ 'external-controller-unix': undefined })
-  }
-  // use named pipe
-  if (externalControllerPipe) {
-    await patchControledMihomoConfig({
-      'external-controller-pipe': undefined
-    })
-  }
-  if (externalController === undefined) {
-    await patchControledMihomoConfig({ 'external-controller': '' })
-  }
+}
+
+// 迁移：禁用托盘时必须显示悬浮窗
+async function migrateTraySettings(): Promise<void> {
+  const { showFloatingWindow = false, disableTray = false } = await getAppConfig()
   if (!showFloatingWindow && disableTray) {
     await patchAppConfig({ disableTray: false })
   }
-  // remove password
+}
+
+// 迁移：移除加密密码
+async function migrateRemovePassword(): Promise<void> {
+  const { encryptedPassword } = await getAppConfig()
   if (encryptedPassword) {
     await patchAppConfig({ encryptedPassword: undefined })
   }
+}
+
+// 迁移：mihomo 配置默认值
+async function migrateMihomoConfig(): Promise<void> {
+  const config = await getControledMihomoConfig()
+  const patches: Partial<IMihomoConfig> = {}
+
+  // skip-auth-prefixes
+  if (!config['skip-auth-prefixes']) {
+    patches['skip-auth-prefixes'] = ['127.0.0.1/32', '::1/128']
+  } else if (
+    config['skip-auth-prefixes'].length >= 1 &&
+    config['skip-auth-prefixes'][0] === '127.0.0.1/32' &&
+    !config['skip-auth-prefixes'].includes('::1/128')
+  ) {
+    patches['skip-auth-prefixes'] = ['127.0.0.1/32', '::1/128', ...config['skip-auth-prefixes'].slice(1)]
+  }
+
+  // 其他默认值
+  if (!config.authentication) patches.authentication = []
+  if (!config['bind-address']) patches['bind-address'] = '*'
+  if (!config['lan-allowed-ips']) patches['lan-allowed-ips'] = ['0.0.0.0/0', '::/0']
+  if (!config['lan-disallowed-ips']) patches['lan-disallowed-ips'] = []
+
+  // tun device
+  if (!config.tun?.device || (process.platform === 'darwin' && config.tun.device === 'Mihomo')) {
+    patches.tun = {
+      ...config.tun,
+      device: process.platform === 'darwin' ? 'utun1500' : 'Mihomo'
+    }
+  }
+
+  // 移除废弃配置
+  if (config['external-controller-unix']) patches['external-controller-unix'] = undefined
+  if (config['external-controller-pipe']) patches['external-controller-pipe'] = undefined
+  if (config['external-controller'] === undefined) patches['external-controller'] = ''
+
+  if (Object.keys(patches).length > 0) {
+    await patchControledMihomoConfig(patches)
+  }
+}
+
+async function migration(): Promise<void> {
+  await Promise.all([
+    migrateSiderOrder(),
+    migrateAppTheme(),
+    migrateEnvType(),
+    migrateTraySettings(),
+    migrateRemovePassword(),
+    migrateMihomoConfig()
+  ])
 }
 
 function initDeeplink(): void {
@@ -395,11 +361,8 @@ function initDeeplink(): void {
   }
 }
 
-// 基础初始化
 export async function initBasic(): Promise<void> {
-  if (isInitBasicCompleted) {
-    return
-  }
+  if (isInitBasicCompleted) return
 
   await initDirs()
   await initConfig()
@@ -414,6 +377,7 @@ export async function initBasic(): Promise<void> {
 export async function init(): Promise<void> {
   await startSubStoreFrontendServer()
   await startSubStoreBackendServer()
+
   const { sysProxy } = await getAppConfig()
   try {
     if (sysProxy.enable) {
@@ -423,7 +387,7 @@ export async function init(): Promise<void> {
   } catch {
     // ignore
   }
-  await startSSIDCheck()
 
+  await startSSIDCheck()
   initDeeplink()
 }
