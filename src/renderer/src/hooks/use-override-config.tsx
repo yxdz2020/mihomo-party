@@ -1,7 +1,7 @@
-import React, { createContext, useContext, ReactNode } from 'react'
+import React, { ReactNode, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
-import useSWR from 'swr'
+import { createConfigContext } from './create-config-context'
 import {
   getOverrideConfig,
   setOverrideConfig as set,
@@ -9,6 +9,12 @@ import {
   removeOverrideItem as remove,
   updateOverrideItem as update
 } from '@renderer/utils/ipc'
+
+const { Provider, useConfig } = createConfigContext<IOverrideConfig>({
+  swrKey: 'getOverrideConfig',
+  fetcher: getOverrideConfig,
+  ipcEvent: 'overrideConfigUpdated'
+})
 
 interface OverrideConfigContextType {
   overrideConfig: IOverrideConfig | undefined
@@ -19,60 +25,59 @@ interface OverrideConfigContextType {
   removeOverrideItem: (id: string) => Promise<void>
 }
 
-const OverrideConfigContext = createContext<OverrideConfigContextType | undefined>(undefined)
+const OverrideConfigContext = React.createContext<OverrideConfigContextType | undefined>(undefined)
 
 export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  return (
+    <Provider>
+      <OverrideConfigContextWrapper>{children}</OverrideConfigContextWrapper>
+    </Provider>
+  )
+}
+
+const OverrideConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { config, mutate } = useConfig()
   const { t } = useTranslation()
-  const { data: overrideConfig, mutate: mutateOverrideConfig } = useSWR('getOverrideConfig', () =>
-    getOverrideConfig()
+
+  const withErrorHandling = useCallback(
+    (action: () => Promise<void>, errorKey: string) => async () => {
+      try {
+        await action()
+      } catch (e) {
+        await showError(e, t(errorKey))
+      } finally {
+        mutate()
+      }
+    },
+    [mutate, t]
   )
 
-  const setOverrideConfig = async (config: IOverrideConfig): Promise<void> => {
-    try {
-      await set(config)
-    } catch (e) {
-      await showError(e, t('common.error.saveOverrideConfigFailed'))
-    } finally {
-      mutateOverrideConfig()
-    }
-  }
+  const setOverrideConfig = useCallback(
+    (cfg: IOverrideConfig) => withErrorHandling(() => set(cfg), 'common.error.saveOverrideConfigFailed')(),
+    [withErrorHandling]
+  )
 
-  const addOverrideItem = async (item: Partial<IOverrideItem>): Promise<void> => {
-    try {
-      await add(item)
-    } catch (e) {
-      await showError(e, t('common.error.addOverrideFailed'))
-    } finally {
-      mutateOverrideConfig()
-    }
-  }
+  const addOverrideItem = useCallback(
+    (item: Partial<IOverrideItem>) => withErrorHandling(() => add(item), 'common.error.addOverrideFailed')(),
+    [withErrorHandling]
+  )
 
-  const removeOverrideItem = async (id: string): Promise<void> => {
-    try {
-      await remove(id)
-    } catch (e) {
-      await showError(e, t('common.error.deleteOverrideFailed'))
-    } finally {
-      mutateOverrideConfig()
-    }
-  }
+  const removeOverrideItem = useCallback(
+    (id: string) => withErrorHandling(() => remove(id), 'common.error.deleteOverrideFailed')(),
+    [withErrorHandling]
+  )
 
-  const updateOverrideItem = async (item: IOverrideItem): Promise<void> => {
-    try {
-      await update(item)
-    } catch (e) {
-      await showError(e, t('common.error.updateOverrideFailed'))
-    } finally {
-      mutateOverrideConfig()
-    }
-  }
+  const updateOverrideItem = useCallback(
+    (item: IOverrideItem) => withErrorHandling(() => update(item), 'common.error.updateOverrideFailed')(),
+    [withErrorHandling]
+  )
 
   return (
     <OverrideConfigContext.Provider
       value={{
-        overrideConfig,
+        overrideConfig: config,
         setOverrideConfig,
-        mutateOverrideConfig,
+        mutateOverrideConfig: mutate,
         addOverrideItem,
         removeOverrideItem,
         updateOverrideItem
@@ -84,8 +89,8 @@ export const OverrideConfigProvider: React.FC<{ children: ReactNode }> = ({ chil
 }
 
 export const useOverrideConfig = (): OverrideConfigContextType => {
-  const context = useContext(OverrideConfigContext)
-  if (context === undefined) {
+  const context = React.useContext(OverrideConfigContext)
+  if (!context) {
     throw new Error('useOverrideConfig must be used within an OverrideConfigProvider')
   }
   return context

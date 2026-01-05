@@ -1,7 +1,7 @@
-import React, { createContext, ReactNode, useContext } from 'react'
+import React, { ReactNode, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
-import useSWR from 'swr'
+import { createConfigContext } from './create-config-context'
 import {
   addProfileItem as add,
   changeCurrentProfile as change,
@@ -10,6 +10,12 @@ import {
   setProfileConfig as set,
   updateProfileItem as update
 } from '@renderer/utils/ipc'
+
+const { Provider, useConfig } = createConfigContext<IProfileConfig>({
+  swrKey: 'getProfileConfig',
+  fetcher: getProfileConfig,
+  ipcEvent: 'profileConfigUpdated'
+})
 
 interface ProfileConfigContextType {
   profileConfig: IProfileConfig | undefined
@@ -21,80 +27,64 @@ interface ProfileConfigContextType {
   changeCurrentProfile: (id: string) => Promise<void>
 }
 
-const ProfileConfigContext = createContext<ProfileConfigContextType | undefined>(undefined)
+const ProfileConfigContext = React.createContext<ProfileConfigContextType | undefined>(undefined)
 
 export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { t } = useTranslation()
-  const { data: profileConfig, mutate: mutateProfileConfig } = useSWR('getProfileConfig', () =>
-    getProfileConfig()
+  return (
+    <Provider>
+      <ProfileConfigContextWrapper>{children}</ProfileConfigContextWrapper>
+    </Provider>
   )
-  const targetProfileId = React.useRef<string | null>(null)
-  const pendingTask = React.useRef<Promise<void> | null>(null)
+}
 
-  const setProfileConfig = async (config: IProfileConfig): Promise<void> => {
-    try {
-      await set(config)
-    } catch (e) {
-      await showError(e, t('common.error.saveProfileConfigFailed'))
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+const ProfileConfigContextWrapper: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { config, mutate } = useConfig()
+  const { t } = useTranslation()
+  const targetProfileId = useRef<string | null>(null)
+  const pendingTask = useRef<Promise<void> | null>(null)
 
-  const addProfileItem = async (item: Partial<IProfileItem>): Promise<void> => {
-    try {
-      await add(item)
-    } catch (e) {
-      await showError(e, t('common.error.addProfileFailed'))
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const withErrorHandling = useCallback(
+    (action: () => Promise<void>, errorKey: string, updateTray = true) =>
+      async () => {
+        try {
+          await action()
+        } catch (e) {
+          await showError(e, t(errorKey))
+        } finally {
+          mutate()
+          if (updateTray) {
+            window.electron.ipcRenderer.send('updateTrayMenu')
+          }
+        }
+      },
+    [mutate, t]
+  )
 
-  const removeProfileItem = async (id: string): Promise<void> => {
-    try {
-      await remove(id)
-    } catch (e) {
-      await showError(e, t('common.error.deleteProfileFailed'))
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const setProfileConfig = useCallback(
+    (cfg: IProfileConfig) =>
+      withErrorHandling(() => set(cfg), 'common.error.saveProfileConfigFailed')(),
+    [withErrorHandling]
+  )
 
-  const updateProfileItem = async (item: IProfileItem): Promise<void> => {
-    try {
-      await update(item)
-    } catch (e) {
-      await showError(e, t('common.error.updateProfileFailed'))
-    } finally {
-      mutateProfileConfig()
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
-  }
+  const addProfileItem = useCallback(
+    (item: Partial<IProfileItem>) =>
+      withErrorHandling(() => add(item), 'common.error.addProfileFailed')(),
+    [withErrorHandling]
+  )
 
-  const changeCurrentProfile = async (id: string): Promise<void> => {
-    if (targetProfileId.current === id) {
-      return
-    }
+  const removeProfileItem = useCallback(
+    (id: string) => withErrorHandling(() => remove(id), 'common.error.deleteProfileFailed')(),
+    [withErrorHandling]
+  )
 
-    // 立即更新 UI 状态和托盘菜单，提供即时反馈
-    if (profileConfig) {
-      const optimisticUpdate = { ...profileConfig, current: id }
-      mutateProfileConfig(optimisticUpdate, false)
-      window.electron.ipcRenderer.send('updateTrayMenu')
-    }
+  const updateProfileItem = useCallback(
+    (item: IProfileItem) =>
+      withErrorHandling(() => update(item), 'common.error.updateProfileFailed')(),
+    [withErrorHandling]
+  )
 
-    targetProfileId.current = id
-    await processChange()
-  }
-
-  const processChange = async () => {
-    if (pendingTask.current) {
-      return
-    }
+  const processChange = useCallback(async () => {
+    if (pendingTask.current) return
 
     while (targetProfileId.current) {
       const targetId = targetProfileId.current
@@ -102,41 +92,48 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
 
       pendingTask.current = change(targetId)
       try {
-        // 异步执行后台切换，不阻塞 UI
         await pendingTask.current
       } catch (e) {
         const errorMsg = (e as { message?: string })?.message || String(e)
-        // 处理 IPC 超时错误
         if (errorMsg.includes('reply was never sent')) {
-          setTimeout(() => mutateProfileConfig(), 1000)
+          setTimeout(() => mutate(), 1000)
         } else {
           await showError(errorMsg, t('common.error.switchProfileFailed'))
-          mutateProfileConfig()
+          mutate()
         }
       } finally {
         pendingTask.current = null
       }
     }
-  }
+  }, [mutate, t])
+
+  const changeCurrentProfile = useCallback(
+    async (id: string) => {
+      if (targetProfileId.current === id) return
+
+      if (config) {
+        mutate({ ...config, current: id }, false)
+        window.electron.ipcRenderer.send('updateTrayMenu')
+      }
+
+      targetProfileId.current = id
+      await processChange()
+    },
+    [config, mutate, processChange]
+  )
 
   React.useEffect(() => {
-    const handler = (): void => {
-      mutateProfileConfig()
-    }
-    window.electron.ipcRenderer.on('profileConfigUpdated', handler)
-    return (): void => {
-      // 清理待处理任务，防止内存泄漏
+    return () => {
       targetProfileId.current = null
-      window.electron.ipcRenderer.removeListener('profileConfigUpdated', handler)
     }
   }, [])
 
   return (
     <ProfileConfigContext.Provider
       value={{
-        profileConfig,
+        profileConfig: config,
         setProfileConfig,
-        mutateProfileConfig,
+        mutateProfileConfig: mutate,
         addProfileItem,
         removeProfileItem,
         updateProfileItem,
@@ -149,8 +146,8 @@ export const ProfileConfigProvider: React.FC<{ children: ReactNode }> = ({ child
 }
 
 export const useProfileConfig = (): ProfileConfigContextType => {
-  const context = useContext(ProfileConfigContext)
-  if (context === undefined) {
+  const context = React.useContext(ProfileConfigContext)
+  if (!context) {
     throw new Error('useProfileConfig must be used within a ProfileConfigProvider')
   }
   return context
