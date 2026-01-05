@@ -1,10 +1,8 @@
-import { triggerAutoProxy, triggerManualProxy } from '@mihomo-party/sysproxy'
+import { triggerAutoProxy, triggerManualProxy } from 'sysproxy-rs'
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { pacPort, startPacServer, stopPacServer } from '../resolve/server'
 import { promisify } from 'util'
-import { exec, execFile } from 'child_process'
-import path from 'path'
-import { resourcesFilesDir } from '../utils/dirs'
+import { exec } from 'child_process'
 import { net } from 'electron'
 import axios from 'axios'
 import fs from 'fs'
@@ -76,87 +74,51 @@ async function enableSysProxy(): Promise<void> {
   const { sysProxy } = await getAppConfig()
   const { mode, host, bypass = defaultBypass } = sysProxy
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()
-  const execFilePromise = promisify(execFile)
-  switch (mode || 'manual') {
-    case 'auto': {
-      if (process.platform === 'win32') {
-        try {
-          await execFilePromise(path.join(resourcesFilesDir(), 'sysproxy.exe'), [
-            'pac',
-            `http://${host || '127.0.0.1'}:${pacPort}/pac`
-          ])
-        } catch {
-          triggerAutoProxy(true, `http://${host || '127.0.0.1'}:${pacPort}/pac`)
-        }
-      } else if (process.platform === 'darwin') {
-        await helperRequest(() =>
-          axios.post(
-            'http://localhost/pac',
-            { url: `http://${host || '127.0.0.1'}:${pacPort}/pac` },
-            {
-              socketPath: helperSocketPath
-            }
-          )
-        )
-      } else {
-        triggerAutoProxy(true, `http://${host || '127.0.0.1'}:${pacPort}/pac`)
-      }
+  const proxyHost = host || '127.0.0.1'
 
-      break
+  if (process.platform === 'darwin') {
+    // macOS 需要 helper 提权
+    if (mode === 'auto') {
+      await helperRequest(() =>
+        axios.post(
+          'http://localhost/pac',
+          { url: `http://${proxyHost}:${pacPort}/pac` },
+          { socketPath: helperSocketPath }
+        )
+      )
+    } else {
+      await helperRequest(() =>
+        axios.post(
+          'http://localhost/global',
+          { host: proxyHost, port: port.toString(), bypass: bypass.join(',') },
+          { socketPath: helperSocketPath }
+        )
+      )
     }
-
-    case 'manual': {
-      if (process.platform === 'win32') {
-        try {
-          await execFilePromise(path.join(resourcesFilesDir(), 'sysproxy.exe'), [
-            'global',
-            `${host || '127.0.0.1'}:${port}`,
-            bypass.join(';')
-          ])
-        } catch {
-          triggerManualProxy(true, host || '127.0.0.1', port, bypass.join(','))
-        }
-      } else if (process.platform === 'darwin') {
-        await helperRequest(() =>
-          axios.post(
-            'http://localhost/global',
-            { host: host || '127.0.0.1', port: port.toString(), bypass: bypass.join(',') },
-            {
-              socketPath: helperSocketPath
-            }
-          )
-        )
-      } else {
-        triggerManualProxy(true, host || '127.0.0.1', port, bypass.join(','))
-      }
-      break
+  } else {
+    // Windows / Linux 直接使用 sysproxy-rs
+    if (mode === 'auto') {
+      triggerAutoProxy(true, `http://${proxyHost}:${pacPort}/pac`)
+    } else {
+      triggerManualProxy(true, proxyHost, port, bypass.join(','))
     }
   }
 }
 
 async function disableSysProxy(): Promise<void> {
   await stopPacServer()
-  const execFilePromise = promisify(execFile)
-  if (process.platform === 'win32') {
-    try {
-      await execFilePromise(path.join(resourcesFilesDir(), 'sysproxy.exe'), ['set', '1'])
-    } catch {
-      triggerAutoProxy(false, '')
-      triggerManualProxy(false, '', 0, '')
-    }
-  } else if (process.platform === 'darwin') {
+
+  if (process.platform === 'darwin') {
     await helperRequest(() =>
-      axios.get('http://localhost/off', {
-        socketPath: helperSocketPath
-      })
+      axios.get('http://localhost/off', { socketPath: helperSocketPath })
     )
   } else {
+    // Windows / Linux 直接使用 sysproxy-rs
     triggerAutoProxy(false, '')
     triggerManualProxy(false, '', 0, '')
   }
 }
 
-// Helper function to check if socket file exists
 function isSocketFileExists(): boolean {
   try {
     return fs.existsSync(helperSocketPath)
@@ -165,7 +127,6 @@ function isSocketFileExists(): boolean {
   }
 }
 
-// Check if helper process is running (no admin privileges needed)
 async function isHelperRunning(): Promise<boolean> {
   try {
     const execPromise = promisify(exec)
@@ -176,7 +137,6 @@ async function isHelperRunning(): Promise<boolean> {
   }
 }
 
-// Start or restart helper service via launchctl
 async function startHelperService(): Promise<void> {
   const execPromise = promisify(exec)
   const shell = `launchctl kickstart -k system/party.mihomo.helper`
@@ -185,7 +145,6 @@ async function startHelperService(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 1500))
 }
 
-// Send signal to recreate socket (only if process is running)
 async function requestSocketRecreation(): Promise<void> {
   try {
     const execPromise = promisify(exec)
@@ -199,7 +158,6 @@ async function requestSocketRecreation(): Promise<void> {
   }
 }
 
-// Wrapper function for helper requests with auto-retry on socket issues
 async function helperRequest(requestFn: () => Promise<unknown>, maxRetries = 2): Promise<unknown> {
   let lastError: Error | null = null
 

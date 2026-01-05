@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
-    "@mihomo-party/sysproxy": "^2.0.8",
+    "sysproxy-rs": "file:src/native/sysproxy",
     "adm-zip": "^0.5.16",
     "axios": "^1.13.2",
     "chokidar": "^5.0.0",
