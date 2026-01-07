@@ -59,7 +59,11 @@ linux:
   desktop:
     entry:
       Name: Clash Party
+      GenericName: Proxy Client
+      Comment: A GUI client based on Mihomo
       MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo'
+      Keywords: proxy;clash;mihomo;vpn;
+      StartupWMClass: clash-party
   target:
     - deb
     - rpm
