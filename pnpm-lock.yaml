@@ -36,8 +36,8 @@ importers:
         specifier: ^0.7.1
         version: 0.7.1
       sysproxy-rs:
-        specifier: file:src/native/sysproxy
-        version: file:src/native/sysproxy
+        specifier: file:sysproxy-rs
+        version: file:sysproxy-rs
       webdav:
         specifier: ^5.8.0
         version: 5.8.0
@@ -4698,8 +4698,8 @@ packages:
     resolution: {integrity: sha512-MeQTA1r0litLUf0Rp/iisCaL8761lKAZHaimlbGK4j0HysC4PLfqygQj9srcs0m2RdtDYnF8UuYyKpbjHYp7Jw==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  sysproxy-rs@file:src/native/sysproxy:
-    resolution: {directory: src/native/sysproxy, type: directory}
+  sysproxy-rs@file:sysproxy-rs:
+    resolution: {directory: sysproxy-rs, type: directory}
 
   tailwind-merge@3.4.0:
     resolution: {integrity: sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==}
@@ -10859,7 +10859,7 @@ snapshots:
     dependencies:
       '@pkgr/core': 0.2.9
 
-  sysproxy-rs@file:src/native/sysproxy: {}
+  sysproxy-rs@file:sysproxy-rs: {}
 
   tailwind-merge@3.4.0: {}
 
