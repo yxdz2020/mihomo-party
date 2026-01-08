@@ -3,9 +3,9 @@ import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { checkUpdate } from '@renderer/utils/ipc'
 import React, { useState } from 'react'
 import useSWR from 'swr'
-import UpdaterModal from './updater-modal'
 import { platform } from '@renderer/utils/init'
 import { MdNewReleases } from 'react-icons/md'
+import UpdaterModal from './updater-modal'
 
 interface Props {
   iconOnly?: boolean

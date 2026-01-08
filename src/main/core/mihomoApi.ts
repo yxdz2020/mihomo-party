@@ -1,13 +1,13 @@
 import axios, { AxiosInstance } from 'axios'
+import WebSocket from 'ws'
 import { getAppConfig, getControledMihomoConfig } from '../config'
 import { mainWindow } from '../window'
-import WebSocket from 'ws'
 import { tray } from '../resolve/tray'
 import { calcTraffic } from '../utils/calc'
-import { getRuntimeConfig } from './factory'
 import { floatingWindow } from '../resolve/floatingWindow'
-import { getMihomoIpcPath } from './manager'
 import { createLogger } from '../utils/logger'
+import { getRuntimeConfig } from './factory'
+import { getMihomoIpcPath } from './manager'
 
 const mihomoApiLogger = createLogger('MihomoApi')
 

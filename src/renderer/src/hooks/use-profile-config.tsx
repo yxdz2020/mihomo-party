@@ -1,7 +1,6 @@
 import React, { ReactNode, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
-import { createConfigContext } from './create-config-context'
 import {
   addProfileItem as add,
   changeCurrentProfile as change,
@@ -10,6 +9,7 @@ import {
   setProfileConfig as set,
   updateProfileItem as update
 } from '@renderer/utils/ipc'
+import { createConfigContext } from './create-config-context'
 
 const { Provider, useConfig } = createConfigContext<IProfileConfig>({
   swrKey: 'getProfileConfig',

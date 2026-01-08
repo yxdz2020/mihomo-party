@@ -1,10 +1,10 @@
-import { exePath, homeDir } from '../utils/dirs'
 import { tmpdir } from 'os'
 import { mkdir, readFile, rm, writeFile } from 'fs/promises'
 import { exec } from 'child_process'
 import { existsSync } from 'fs'
 import { promisify } from 'util'
 import path from 'path'
+import { exePath, homeDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 
 const appName = 'mihomo-party'

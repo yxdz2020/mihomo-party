@@ -6,7 +6,6 @@ import { Virtuoso, VirtuosoHandle } from 'react-virtuoso'
 import { IoLocationSharp } from 'react-icons/io5'
 import { CgTrash } from 'react-icons/cg'
 import { useTranslation } from 'react-i18next'
-
 import { includesIgnoreCase } from '@renderer/utils/includes'
 
 const LOGS_FILTER_KEY = 'logs-filter'

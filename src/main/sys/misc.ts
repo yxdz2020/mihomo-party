@@ -1,8 +1,9 @@
 import { exec, execFile, spawn } from 'child_process'
-import { app, dialog, nativeTheme, shell } from 'electron'
 import { readFile } from 'fs/promises'
 import path from 'path'
 import { promisify } from 'util'
+import { app, dialog, nativeTheme, shell } from 'electron'
+import i18next from 'i18next'
 import {
   dataDir,
   exePath,
@@ -11,7 +12,6 @@ import {
   profilePath,
   resourcesDir
 } from '../utils/dirs'
-import i18next from 'i18next'
 
 export function getFilePath(ext: string[]): string[] | undefined {
   return dialog.showOpenDialogSync({

@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import SettingCard from '../base/base-setting-card'
 import { toast } from '@renderer/components/base/toast'
-import SettingItem from '../base/base-setting-item'
 import { Button, useDisclosure } from '@heroui/react'
 import { exportLocalBackup, importLocalBackup } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
+import SettingItem from '../base/base-setting-item'
+import SettingCard from '../base/base-setting-card'
 import BaseConfirmModal from '../base/base-confirm-modal'
 
 const LocalBackupConfig: React.FC = () => {

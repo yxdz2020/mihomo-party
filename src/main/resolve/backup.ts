@@ -1,7 +1,11 @@
-import { getAppConfig } from '../config'
+import https from 'https'
+import { existsSync } from 'fs'
 import dayjs from 'dayjs'
 import AdmZip from 'adm-zip'
-import https from 'https'
+import { Cron } from 'croner'
+import { dialog } from 'electron'
+import i18next from 'i18next'
+import { systemLogger } from '../utils/logger'
 import {
   appConfigPath,
   controledMihomoConfigPath,
@@ -14,11 +18,7 @@ import {
   subStoreDir,
   themesDir
 } from '../utils/dirs'
-import { systemLogger } from '../utils/logger'
-import { Cron } from 'croner'
-import { dialog } from 'electron'
-import { existsSync } from 'fs'
-import i18next from 'i18next'
+import { getAppConfig } from '../config'
 
 let backupCronJob: Cron | null = null
 

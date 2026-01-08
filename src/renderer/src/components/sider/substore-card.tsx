@@ -2,10 +2,10 @@ import { Button, Card, CardBody, CardFooter, Tooltip } from '@heroui/react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import SubStoreIcon from '../base/substore-icon'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import SubStoreIcon from '../base/substore-icon'
 
 interface Props {
   iconOnly?: boolean

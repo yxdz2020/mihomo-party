@@ -1,8 +1,8 @@
 import React, { ReactNode, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { showError } from '@renderer/utils/error-display'
-import { createConfigContext } from './create-config-context'
 import { getAppConfig, patchAppConfig as patch } from '@renderer/utils/ipc'
+import { createConfigContext } from './create-config-context'
 
 const { Provider, useConfig } = createConfigContext<IAppConfig>({
   swrKey: 'getAppConfig',

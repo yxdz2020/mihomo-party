@@ -1,3 +1,31 @@
+import { mkdir, writeFile, rm, readdir, cp, stat, rename } from 'fs/promises'
+import { existsSync } from 'fs'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import path from 'path'
+import { app, dialog } from 'electron'
+import {
+  startPacServer,
+  startSubStoreBackendServer,
+  startSubStoreFrontendServer
+} from '../resolve/server'
+import { triggerSysProxy } from '../sys/sysproxy'
+import {
+  getAppConfig,
+  getControledMihomoConfig,
+  patchAppConfig,
+  patchControledMihomoConfig
+} from '../config'
+import { startSSIDCheck } from '../sys/ssid'
+import i18next, { resources } from '../../shared/i18n'
+import { stringify } from './yaml'
+import {
+  defaultConfig,
+  defaultControledMihomoConfig,
+  defaultOverrideConfig,
+  defaultProfile,
+  defaultProfileConfig
+} from './template'
 import {
   appConfigPath,
   controledMihomoConfigPath,
@@ -15,34 +43,6 @@ import {
   subStoreDir,
   themesDir
 } from './dirs'
-import {
-  defaultConfig,
-  defaultControledMihomoConfig,
-  defaultOverrideConfig,
-  defaultProfile,
-  defaultProfileConfig
-} from './template'
-import { stringify } from './yaml'
-import { mkdir, writeFile, rm, readdir, cp, stat, rename } from 'fs/promises'
-import { existsSync } from 'fs'
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import path from 'path'
-import {
-  startPacServer,
-  startSubStoreBackendServer,
-  startSubStoreFrontendServer
-} from '../resolve/server'
-import { triggerSysProxy } from '../sys/sysproxy'
-import {
-  getAppConfig,
-  getControledMihomoConfig,
-  patchAppConfig,
-  patchControledMihomoConfig
-} from '../config'
-import { app, dialog } from 'electron'
-import { startSSIDCheck } from '../sys/ssid'
-import i18next, { resources } from '../../shared/i18n'
 import { initLogger } from './logger'
 
 let isInitBasicCompleted = false

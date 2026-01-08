@@ -9,9 +9,9 @@ import {
   Switch
 } from '@heroui/react'
 import React, { useState } from 'react'
-import SettingItem from '../base/base-setting-item'
 import { restartCore } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
+import SettingItem from '../base/base-setting-item'
 
 interface Props {
   item: IOverrideItem

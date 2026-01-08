@@ -15,13 +15,13 @@ import {
 } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
 import React, { useState } from 'react'
-import SettingItem from '../base/base-setting-item'
 import { useOverrideConfig } from '@renderer/hooks/use-override-config'
 import { restartCore, addProfileUpdater } from '@renderer/utils/ipc'
 import { MdDeleteForever } from 'react-icons/md'
 import { FaPlus } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
 import { isValidCron } from 'cron-validator'
+import SettingItem from '../base/base-setting-item'
 
 interface Props {
   item: IProfileItem

@@ -2,12 +2,12 @@ import { exec, execFile } from 'child_process'
 import { promisify } from 'util'
 import { stat } from 'fs/promises'
 import { existsSync } from 'fs'
+import path from 'path'
 import { app, dialog, ipcMain } from 'electron'
 import { getAppConfig, patchControledMihomoConfig } from '../config'
 import { mihomoCorePath, mihomoCoreDir } from '../utils/dirs'
 import { managerLogger } from '../utils/logger'
 import i18next from '../../shared/i18n'
-import path from 'path'
 
 const execPromise = promisify(exec)
 const execFilePromise = promisify(execFile)

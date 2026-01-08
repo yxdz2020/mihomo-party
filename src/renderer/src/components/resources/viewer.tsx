@@ -1,9 +1,9 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
-import { BaseEditor } from '../base/base-editor'
 import { getFileStr, setFileStr, convertMrsRuleset, getRuntimeConfig } from '@renderer/utils/ipc'
 import yaml from 'js-yaml'
 import { useTranslation } from 'react-i18next'
+import { BaseEditor } from '../base/base-editor'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
 
 interface Props {
@@ -99,7 +99,7 @@ const Viewer: React.FC<Props> = (props) => {
             <BaseEditor
               language={language}
               value={currData}
-              readOnly={type != 'File' || format === 'MrsRule'}
+              readOnly={type !== 'File' || format === 'MrsRule'}
               onChange={(value) => setCurrData(value)}
             />
           )}
@@ -108,7 +108,7 @@ const Viewer: React.FC<Props> = (props) => {
           <Button size="sm" variant="light" onPress={onClose}>
             {t('common.close')}
           </Button>
-          {type == 'File' && format !== 'MrsRule' && (
+          {type === 'File' && format !== 'MrsRule' && (
             <Button
               size="sm"
               color="primary"

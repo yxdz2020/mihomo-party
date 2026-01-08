@@ -1,14 +1,13 @@
-import * as chromeRequest from './chromeRequest'
-import { createWriteStream, createReadStream } from 'fs'
+import { createWriteStream, createReadStream , existsSync, rmSync } from 'fs'
 import { writeFile } from 'fs/promises'
-import { mihomoCoreDir } from './dirs'
-import AdmZip from 'adm-zip'
 import { execSync } from 'child_process'
 import { platform } from 'os'
 import { join } from 'path'
-import { existsSync, rmSync } from 'fs'
 import { createGunzip } from 'zlib'
+import AdmZip from 'adm-zip'
 import { stopCore } from '../core/manager'
+import { mihomoCoreDir } from './dirs'
+import * as chromeRequest from './chromeRequest'
 import { createLogger } from './logger'
 
 const log = createLogger('GitHub')

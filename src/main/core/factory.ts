@@ -1,3 +1,7 @@
+import { copyFile, mkdir, writeFile, readFile } from 'fs/promises'
+import vm from 'vm'
+import { existsSync, writeFileSync } from 'fs'
+import path from 'path'
 import {
   getControledMihomoConfig,
   getProfileConfig,
@@ -16,11 +20,7 @@ import {
   rulePath
 } from '../utils/dirs'
 import { parse, stringify } from '../utils/yaml'
-import { copyFile, mkdir, writeFile, readFile } from 'fs/promises'
 import { deepMerge } from '../utils/merge'
-import vm from 'vm'
-import { existsSync, writeFileSync } from 'fs'
-import path from 'path'
 import { createLogger } from '../utils/logger'
 
 const factoryLogger = createLogger('Factory')

@@ -1,12 +1,12 @@
 import { Button, Input } from '@heroui/react'
-import SettingCard from '../base/base-setting-card'
 import { toast } from '@renderer/components/base/toast'
-import SettingItem from '../base/base-setting-item'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import React, { KeyboardEvent, useState } from 'react'
 import { platform } from '@renderer/utils/init'
 import { registerShortcut } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
+import SettingItem from '../base/base-setting-item'
+import SettingCard from '../base/base-setting-card'
 
 const keyMap = {
   Backquote: '`',

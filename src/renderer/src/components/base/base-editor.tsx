@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import * as monaco from 'monaco-editor'
 import MonacoEditor from 'react-monaco-editor'
 import { configureMonacoYaml } from 'monaco-yaml'
@@ -6,7 +6,6 @@ import metaSchema from 'meta-json-schema/schemas/meta-json-schema.json'
 import pac from 'types-pac/pac.d.ts?raw'
 import { useTheme } from 'next-themes'
 import { nanoid } from 'nanoid'
-import React from 'react'
 type Language = 'yaml' | 'javascript' | 'css' | 'json' | 'text'
 
 interface Props {

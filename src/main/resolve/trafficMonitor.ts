@@ -1,9 +1,9 @@
 import { ChildProcess, spawn } from 'child_process'
-import { getAppConfig } from '../config'
-import { dataDir, resourcesFilesDir } from '../utils/dirs'
 import path from 'path'
 import { existsSync } from 'fs'
 import { readFile, rm, writeFile } from 'fs/promises'
+import { dataDir, resourcesFilesDir } from '../utils/dirs'
+import { getAppConfig } from '../config'
 
 let child: ChildProcess
 

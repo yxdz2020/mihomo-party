@@ -1,12 +1,12 @@
-import { controledMihomoConfigPath } from '../utils/dirs'
 import { readFile, writeFile } from 'fs/promises'
+import { existsSync } from 'fs'
+import { controledMihomoConfigPath } from '../utils/dirs'
 import { parse, stringify } from '../utils/yaml'
 import { generateProfile } from '../core/factory'
-import { getAppConfig } from './app'
 import { defaultControledMihomoConfig } from '../utils/template'
 import { deepMerge } from '../utils/merge'
-import { existsSync } from 'fs'
 import { createLogger } from '../utils/logger'
+import { getAppConfig } from './app'
 
 const controledMihomoLogger = createLogger('ControledMihomo')
 

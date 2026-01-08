@@ -1,9 +1,9 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { ipcMain, net } from 'electron'
 import { getAppConfig, patchControledMihomoConfig } from '../config'
 import { patchMihomoConfig } from '../core/mihomoApi'
 import { mainWindow } from '../window'
-import { ipcMain, net } from 'electron'
 import { getDefaultDevice } from '../core/manager'
 
 export async function getCurrentSSID(): Promise<string | undefined> {

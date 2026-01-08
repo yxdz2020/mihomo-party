@@ -1,11 +1,11 @@
+import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import { BrowserWindow, ipcMain } from 'electron'
 import windowStateKeeper from 'electron-window-state'
-import { join } from 'path'
 import { getAppConfig, patchAppConfig } from '../config'
+import { floatingWindowLogger } from '../utils/logger'
 import { applyTheme } from './theme'
 import { buildContextMenu, showTrayIcon } from './tray'
-import { floatingWindowLogger } from '../utils/logger'
 
 export let floatingWindow: BrowserWindow | null = null
 

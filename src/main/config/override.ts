@@ -1,9 +1,9 @@
-import { overrideConfigPath, overridePath } from '../utils/dirs'
-import { getControledMihomoConfig } from './controledMihomo'
 import { readFile, writeFile, rm } from 'fs/promises'
 import { existsSync } from 'fs'
+import { overrideConfigPath, overridePath } from '../utils/dirs'
 import * as chromeRequest from '../utils/chromeRequest'
 import { parse, stringify } from '../utils/yaml'
+import { getControledMihomoConfig } from './controledMihomo'
 
 let overrideConfig: IOverrideConfig // override.yaml
 let overrideConfigWriteQueue: Promise<void> = Promise.resolve()

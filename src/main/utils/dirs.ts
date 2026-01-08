@@ -1,7 +1,7 @@
-import { is } from '@electron-toolkit/utils'
 import { existsSync, mkdirSync } from 'fs'
-import { app } from 'electron'
 import path from 'path'
+import { is } from '@electron-toolkit/utils'
+import { app } from 'electron'
 
 export const homeDir = app.getPath('home')
 

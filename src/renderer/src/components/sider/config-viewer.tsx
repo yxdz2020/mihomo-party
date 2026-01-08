@@ -1,8 +1,8 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react'
 import React, { useEffect, useState } from 'react'
-import { BaseEditor } from '../base/base-editor'
 import { getRuntimeConfigStr } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
+import { BaseEditor } from '../base/base-editor'
 
 interface Props {
   onClose: () => void

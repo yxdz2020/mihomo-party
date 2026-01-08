@@ -9,9 +9,9 @@ import {
 import { triggerSysProxy } from '../sys/sysproxy'
 import { patchMihomoConfig } from '../core/mihomoApi'
 import { quitWithoutCore, restartCore } from '../core/manager'
+import i18next from '../../shared/i18n'
 import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 import { updateTrayIcon } from './tray'
-import i18next from '../../shared/i18n'
 
 export async function registerShortcut(
   oldShortcut: string,

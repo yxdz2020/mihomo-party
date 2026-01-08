@@ -21,7 +21,7 @@ export function calcTraffic(byte: number): string {
 function formatNumString(num: number): string {
   let str = num.toFixed(2)
   if (str.length <= 5) return str
-  if (str.length == 6) {
+  if (str.length === 6) {
     str = num.toFixed(1)
     return str
   } else {

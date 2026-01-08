@@ -1,12 +1,12 @@
+import { join } from 'path'
 import { BrowserWindow, Menu, shell } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import windowStateKeeper from 'electron-window-state'
-import { join } from 'path'
+import icon from '../../resources/icon.png?asset'
 import { getAppConfig } from './config'
 import { quitWithoutCore, stopCore } from './core/manager'
 import { triggerSysProxy } from './sys/sysproxy'
 import { hideDockIcon, showDockIcon } from './resolve/tray'
-import icon from '../../resources/icon.png?asset'
 
 export let mainWindow: BrowserWindow | null = null
 let quitTimeout: NodeJS.Timeout | null = null

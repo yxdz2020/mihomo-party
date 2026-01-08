@@ -1,4 +1,18 @@
 import { ChildProcess, execFile, spawn } from 'child_process'
+import { readFile, rm, writeFile } from 'fs/promises'
+import { promisify } from 'util'
+import path from 'path'
+import os from 'os'
+import { createWriteStream, existsSync } from 'fs'
+import chokidar from 'chokidar'
+import { app, ipcMain } from 'electron'
+import { mainWindow } from '../window'
+import {
+  getAppConfig,
+  getControledMihomoConfig,
+  patchControledMihomoConfig,
+  manageSmartOverride
+} from '../config'
 import {
   dataDir,
   coreLogPath,
@@ -9,14 +23,11 @@ import {
   mihomoWorkConfigPath,
   mihomoWorkDir
 } from '../utils/dirs'
-import { generateProfile } from './factory'
-import {
-  getAppConfig,
-  getControledMihomoConfig,
-  patchControledMihomoConfig,
-  manageSmartOverride
-} from '../config'
-import { app, ipcMain } from 'electron'
+import { uploadRuntimeConfig } from '../resolve/gistApi'
+import { startMonitor } from '../resolve/trafficMonitor'
+import { safeShowErrorBox } from '../utils/init'
+import i18next from '../../shared/i18n'
+import { managerLogger } from '../utils/logger'
 import {
   startMihomoTraffic,
   startMihomoConnections,
@@ -29,18 +40,7 @@ import {
   patchMihomoConfig,
   getAxios
 } from './mihomoApi'
-import chokidar from 'chokidar'
-import { readFile, rm, writeFile } from 'fs/promises'
-import { promisify } from 'util'
-import { mainWindow } from '../window'
-import path from 'path'
-import os from 'os'
-import { createWriteStream, existsSync } from 'fs'
-import { uploadRuntimeConfig } from '../resolve/gistApi'
-import { startMonitor } from '../resolve/trafficMonitor'
-import { safeShowErrorBox } from '../utils/init'
-import i18next from '../../shared/i18n'
-import { managerLogger } from '../utils/logger'
+import { generateProfile } from './factory'
 
 // 拆分模块
 import { getSessionAdminStatus } from './permissions'

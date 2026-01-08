@@ -1,4 +1,8 @@
+import path from 'path'
+import v8 from 'v8'
+import { readFile, writeFile } from 'fs/promises'
 import { app, ipcMain } from 'electron'
+import i18next from 'i18next'
 import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -23,7 +27,6 @@ import {
   mihomoSmartFlushCache
 } from '../core/mihomoApi'
 import { checkAutoRun, disableAutoRun, enableAutoRun } from '../sys/autoRun'
-import { installMihomoCore, getGitHubTags, clearVersionCache } from './github'
 import {
   getAppConfig,
   patchAppConfig,
@@ -114,16 +117,13 @@ import {
   writeTheme
 } from '../resolve/theme'
 import { subStoreCollections, subStoreSubs } from '../core/subStoreApi'
-import { logDir, rulePath } from './dirs'
-import path from 'path'
-import v8 from 'v8'
 import { getGistUrl } from '../resolve/gistApi'
-import { getImageDataURL } from './image'
 import { startMonitor } from '../resolve/trafficMonitor'
 import { closeFloatingWindow, showContextMenu, showFloatingWindow } from '../resolve/floatingWindow'
-import i18next from 'i18next'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
-import { readFile, writeFile } from 'fs/promises'
+import { getImageDataURL } from './image'
+import { logDir, rulePath } from './dirs'
+import { installMihomoCore, getGitHubTags, clearVersionCache } from './github'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncFn = (...args: any[]) => Promise<any>

@@ -12,13 +12,13 @@ import { toast } from '@renderer/components/base/toast'
 import { IoMdMore, IoMdRefresh } from 'react-icons/io'
 import dayjs from '@renderer/utils/dayjs'
 import React, { Key, useMemo, useState } from 'react'
-import EditFileModal from './edit-file-modal'
-import EditInfoModal from './edit-info-modal'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import ExecLogModal from './exec-log-modal'
 import { openFile, restartCore } from '@renderer/utils/ipc'
 import { useTranslation } from 'react-i18next'
+import ExecLogModal from './exec-log-modal'
+import EditInfoModal from './edit-info-modal'
+import EditFileModal from './edit-file-modal'
 
 interface Props {
   info: IOverrideItem

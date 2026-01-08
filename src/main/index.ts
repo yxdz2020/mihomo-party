@@ -1,5 +1,7 @@
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { app, dialog } from 'electron'
+import i18next from 'i18next'
+import { initI18n } from '../shared/i18n'
 import { registerIpcMainHandlers } from './utils/ipc'
 import { getAppConfig, patchAppConfig } from './config'
 import {
@@ -16,10 +18,7 @@ import { initShortcut } from './resolve/shortcut'
 import { initProfileUpdater } from './core/profileUpdater'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
-import { initI18n } from '../shared/i18n'
-import i18next from 'i18next'
-import { logger } from './utils/logger'
-import { createLogger } from './utils/logger'
+import { logger , createLogger } from './utils/logger'
 import { initWebdavBackupScheduler } from './resolve/backup'
 
 const mainLogger = createLogger('Main')

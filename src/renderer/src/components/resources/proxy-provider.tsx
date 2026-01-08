@@ -4,10 +4,7 @@ import {
   getRuntimeConfig
 } from '@renderer/utils/ipc'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import Viewer from './viewer'
 import useSWR from 'swr'
-import SettingCard from '../base/base-setting-card'
-import SettingItem from '../base/base-setting-item'
 import { Button, Chip } from '@heroui/react'
 import { toast } from '@renderer/components/base/toast'
 import { IoMdRefresh } from 'react-icons/io'
@@ -17,6 +14,9 @@ import dayjs from '@renderer/utils/dayjs'
 import { calcTraffic } from '@renderer/utils/calc'
 import { getHash } from '@renderer/utils/hash'
 import { useTranslation } from 'react-i18next'
+import SettingItem from '../base/base-setting-item'
+import SettingCard from '../base/base-setting-card'
+import Viewer from './viewer'
 const ProxyProvider: React.FC = () => {
   const { t } = useTranslation()
   const [showDetails, setShowDetails] = useState({
@@ -126,7 +126,7 @@ const ProxyProvider: React.FC = () => {
               <Button
                 isIconOnly
                 title={
-                  provider.vehicleType == 'File' ? t('common.editor.edit') : t('common.viewer.view')
+                  provider.vehicleType === 'File' ? t('common.editor.edit') : t('common.viewer.view')
                 }
                 className="ml-2"
                 size="sm"
@@ -140,7 +140,7 @@ const ProxyProvider: React.FC = () => {
                   })
                 }}
               >
-                {provider.vehicleType == 'File' ? (
+                {provider.vehicleType === 'File' ? (
                   <MdEditDocument className={`text-lg`} />
                 ) : (
                   <CgLoadbarDoc className={`text-lg`} />

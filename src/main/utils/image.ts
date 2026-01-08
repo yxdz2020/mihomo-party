@@ -1,5 +1,5 @@
-import * as chromeRequest from './chromeRequest'
 import { getControledMihomoConfig } from '../config'
+import * as chromeRequest from './chromeRequest'
 
 export async function getImageDataURL(url: string): Promise<string> {
   const { 'mixed-port': port = 7890 } = await getControledMihomoConfig()

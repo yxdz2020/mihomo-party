@@ -1,13 +1,13 @@
 import { copyFile, readdir, readFile, writeFile } from 'fs/promises'
-import { themesDir } from '../utils/dirs'
 import path from 'path'
-import * as chromeRequest from '../utils/chromeRequest'
-import AdmZip from 'adm-zip'
-import { getControledMihomoConfig } from '../config'
 import { existsSync } from 'fs'
+import AdmZip from 'adm-zip'
+import { t } from 'i18next'
+import { themesDir } from '../utils/dirs'
+import * as chromeRequest from '../utils/chromeRequest'
+import { getControledMihomoConfig } from '../config'
 import { mainWindow } from '../window'
 import { floatingWindow } from './floatingWindow'
-import { t } from 'i18next'
 
 let insertedCSSKeyMain: string | undefined = undefined
 let insertedCSSKeyFloating: string | undefined = undefined

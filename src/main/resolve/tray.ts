@@ -1,3 +1,5 @@
+import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
+import { t } from 'i18next'
 import {
   changeCurrentProfile,
   getAppConfig,
@@ -24,7 +26,6 @@ import {
   calculateTrayIconStatus
 } from '../core/mihomoApi'
 import { mainWindow, showMainWindow, triggerMainWindow } from '../window'
-import { app, clipboard, ipcMain, Menu, nativeImage, shell, Tray } from 'electron'
 import { dataDir, logDir, mihomoCoreDir, mihomoWorkDir } from '../utils/dirs'
 import { triggerSysProxy } from '../sys/sysproxy'
 import {
@@ -34,9 +35,8 @@ import {
   requestTunPermissions,
   restartAsAdmin
 } from '../core/manager'
-import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
-import { t } from 'i18next'
 import { trayLogger } from '../utils/logger'
+import { floatingWindow, triggerFloatingWindow } from './floatingWindow'
 
 export let tray: Tray | null = null
 

@@ -10,10 +10,10 @@ import { CSS } from '@dnd-kit/utilities'
 import 'dayjs/locale/zh-cn'
 import dayjs from '@renderer/utils/dayjs'
 import React, { useState } from 'react'
-import ConfigViewer from './config-viewer'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { TiFolder } from 'react-icons/ti'
 import { useTranslation } from 'react-i18next'
+import ConfigViewer from './config-viewer'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')

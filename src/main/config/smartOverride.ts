@@ -1,6 +1,6 @@
+import { overrideLogger } from '../utils/logger'
 import { getAppConfig } from './app'
 import { addOverrideItem, removeOverrideItem, getOverrideItem } from './override'
-import { overrideLogger } from '../utils/logger'
 
 const SMART_OVERRIDE_ID = 'smart-core-override'
 
