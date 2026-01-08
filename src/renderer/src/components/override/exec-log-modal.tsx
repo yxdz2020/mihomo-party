@@ -20,13 +20,12 @@ const ExecLogModal: React.FC<Props> = (props) => {
   const [logs, setLogs] = useState<string[]>([])
   const { t } = useTranslation()
 
-  const getLog = async (): Promise<void> => {
-    setLogs((await getOverride(id, 'log')).split('\n').filter(Boolean))
-  }
-
   useEffect(() => {
-    getLog()
-  }, [])
+    const loadLog = async (): Promise<void> => {
+      setLogs((await getOverride(id, 'log')).split('\n').filter(Boolean))
+    }
+    loadLog()
+  }, [id])
 
   return (
     <Modal

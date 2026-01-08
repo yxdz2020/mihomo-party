@@ -85,7 +85,7 @@ const useProxyState = (
         return prev.slice(0, groups.length)
       })
     }
-  }, [groups.length])
+  }, [groups.length, isOpen.length, setIsOpen])
 
   // 保存展开状态
   useEffect(() => {
@@ -133,7 +133,7 @@ const Proxies: React.FC = () => {
     if (groups.length !== searchValue.length) {
       setSearchValue(Array(groups.length).fill(''))
     }
-  }, [groups.length])
+  }, [groups.length, searchValue.length])
 
   // 代理列表排序
   const sortProxies = useCallback((proxies: (IMihomoProxy | IMihomoGroup)[], order: string) => {

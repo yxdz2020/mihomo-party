@@ -18,10 +18,8 @@ import { initShortcut } from './resolve/shortcut'
 import { initProfileUpdater } from './core/profileUpdater'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
-import { logger , createLogger } from './utils/logger'
+import { logger, createLogger } from './utils/logger'
 import { initWebdavBackupScheduler } from './resolve/backup'
-
-const mainLogger = createLogger('Main')
 import {
   createWindow,
   mainWindow,
@@ -36,6 +34,8 @@ import {
   setupAppLifecycle,
   getSystemLanguage
 } from './lifecycle'
+
+const mainLogger = createLogger('Main')
 
 export { mainWindow, showMainWindow, triggerMainWindow, closeMainWindow }
 

@@ -27,7 +27,7 @@ export const GroupsProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return (): void => {
       window.electron.ipcRenderer.removeListener('groupsUpdated', handler)
     }
-  }, [])
+  }, [mutate])
 
   return <GroupsContext.Provider value={{ groups, mutate }}>{children}</GroupsContext.Provider>
 }

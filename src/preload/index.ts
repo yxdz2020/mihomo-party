@@ -191,7 +191,7 @@ const electronAPI = {
         if (!listenerMap.has(channel)) {
           listenerMap.set(channel, new Set())
         }
-        listenerMap.get(channel)!.add(listener)
+        listenerMap.get(channel)?.add(listener)
         ipcRenderer.on(channel, listener)
       }
     },

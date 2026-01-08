@@ -39,7 +39,7 @@ export const ControledMihomoConfigProvider: React.FC<{ children: ReactNode }> = 
     return (): void => {
       window.electron.ipcRenderer.removeListener('controledMihomoConfigUpdated', handler)
     }
-  }, [])
+  }, [mutateControledMihomoConfig])
 
   return (
     <ControledMihomoConfigContext.Provider

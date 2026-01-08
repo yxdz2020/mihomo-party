@@ -11,7 +11,7 @@ import { getMihomoIpcPath } from './manager'
 
 const mihomoApiLogger = createLogger('MihomoApi')
 
-let axiosIns: AxiosInstance = null!
+let axiosIns: AxiosInstance | null = null
 let currentIpcPath: string = ''
 let mihomoTrafficWs: WebSocket | null = null
 let trafficRetry = 10
@@ -27,7 +27,6 @@ const MAX_RETRY = 10
 export const getAxios = async (force: boolean = false): Promise<AxiosInstance> => {
   const dynamicIpcPath = getMihomoIpcPath()
 
-  // 如路径改变 强制重新创建实例
   if (axiosIns && !force && currentIpcPath === dynamicIpcPath) {
     return axiosIns
   }

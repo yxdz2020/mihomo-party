@@ -36,7 +36,7 @@ const BasePage = forwardRef<HTMLDivElement, Props>((props, ref) => {
         // ignore
       }
     }
-  }, [])
+  }, [useWindowFrame])
 
   const contentRef = useRef<HTMLDivElement>(null)
   useImperativeHandle(ref, () => {

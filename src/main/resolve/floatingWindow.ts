@@ -49,7 +49,9 @@ async function createFloatingWindow(): Promise<void> {
 
     if (process.platform === 'win32') {
       windowOptions.hasShadow = !safeMode
-      windowOptions.webPreferences!.offscreen = false
+      if (windowOptions.webPreferences) {
+        windowOptions.webPreferences.offscreen = false
+      }
     }
 
     floatingWindow = new BrowserWindow(windowOptions)
@@ -68,7 +70,9 @@ async function createFloatingWindow(): Promise<void> {
     })
 
     floatingWindow.on('moved', () => {
-      floatingWindow && floatingWindowState.saveState(floatingWindow)
+      if (floatingWindow) {
+        floatingWindowState.saveState(floatingWindow)
+      }
     })
 
     // IPC 监听器

@@ -69,5 +69,12 @@ module.exports = [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'warn'
     }
+  },
+
+  {
+    files: ['**/logger.ts'],
+    rules: {
+      'no-console': 'off'
+    }
   }
 ]

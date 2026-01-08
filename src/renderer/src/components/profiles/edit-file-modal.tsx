@@ -16,13 +16,12 @@ const EditFileModal: React.FC<Props> = (props) => {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
-  const getContent = async (): Promise<void> => {
-    setCurrData(await getProfileStr(id))
-  }
-
   useEffect(() => {
-    getContent()
-  }, [])
+    const loadContent = async (): Promise<void> => {
+      setCurrData(await getProfileStr(id))
+    }
+    loadContent()
+  }, [id])
 
   return (
     <Modal

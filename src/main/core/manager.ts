@@ -41,8 +41,6 @@ import {
   getAxios
 } from './mihomoApi'
 import { generateProfile } from './factory'
-
-// 拆分模块
 import { getSessionAdminStatus } from './permissions'
 import {
   cleanupSocketFile,

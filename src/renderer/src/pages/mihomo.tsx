@@ -52,6 +52,34 @@ const CoreMap = {
   'mihomo-specific': 'mihomo.specificVersion'
 }
 
+interface WebUIPanel {
+  id: string
+  name: string
+  url: string
+  isDefault?: boolean
+}
+
+const defaultWebUIPanels: WebUIPanel[] = [
+  {
+    id: 'metacubexd',
+    name: 'MetaCubeXD',
+    url: 'https://metacubex.github.io/metacubexd/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
+    isDefault: true
+  },
+  {
+    id: 'yacd',
+    name: 'YACD',
+    url: 'https://yacd.metacubex.one/?hostname=%host&port=%port&secret=%secret',
+    isDefault: true
+  },
+  {
+    id: 'zashboard',
+    name: 'Zashboard',
+    url: 'https://board.zash.run.place/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
+    isDefault: true
+  }
+]
+
 const Mihomo: React.FC = () => {
   const { t } = useTranslation()
   const { appConfig, patchAppConfig } = useAppConfig()
@@ -78,13 +106,6 @@ const Mihomo: React.FC = () => {
     enableTproxyPort = false
   } = appConfig || {}
   const { controledMihomoConfig, patchControledMihomoConfig } = useControledMihomoConfig()
-
-  interface WebUIPanel {
-    id: string
-    name: string
-    url: string
-    isDefault?: boolean
-  }
 
   const {
     ipv6,
@@ -152,28 +173,6 @@ const Mihomo: React.FC = () => {
 
   // 生成随机端口 (范围 1024-65535)
   const generateRandomPort = () => Math.floor(Math.random() * (65535 - 1024 + 1)) + 1024
-
-  // 默认 WebUI 面板选项
-  const defaultWebUIPanels: WebUIPanel[] = [
-    {
-      id: 'metacubexd',
-      name: 'MetaCubeXD',
-      url: 'https://metacubex.github.io/metacubexd/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
-      isDefault: true
-    },
-    {
-      id: 'yacd',
-      name: 'YACD',
-      url: 'https://yacd.metacubex.one/?hostname=%host&port=%port&secret=%secret',
-      isDefault: true
-    },
-    {
-      id: 'zashboard',
-      name: 'Zashboard',
-      url: 'https://board.zash.run.place/#/setup?http=true&hostname=%host&port=%port&secret=%secret',
-      isDefault: true
-    }
-  ]
 
   // 初始化面板列表
   useEffect(() => {

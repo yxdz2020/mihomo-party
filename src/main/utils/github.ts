@@ -59,9 +59,8 @@ export async function getGitHubTags(
 
   // 检查缓存
   if (!forceRefresh && versionCache.has(cacheKey)) {
-    const cache = versionCache.get(cacheKey)!
-    // 检查缓存是否过期
-    if (Date.now() - cache.timestamp < CACHE_EXPIRY) {
+    const cache = versionCache.get(cacheKey)
+    if (cache && Date.now() - cache.timestamp < CACHE_EXPIRY) {
       log.debug(`Returning cached tags for ${owner}/${repo}`)
       return cache.data
     }

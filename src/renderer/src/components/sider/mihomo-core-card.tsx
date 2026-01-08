@@ -51,7 +51,7 @@ const MihomoCoreCard: React.FC<Props> = (props) => {
       PubSub.unsubscribe(token)
       window.electron.ipcRenderer.removeAllListeners('mihomoMemory')
     }
-  }, [])
+  }, [mutate])
 
   if (iconOnly) {
     return (

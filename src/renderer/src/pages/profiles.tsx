@@ -126,7 +126,7 @@ const Profiles: React.FC = () => {
       })
     }
     return items
-  }, [subs, collections])
+  }, [subs, collections, t])
   const handleImport = async (): Promise<void> => {
     setImporting(true)
     await addProfileItem({

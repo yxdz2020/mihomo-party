@@ -41,7 +41,7 @@ export async function setProfileConfig(config: IProfileConfig): Promise<void> {
 export async function updateProfileConfig(
   updater: (config: IProfileConfig) => IProfileConfig | Promise<IProfileConfig>
 ): Promise<IProfileConfig> {
-  let result: IProfileConfig
+  let result: IProfileConfig | undefined
   profileConfigWriteQueue = profileConfigWriteQueue.then(async () => {
     const data = await readFile(profileConfigPath(), 'utf-8')
     profileConfig = parse(data) || { items: [] }
@@ -51,7 +51,7 @@ export async function updateProfileConfig(
     await writeFile(profileConfigPath(), stringify(profileConfig), 'utf-8')
   })
   await profileConfigWriteQueue
-  return structuredClone(result!)
+  return structuredClone(result ?? profileConfig)
 }
 
 export async function getProfileItem(id: string | undefined): Promise<IProfileItem | undefined> {

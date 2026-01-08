@@ -15,13 +15,12 @@ const EditFileModal: React.FC<Props> = (props) => {
   const [currData, setCurrData] = useState('')
   const { t } = useTranslation()
 
-  const getContent = async (): Promise<void> => {
-    setCurrData(await getOverride(id, language === 'javascript' ? 'js' : 'yaml'))
-  }
-
   useEffect(() => {
-    getContent()
-  }, [])
+    const loadContent = async (): Promise<void> => {
+      setCurrData(await getOverride(id, language === 'javascript' ? 'js' : 'yaml'))
+    }
+    loadContent()
+  }, [id, language])
 
   return (
     <Modal

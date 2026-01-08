@@ -558,188 +558,266 @@ const EditRulesModal: React.FC<Props> = (props) => {
 
   const deferredFilteredRules = useDeferredValue(filteredRules)
 
-  const getContent = async (): Promise<void> => {
-    setIsLoading(true)
-    try {
-      const content = await getProfileStr(id)
-      setProfileContent(content)
+  // 解析规则字符串
+  const parseRuleString = useCallback((ruleStr: string): RuleItem => {
+    const parts = ruleStr.split(',')
+    const firstPartIsNumber =
+      !isNaN(Number(parts[0])) && parts[0].trim() !== '' && parts.length >= 3
 
-      const parsed = yaml.load(content) as Record<string, unknown> | undefined
-      let initialRules: RuleItem[] = []
+    let offset = 0
+    let ruleParts = parts
 
-      if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
-        initialRules = parsed.rules.map((rule: string) => {
-          const parts = rule.split(',')
-          if (parts[0] === 'MATCH') {
-            return {
-              type: 'MATCH',
-              payload: '',
-              proxy: parts[1]
-            }
+    if (firstPartIsNumber) {
+      offset = parseInt(parts[0])
+      ruleParts = parts.slice(1)
+    }
+
+    if (ruleParts[0] === 'MATCH') {
+      return {
+        type: 'MATCH',
+        payload: '',
+        proxy: ruleParts[1],
+        offset: offset > 0 ? offset : undefined
+      }
+    } else {
+      const additionalParams = ruleParts.slice(3).filter((param) => param.trim() !== '') || []
+      return {
+        type: ruleParts[0],
+        payload: ruleParts[1],
+        proxy: ruleParts[2],
+        additionalParams,
+        offset: offset > 0 ? offset : undefined
+      }
+    }
+  }, [])
+
+  // 处理前置规则位置
+  const processRulesWithPositions = useCallback(
+    (
+      rulesToProcess: RuleItem[],
+      allRules: RuleItem[],
+      positionCalculator: (rule: RuleItem, currentRules: RuleItem[]) => number
+    ): { updatedRules: RuleItem[]; ruleIndices: Set<number> } => {
+      const updatedRules = [...allRules]
+      const ruleIndices = new Set<number>()
+
+      rulesToProcess.forEach((rule) => {
+        const targetPosition = positionCalculator(rule, updatedRules)
+        const actualPosition = Math.min(targetPosition, updatedRules.length)
+        updatedRules.splice(actualPosition, 0, rule)
+
+        const newRuleIndices = new Set<number>()
+        ruleIndices.forEach((idx) => {
+          if (idx >= actualPosition) {
+            newRuleIndices.add(idx + 1)
           } else {
-            const additionalParams = parts.slice(3).filter((param) => param.trim() !== '') || []
-            return {
-              type: parts[0],
-              payload: parts[1],
-              proxy: parts[2],
-              additionalParams
-            }
+            newRuleIndices.add(idx)
           }
         })
-      }
+        newRuleIndices.add(actualPosition)
 
-      // 提取代理组
-      if (parsed) {
-        const groups: string[] = []
+        ruleIndices.clear()
+        newRuleIndices.forEach((idx) => ruleIndices.add(idx))
+      })
 
-        // 添加代理组和代理名称
-        if (Array.isArray(parsed['proxy-groups'])) {
-          groups.push(
-            ...((parsed['proxy-groups'] as Array<Record<string, unknown>>)
-              .map((group) =>
-                group && typeof group['name'] === 'string' ? (group['name'] as string) : ''
-              )
-              .filter(Boolean) as string[])
-          )
-        }
+      return { updatedRules, ruleIndices }
+    },
+    []
+  )
 
-        if (Array.isArray(parsed['proxies'])) {
-          groups.push(
-            ...((parsed['proxies'] as Array<Record<string, unknown>>)
-              .map((proxy) =>
-                proxy && typeof proxy['name'] === 'string' ? (proxy['name'] as string) : ''
-              )
-              .filter(Boolean) as string[])
-          )
-        }
+  // 处理后置规则位置
+  const processAppendRulesWithPositions = useCallback(
+    (
+      rulesToProcess: RuleItem[],
+      allRules: RuleItem[],
+      positionCalculator: (rule: RuleItem, currentRules: RuleItem[]) => number
+    ): { updatedRules: RuleItem[]; ruleIndices: Set<number> } => {
+      const updatedRules = [...allRules]
+      const ruleIndices = new Set<number>()
 
-        // 预置出站 https://wiki.metacubex.one/config/proxies/built-in/
-        groups.push('DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'COMPATIBLE')
+      rulesToProcess.forEach((rule) => {
+        const targetPosition = positionCalculator(rule, updatedRules)
+        const actualPosition = Math.min(targetPosition, updatedRules.length)
+        updatedRules.splice(actualPosition, 0, rule)
 
-        // 去重
-        setProxyGroups([...new Set(groups)])
-      }
+        const newRuleIndices = new Set<number>()
+        ruleIndices.forEach((idx) => {
+          if (idx >= actualPosition) {
+            newRuleIndices.add(idx + 1)
+          } else {
+            newRuleIndices.add(idx)
+          }
+        })
+        newRuleIndices.add(actualPosition)
 
-      // 读取规则文件
+        ruleIndices.clear()
+        newRuleIndices.forEach((idx) => ruleIndices.add(idx))
+      })
+
+      return { updatedRules, ruleIndices }
+    },
+    []
+  )
+
+  useEffect(() => {
+    const loadContent = async (): Promise<void> => {
+      setIsLoading(true)
       try {
-        const ruleContent = await getRuleStr(id)
-        const ruleData = yaml.load(ruleContent) as {
-          prepend?: string[]
-          append?: string[]
-          delete?: string[]
+        const content = await getProfileStr(id)
+        setProfileContent(content)
+
+        const parsed = yaml.load(content) as Record<string, unknown> | undefined
+        let initialRules: RuleItem[] = []
+
+        if (parsed && parsed.rules && Array.isArray(parsed.rules)) {
+          initialRules = parsed.rules.map((rule: string) => {
+            const parts = rule.split(',')
+            if (parts[0] === 'MATCH') {
+              return {
+                type: 'MATCH',
+                payload: '',
+                proxy: parts[1]
+              }
+            } else {
+              const additionalParams = parts.slice(3).filter((param) => param.trim() !== '') || []
+              return {
+                type: parts[0],
+                payload: parts[1],
+                proxy: parts[2],
+                additionalParams
+              }
+            }
+          })
         }
 
-        if (ruleData) {
-          let allRules = [...initialRules]
-          const newPrependRules = new Set<number>()
-          const newAppendRules = new Set<number>()
-          const newDeletedRules = new Set<number>()
+        if (parsed) {
+          const groups: string[] = []
 
-          // 处理前置规则
-          if (ruleData.prepend && Array.isArray(ruleData.prepend)) {
-            const prependRules: RuleItem[] = []
-            ruleData.prepend.forEach((ruleStr: string) => {
-              prependRules.push(parseRuleString(ruleStr))
-            })
-
-            // 插入前置规则
-            const { updatedRules, ruleIndices } = processRulesWithPositions(
-              prependRules,
-              allRules,
-              (rule, currentRules) => {
-                if (rule.offset !== undefined && rule.offset < currentRules.length) {
-                  return rule.offset
-                }
-                return 0
-              }
+          if (Array.isArray(parsed['proxy-groups'])) {
+            groups.push(
+              ...((parsed['proxy-groups'] as Array<Record<string, unknown>>)
+                .map((group) =>
+                  group && typeof group['name'] === 'string' ? (group['name'] as string) : ''
+                )
+                .filter(Boolean) as string[])
             )
-
-            allRules = updatedRules
-            ruleIndices.forEach((index) => newPrependRules.add(index))
           }
 
-          // 处理后置规则
-          if (ruleData.append && Array.isArray(ruleData.append)) {
-            const appendRules: RuleItem[] = []
-            ruleData.append.forEach((ruleStr: string) => {
-              appendRules.push(parseRuleString(ruleStr))
-            })
-
-            // 插入后置规则
-            const { updatedRules, ruleIndices } = processAppendRulesWithPositions(
-              appendRules,
-              allRules,
-              (rule, currentRules) => {
-                if (rule.offset !== undefined) {
-                  return Math.max(0, currentRules.length - rule.offset)
-                }
-                return currentRules.length
-              }
+          if (Array.isArray(parsed['proxies'])) {
+            groups.push(
+              ...((parsed['proxies'] as Array<Record<string, unknown>>)
+                .map((proxy) =>
+                  proxy && typeof proxy['name'] === 'string' ? (proxy['name'] as string) : ''
+                )
+                .filter(Boolean) as string[])
             )
-
-            allRules = updatedRules
-
-            // 标记后置规则
-            ruleIndices.forEach((index) => newAppendRules.add(index))
           }
 
-          // 处理删除规则
-          if (ruleData.delete && Array.isArray(ruleData.delete)) {
-            const deleteRules = ruleData.delete.map((ruleStr: string) => {
-              return parseRuleString(ruleStr)
-            })
+          groups.push('DIRECT', 'REJECT', 'REJECT-DROP', 'PASS', 'COMPATIBLE')
+          setProxyGroups([...new Set(groups)])
+        }
 
-            // 匹配并标记删除规则
-            deleteRules.forEach((deleteRule) => {
-              const matchedIndex = allRules.findIndex(
-                (rule) =>
-                  rule.type === deleteRule.type &&
-                  rule.payload === deleteRule.payload &&
-                  rule.proxy === deleteRule.proxy &&
-                  JSON.stringify(rule.additionalParams || []) ===
-                    JSON.stringify(deleteRule.additionalParams || [])
+        try {
+          const ruleContent = await getRuleStr(id)
+          const ruleData = yaml.load(ruleContent) as {
+            prepend?: string[]
+            append?: string[]
+            delete?: string[]
+          }
+
+          if (ruleData) {
+            let allRules = [...initialRules]
+            const newPrependRules = new Set<number>()
+            const newAppendRules = new Set<number>()
+            const newDeletedRules = new Set<number>()
+
+            if (ruleData.prepend && Array.isArray(ruleData.prepend)) {
+              const prependRuleItems: RuleItem[] = []
+              ruleData.prepend.forEach((ruleStr: string) => {
+                prependRuleItems.push(parseRuleString(ruleStr))
+              })
+
+              const { updatedRules, ruleIndices } = processRulesWithPositions(
+                prependRuleItems,
+                allRules,
+                (rule, currentRules) => {
+                  if (rule.offset !== undefined && rule.offset < currentRules.length) {
+                    return rule.offset
+                  }
+                  return 0
+                }
               )
 
-              if (matchedIndex !== -1) {
-                newDeletedRules.add(matchedIndex)
-              }
-            })
+              allRules = updatedRules
+              ruleIndices.forEach((index) => newPrependRules.add(index))
+            }
+
+            if (ruleData.append && Array.isArray(ruleData.append)) {
+              const appendRuleItems: RuleItem[] = []
+              ruleData.append.forEach((ruleStr: string) => {
+                appendRuleItems.push(parseRuleString(ruleStr))
+              })
+
+              const { updatedRules, ruleIndices } = processAppendRulesWithPositions(
+                appendRuleItems,
+                allRules,
+                (rule, currentRules) => {
+                  if (rule.offset !== undefined) {
+                    return Math.max(0, currentRules.length - rule.offset)
+                  }
+                  return currentRules.length
+                }
+              )
+
+              allRules = updatedRules
+              ruleIndices.forEach((index) => newAppendRules.add(index))
+            }
+
+            if (ruleData.delete && Array.isArray(ruleData.delete)) {
+              const deleteRules = ruleData.delete.map((ruleStr: string) => {
+                return parseRuleString(ruleStr)
+              })
+
+              deleteRules.forEach((deleteRule) => {
+                const matchedIndex = allRules.findIndex(
+                  (rule) =>
+                    rule.type === deleteRule.type &&
+                    rule.payload === deleteRule.payload &&
+                    rule.proxy === deleteRule.proxy &&
+                    JSON.stringify(rule.additionalParams || []) ===
+                      JSON.stringify(deleteRule.additionalParams || [])
+                )
+
+                if (matchedIndex !== -1) {
+                  newDeletedRules.add(matchedIndex)
+                }
+              })
+            }
+
+            setPrependRules(newPrependRules)
+            setAppendRules(newAppendRules)
+            setDeletedRules(newDeletedRules)
+            setRules(allRules)
+          } else {
+            setRules(initialRules)
+            setPrependRules(new Set())
+            setAppendRules(new Set())
+            setDeletedRules(new Set())
           }
-
-          // 更新状态
-          setPrependRules(newPrependRules)
-          setAppendRules(newAppendRules)
-          setDeletedRules(newDeletedRules)
-
-          // 设置规则列表
-          setRules(allRules)
-        } else {
-          // 使用初始规则
+        } catch {
           setRules(initialRules)
-          // 清空规则标记
           setPrependRules(new Set())
           setAppendRules(new Set())
           setDeletedRules(new Set())
         }
-      } catch (ruleError) {
-        // 规则文件读取失败
-        console.debug('规则文件读取失败：', ruleError)
-        setRules(initialRules)
-        // 清空规则标记
-        setPrependRules(new Set())
-        setAppendRules(new Set())
-        setDeletedRules(new Set())
+      } catch {
+        // 解析配置文件失败，静默处理
+      } finally {
+        setIsLoading(false)
       }
-    } catch (e) {
-      console.error('Failed to parse profile content', e)
-    } finally {
-      setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    getContent()
-  }, [])
+    loadContent()
+  }, [id, parseRuleString, processRulesWithPositions, processAppendRulesWithPositions])
 
   const validateRulePayload = useCallback((ruleType: string, payload: string): boolean => {
     if (ruleType === 'MATCH') {
@@ -843,6 +921,58 @@ const EditRulesModal: React.FC<Props> = (props) => {
     })
   }
 
+  // 计算插入位置的索引
+  const getUpdatedIndexForInsertion = (index: number, insertPosition: number): number => {
+    if (index >= insertPosition) {
+      return index + 1
+    } else {
+      return index
+    }
+  }
+
+  // 插入规则后更新所有索引
+  const updateAllRuleIndicesAfterInsertion = useCallback(
+    (
+      currentPrependRules: Set<number>,
+      currentAppendRules: Set<number>,
+      currentDeletedRules: Set<number>,
+      insertPosition: number,
+      isNewPrependRule: boolean = false,
+      isNewAppendRule: boolean = false
+    ): {
+      newPrependRules: Set<number>
+      newAppendRules: Set<number>
+      newDeletedRules: Set<number>
+    } => {
+      const newPrependRules = new Set<number>()
+      const newAppendRules = new Set<number>()
+      const newDeletedRules = new Set<number>()
+
+      currentPrependRules.forEach((idx) => {
+        newPrependRules.add(getUpdatedIndexForInsertion(idx, insertPosition))
+      })
+
+      currentAppendRules.forEach((idx) => {
+        newAppendRules.add(getUpdatedIndexForInsertion(idx, insertPosition))
+      })
+
+      currentDeletedRules.forEach((idx) => {
+        newDeletedRules.add(getUpdatedIndexForInsertion(idx, insertPosition))
+      })
+
+      if (isNewPrependRule) {
+        newPrependRules.add(insertPosition)
+      }
+
+      if (isNewAppendRule) {
+        newAppendRules.add(insertPosition)
+      }
+
+      return { newPrependRules, newAppendRules, newDeletedRules }
+    },
+    []
+  )
+
   const handleAddRule = useCallback(
     (position: 'prepend' | 'append' = 'append'): void => {
       if (!(newRule.type === 'MATCH' || newRule.payload.trim() !== '')) {
@@ -917,7 +1047,16 @@ const EditRulesModal: React.FC<Props> = (props) => {
       })
       setNewRule({ type: 'DOMAIN', payload: '', proxy: 'DIRECT', additionalParams: [] })
     },
-    [newRule, rules, prependRules, appendRules, deletedRules, validateRulePayload, t]
+    [
+      newRule,
+      rules,
+      prependRules,
+      appendRules,
+      deletedRules,
+      validateRulePayload,
+      t,
+      updateAllRuleIndicesAfterInsertion
+    ]
   )
 
   const handleRemoveRule = useCallback((index: number): void => {
@@ -1002,126 +1141,6 @@ const EditRulesModal: React.FC<Props> = (props) => {
     [rules, prependRules, appendRules]
   )
 
-  // 解析规则字符串
-  const parseRuleString = (ruleStr: string): RuleItem => {
-    const parts = ruleStr.split(',')
-    const firstPartIsNumber =
-      !isNaN(Number(parts[0])) && parts[0].trim() !== '' && parts.length >= 3
-
-    let offset = 0
-    let ruleParts = parts
-
-    if (firstPartIsNumber) {
-      offset = parseInt(parts[0])
-      ruleParts = parts.slice(1)
-    }
-
-    if (ruleParts[0] === 'MATCH') {
-      return {
-        type: 'MATCH',
-        payload: '',
-        proxy: ruleParts[1],
-        offset: offset > 0 ? offset : undefined
-      }
-    } else {
-      const additionalParams = ruleParts.slice(3).filter((param) => param.trim() !== '') || []
-      return {
-        type: ruleParts[0],
-        payload: ruleParts[1],
-        proxy: ruleParts[2],
-        additionalParams,
-        offset: offset > 0 ? offset : undefined
-      }
-    }
-  }
-
-  // 规则转字符串
-  const convertRuleToString = (rule: RuleItem): string => {
-    const parts = [rule.type]
-    if (rule.payload) parts.push(rule.payload)
-    if (rule.proxy) parts.push(rule.proxy)
-    if (rule.additionalParams && rule.additionalParams.length > 0) {
-      parts.push(...rule.additionalParams)
-    }
-
-    // 添加偏移量
-    if (rule.offset !== undefined && rule.offset > 0) {
-      parts.unshift(rule.offset.toString())
-    }
-
-    return parts.join(',')
-  }
-
-  // 处理前置规则位置
-  const processRulesWithPositions = (
-    rules: RuleItem[],
-    allRules: RuleItem[],
-    positionCalculator: (rule: RuleItem, currentRules: RuleItem[]) => number
-  ): { updatedRules: RuleItem[]; ruleIndices: Set<number> } => {
-    const updatedRules = [...allRules]
-    const ruleIndices = new Set<number>()
-
-    // 按顺序处理规则
-    rules.forEach((rule) => {
-      const targetPosition = positionCalculator(rule, updatedRules)
-      const actualPosition = Math.min(targetPosition, updatedRules.length)
-      updatedRules.splice(actualPosition, 0, rule)
-
-      // 更新索引
-      const newRuleIndices = new Set<number>()
-      ruleIndices.forEach((idx) => {
-        if (idx >= actualPosition) {
-          newRuleIndices.add(idx + 1)
-        } else {
-          newRuleIndices.add(idx)
-        }
-      })
-      // 添加当前规则索引
-      newRuleIndices.add(actualPosition)
-
-      // 更新索引集合
-      ruleIndices.clear()
-      newRuleIndices.forEach((idx) => ruleIndices.add(idx))
-    })
-
-    return { updatedRules, ruleIndices }
-  }
-
-  // 处理后置规则位置
-  const processAppendRulesWithPositions = (
-    rules: RuleItem[],
-    allRules: RuleItem[],
-    positionCalculator: (rule: RuleItem, currentRules: RuleItem[]) => number
-  ): { updatedRules: RuleItem[]; ruleIndices: Set<number> } => {
-    const updatedRules = [...allRules]
-    const ruleIndices = new Set<number>()
-
-    // 按顺序处理规则
-    rules.forEach((rule) => {
-      const targetPosition = positionCalculator(rule, updatedRules)
-      const actualPosition = Math.min(targetPosition, updatedRules.length)
-      updatedRules.splice(actualPosition, 0, rule)
-
-      // 更新索引
-      const newRuleIndices = new Set<number>()
-      ruleIndices.forEach((idx) => {
-        if (idx >= actualPosition) {
-          newRuleIndices.add(idx + 1)
-        } else {
-          newRuleIndices.add(idx)
-        }
-      })
-      // 添加当前规则索引
-      newRuleIndices.add(actualPosition)
-
-      // 更新索引集合
-      ruleIndices.clear()
-      newRuleIndices.forEach((idx) => ruleIndices.add(idx))
-    })
-
-    return { updatedRules, ruleIndices }
-  }
-
   // 更新规则索引
   const updateRuleIndices = (prev: Set<number>, index1: number, index2: number): Set<number> => {
     const newSet = new Set<number>()
@@ -1137,57 +1156,20 @@ const EditRulesModal: React.FC<Props> = (props) => {
     return newSet
   }
 
-  // 计算插入位置的索引
-  const getUpdatedIndexForInsertion = (index: number, insertPosition: number): number => {
-    if (index >= insertPosition) {
-      return index + 1
-    } else {
-      return index
-    }
-  }
-
-  // 插入规则后更新所有索引
-  const updateAllRuleIndicesAfterInsertion = (
-    prependRules: Set<number>,
-    appendRules: Set<number>,
-    deletedRules: Set<number>,
-    insertPosition: number,
-    isNewPrependRule: boolean = false,
-    isNewAppendRule: boolean = false
-  ): {
-    newPrependRules: Set<number>
-    newAppendRules: Set<number>
-    newDeletedRules: Set<number>
-  } => {
-    const newPrependRules = new Set<number>()
-    const newAppendRules = new Set<number>()
-    const newDeletedRules = new Set<number>()
-
-    // 更新前置规则索引
-    prependRules.forEach((idx) => {
-      newPrependRules.add(getUpdatedIndexForInsertion(idx, insertPosition))
-    })
-
-    // 更新后置规则索引
-    appendRules.forEach((idx) => {
-      newAppendRules.add(getUpdatedIndexForInsertion(idx, insertPosition))
-    })
-
-    // 更新删除规则索引
-    deletedRules.forEach((idx) => {
-      newDeletedRules.add(getUpdatedIndexForInsertion(idx, insertPosition))
-    })
-
-    // 标记新规则
-    if (isNewPrependRule) {
-      newPrependRules.add(insertPosition)
+  // 规则转字符串
+  const convertRuleToString = (rule: RuleItem): string => {
+    const parts = [rule.type]
+    if (rule.payload) parts.push(rule.payload)
+    if (rule.proxy) parts.push(rule.proxy)
+    if (rule.additionalParams && rule.additionalParams.length > 0) {
+      parts.push(...rule.additionalParams)
     }
 
-    if (isNewAppendRule) {
-      newAppendRules.add(insertPosition)
+    if (rule.offset !== undefined && rule.offset > 0) {
+      parts.unshift(rule.offset.toString())
     }
 
-    return { newPrependRules, newAppendRules, newDeletedRules }
+    return parts.join(',')
   }
 
   return (
