@@ -528,8 +528,10 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
   const status = calculateTrayIconStatus(sysProxyEnabled, tunEnabled)
   const iconPaths = getIconPaths()
 
-  getAppConfig().then(({ disableTrayIconColor = false }) => {
+  getAppConfig().then(({ disableTrayIconColor = false, showTraffic = false }) => {
     if (!tray) return
+    // macOS 开启流量显示时，由 trayIconUpdate 负责图标更新
+    if (process.platform === 'darwin' && showTraffic) return
     const iconPath = disableTrayIconColor ? iconPaths.white : iconPaths[status]
     try {
       if (process.platform === 'darwin') {
@@ -549,7 +551,9 @@ export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: bo
 export async function updateTrayIcon(): Promise<void> {
   if (!tray) return
 
-  const { disableTrayIconColor = false } = await getAppConfig()
+  const { disableTrayIconColor = false, showTraffic = false } = await getAppConfig()
+  // macOS 开启流量显示时，由 trayIconUpdate 负责图标更新
+  if (process.platform === 'darwin' && showTraffic) return
   const status = await getTrayIconStatus()
   const iconPaths = getIconPaths()
   const iconPath = disableTrayIconColor ? iconPaths.white : iconPaths[status]
