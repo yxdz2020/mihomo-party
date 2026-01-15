@@ -23,7 +23,7 @@ async function listGists(token: string): Promise<GistInfo[]> {
     },
     responseType: 'json'
   })
-  return res.data as GistInfo[]
+  return Array.isArray(res.data) ? res.data : []
 }
 
 async function createGist(token: string, content: string): Promise<void> {

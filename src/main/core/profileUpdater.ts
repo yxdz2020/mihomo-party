@@ -13,7 +13,7 @@ async function updateProfile(id: string): Promise<void> {
 }
 
 export async function initProfileUpdater(): Promise<void> {
-  const { items, current } = await getProfileConfig()
+  const { items = [], current } = await getProfileConfig()
   const currentItem = await getCurrentProfileItem()
 
   for (const item of items.filter((i) => i.id !== current)) {
