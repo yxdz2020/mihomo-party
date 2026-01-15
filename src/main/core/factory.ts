@@ -1,4 +1,4 @@
-import { copyFile, mkdir, writeFile, readFile } from 'fs/promises'
+import { copyFile, mkdir, writeFile, readFile, stat } from 'fs/promises'
 import vm from 'vm'
 import { existsSync, writeFileSync } from 'fs'
 import path from 'path'
@@ -160,10 +160,23 @@ async function prepareProfileWorkDir(current: string | undefined): Promise<void>
   if (!existsSync(mihomoProfileWorkDir(current))) {
     await mkdir(mihomoProfileWorkDir(current), { recursive: true })
   }
+
+  const isSourceNewer = async (sourcePath: string, targetPath: string): Promise<boolean> => {
+    try {
+      const [sourceStats, targetStats] = await Promise.all([stat(sourcePath), stat(targetPath)])
+      return sourceStats.mtime > targetStats.mtime
+    } catch {
+      return true
+    }
+  }
+
   const copy = async (file: string): Promise<void> => {
     const targetPath = path.join(mihomoProfileWorkDir(current), file)
     const sourcePath = path.join(mihomoWorkDir(), file)
-    if (!existsSync(targetPath) && existsSync(sourcePath)) {
+    if (!existsSync(sourcePath)) return
+    // 复制条件：目标不存在 或 源文件更新
+    const shouldCopy = !existsSync(targetPath) || (await isSourceNewer(sourcePath, targetPath))
+    if (shouldCopy) {
       await copyFile(sourcePath, targetPath)
     }
   }
