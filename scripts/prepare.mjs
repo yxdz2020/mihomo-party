@@ -324,10 +324,11 @@ function getSysproxyNodeName() {
   const isMusl = (() => {
     if (platform !== 'linux') return false
     try {
-      const lddPath = require('child_process').execSync('which ldd').toString().trim()
-      return fs.readFileSync(lddPath, 'utf8').includes('musl')
+      // 通过 ldd --version 输出判断是否为 musl
+      const output = execSync('ldd --version 2>&1 || true').toString()
+      return output.includes('musl')
     } catch {
-      return true
+      return false
     }
   })()
 
@@ -360,6 +361,16 @@ const resolveSysproxy = async () => {
   const targetPath = path.join(sidecarDir, nodeName)
 
   fs.mkdirSync(sidecarDir, { recursive: true })
+
+  // 清理其他平台的 .node 文件
+  const files = fs.readdirSync(sidecarDir)
+  for (const file of files) {
+    if (file.endsWith('.node') && file !== nodeName) {
+      fs.rmSync(path.join(sidecarDir, file))
+      console.log(`[INFO]: removed ${file}`)
+    }
+  }
+
   if (fs.existsSync(targetPath)) {
     fs.rmSync(targetPath)
   }
