@@ -47,6 +47,7 @@ export async function updateProfileConfig(
     const data = await readFile(profileConfigPath(), 'utf-8')
     profileConfig = parse(data) || { items: [] }
     if (typeof profileConfig !== 'object') profileConfig = { items: [] }
+    if (!Array.isArray(profileConfig.items)) profileConfig.items = []
     profileConfig = await updater(structuredClone(profileConfig))
     result = profileConfig
     await writeFile(profileConfigPath(), stringify(profileConfig), 'utf-8')
