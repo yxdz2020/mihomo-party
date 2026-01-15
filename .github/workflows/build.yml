@@ -114,9 +114,7 @@ jobs:
         env:
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
-        run: |
-          pnpm install
-          pnpm add @mihomo-party/sysproxy-win32-${{ matrix.arch }}-msvc
+        run: pnpm install
       - name: Update Version for Dev Build
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -197,7 +195,6 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
         run: |
           pnpm install
-          pnpm add @mihomo-party/sysproxy-win32-${{ matrix.arch }}-msvc
           pnpm add -D electron@22.3.27
           (Get-Content electron-builder.yml) -replace 'windows', 'win7' | Set-Content electron-builder.yml
           # Electron 22 requires CJS format
@@ -283,7 +280,6 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
         run: |
           pnpm install
-          pnpm add @mihomo-party/sysproxy-linux-${{ matrix.arch }}-gnu
           sed -i "s/productName: Clash Party/productName: clash-party/" electron-builder.yml
       - name: Update Version for Dev Build
         if: github.event_name == 'workflow_dispatch'
@@ -357,9 +353,7 @@ jobs:
         env:
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
-        run: |
-          pnpm install
-          pnpm add @mihomo-party/sysproxy-darwin-${{ matrix.arch }}
+        run: pnpm install
       - name: Update Version for Dev Build
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -457,7 +451,6 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
         run: |
           pnpm install
-          pnpm add @mihomo-party/sysproxy-darwin-${{ matrix.arch }}
           pnpm add -D electron@32.2.2
       - name: Update Version for Dev Build
         if: github.event_name == 'workflow_dispatch'

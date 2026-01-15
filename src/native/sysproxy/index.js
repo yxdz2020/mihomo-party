@@ -24,6 +24,7 @@ function getBindingName() {
   switch (platform) {
     case 'win32':
       if (arch === 'x64') return 'sysproxy.win32-x64-msvc.node'
+      if (arch === 'ia32') return 'sysproxy.win32-ia32-msvc.node'
       if (arch === 'arm64') return 'sysproxy.win32-arm64-msvc.node'
       break
     case 'darwin':
