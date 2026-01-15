@@ -256,8 +256,19 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
     throw new Error('This function is only available on Windows')
   }
 
+  // 先停止 Core，避免新旧进程冲突
+  try {
+    const { stopCore } = await import('./manager')
+    managerLogger.info('Stopping core before admin restart...')
+    await stopCore(true)
+    // 等待 Core 完全停止
+    await new Promise((resolve) => setTimeout(resolve, 500))
+  } catch (error) {
+    managerLogger.warn('Failed to stop core before restart:', error)
+  }
+
   const exePath = process.execPath
-  const args = process.argv.slice(1)
+  const args = process.argv.slice(1).filter((arg) => arg !== '--admin-restart-for-tun')
   const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
 
   const escapedExePath = exePath.replace(/'/g, "''")
@@ -279,7 +290,8 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
         return
       }
       managerLogger.info('PowerShell command executed successfully, quitting app')
-      setTimeout(() => app.quit(), 500)
+      // 立即退出，避免竞态
+      app.quit()
       resolve()
     })
   })

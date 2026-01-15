@@ -56,10 +56,22 @@ function getTaskXml(asAdmin: boolean): string {
 export async function checkAutoRun(): Promise<boolean> {
   if (process.platform === 'win32') {
     const execPromise = promisify(exec)
+    // 先检查任务计划程序
     try {
       const { stdout } = await execPromise(
         `chcp 437 && %SystemRoot%\\System32\\schtasks.exe /query /tn "${appName}"`
       )
+      if (stdout.includes(appName)) {
+        return true
+      }
+    } catch {
+      // 任务计划程序中不存在，继续检查注册表
+    }
+
+    // 检查注册表备用方案
+    try {
+      const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
+      const { stdout } = await execPromise(`reg query "${regPath}" /v "${appName}"`)
       return stdout.includes(appName)
     } catch {
       return false
@@ -87,17 +99,45 @@ export async function enableAutoRun(): Promise<void> {
     const { checkAdminPrivileges } = await import('../core/manager')
     const isAdmin = await checkAdminPrivileges()
     await writeFile(taskFilePath, Buffer.from(`\ufeff${getTaskXml(isAdmin)}`, 'utf-16le'))
+
+    let taskCreated = false
+
     if (isAdmin) {
-      await execPromise(
-        `%SystemRoot%\\System32\\schtasks.exe /create /tn "${appName}" /xml "${taskFilePath}" /f`
-      )
+      try {
+        await execPromise(
+          `%SystemRoot%\\System32\\schtasks.exe /create /tn "${appName}" /xml "${taskFilePath}" /f`
+        )
+        taskCreated = true
+      } catch (error) {
+        await managerLogger.warn('Failed to create scheduled task as admin:', error)
+      }
     } else {
       try {
         await execPromise(
-          `powershell  -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/create', '/tn', '${appName}', '/xml', '${taskFilePath}', '/f' -WindowStyle Hidden"`
+          `powershell -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/create', '/tn', '${appName}', '/xml', '${taskFilePath}', '/f' -WindowStyle Hidden -Wait"`
         )
+        // 验证任务是否创建成功
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const created = await checkAutoRun()
+        taskCreated = created
+        if (!created) {
+          await managerLogger.warn('Scheduled task creation may have failed or been rejected')
+        }
       } catch {
-        await managerLogger.info('Maybe the user rejected the UAC dialog?')
+        await managerLogger.info('Scheduled task creation failed, trying registry fallback')
+      }
+    }
+
+    // 任务计划程序失败时使用注册表备用方案（适用于 Windows IoT LTSC 等受限环境）
+    if (!taskCreated) {
+      await managerLogger.info('Using registry fallback for auto-run')
+      try {
+        const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
+        const regValue = `"${exePath()}"`
+        await execPromise(`reg add "${regPath}" /v "${appName}" /t REG_SZ /d ${regValue} /f`)
+        await managerLogger.info('Registry auto-run entry created successfully')
+      } catch (regError) {
+        await managerLogger.error('Failed to create registry auto-run entry:', regError)
       }
     }
   }
@@ -137,16 +177,26 @@ export async function disableAutoRun(): Promise<void> {
     const execPromise = promisify(exec)
     const { checkAdminPrivileges } = await import('../core/manager')
     const isAdmin = await checkAdminPrivileges()
-    if (isAdmin) {
-      await execPromise(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "${appName}" /f`)
-    } else {
-      try {
+
+    // 删除任务计划程序中的任务
+    try {
+      if (isAdmin) {
+        await execPromise(`%SystemRoot%\\System32\\schtasks.exe /delete /tn "${appName}" /f`)
+      } else {
         await execPromise(
-          `powershell  -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/delete', '/tn', '${appName}', '/f' -WindowStyle Hidden"`
+          `powershell -NoProfile -Command "Start-Process schtasks -Verb RunAs -ArgumentList '/delete', '/tn', '${appName}', '/f' -WindowStyle Hidden -Wait"`
         )
-      } catch {
-        await managerLogger.info('Maybe the user rejected the UAC dialog?')
       }
+    } catch {
+      // 任务可能不存在，忽略错误
+    }
+
+    // 同时删除注册表备用方案
+    try {
+      const regPath = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run'
+      await execPromise(`reg delete "${regPath}" /v "${appName}" /f`)
+    } catch {
+      // 注册表项可能不存在，忽略错误
     }
   }
   if (process.platform === 'darwin') {
