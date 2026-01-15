@@ -588,7 +588,7 @@ jobs:
           - mihomo-party-bin
           - mihomo-party
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: linux
+    needs: updater
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
