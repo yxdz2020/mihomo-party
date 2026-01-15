@@ -48,10 +48,10 @@ function getResourcesPath() {
   if (process.resourcesPath) {
     return process.resourcesPath
   }
-  // 开发环境：从 __dirname 向上查找项目根目录
+  // 开发环境：查找包含 extra/sidecar 的目录
   let currentDir = __dirname
   while (currentDir !== dirname(currentDir)) {
-    if (existsSync(join(currentDir, 'package.json'))) {
+    if (existsSync(join(currentDir, 'extra', 'sidecar'))) {
       return currentDir
     }
     currentDir = dirname(currentDir)
