@@ -161,7 +161,7 @@ const ConnCard: React.FC<Props> = (props) => {
           }
         } else if (hasShowTrafficRef.current) {
           // 只在从 showTraffic=true 切换到 false 时恢复一次原始图标
-          window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64)
+          window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64, false)
           hasShowTrafficRef.current = false
         }
       }
@@ -305,7 +305,7 @@ const drawSvg = async (
   currentDownloadRef.current = download
   const svg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 36"><image height="36" width="36" href="${trayIconBase64}"/><text x="140" y="15" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(upload)}/s</text><text x="140" y="34" font-size="18" font-family="PingFang SC" font-weight="bold" text-anchor="end">${calcTraffic(download)}/s</text></svg>`
   const image = await loadImage(svg)
-  window.electron.ipcRenderer.send('trayIconUpdate', image)
+  window.electron.ipcRenderer.send('trayIconUpdate', image, true)
 }
 
 const loadImage = (url: string): Promise<string> => {
