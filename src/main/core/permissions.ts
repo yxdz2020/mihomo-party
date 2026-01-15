@@ -348,21 +348,15 @@ export async function validateTunPermissionsOnStartup(_restartCore: () => Promis
   const hasPermissions = await checkMihomoCorePermissions()
 
   if (!hasPermissions) {
-    managerLogger.warn('TUN is enabled but insufficient permissions detected, prompting user...')
-    const confirmed = await showTunPermissionDialog()
-    if (confirmed) {
-      await restartAsAdmin()
-      return
-    }
-
-    managerLogger.warn('User declined admin restart, auto-disabling TUN...')
+    // 启动时没有权限，静默禁用 TUN，不弹窗打扰用户
+    managerLogger.warn('TUN is enabled but insufficient permissions detected, auto-disabling TUN...')
     await patchControledMihomoConfig({ tun: { enable: false } })
 
     const { mainWindow } = await import('../index')
     mainWindow?.webContents.send('controledMihomoConfigUpdated')
     ipcMain.emit('updateTrayMenu')
 
-    managerLogger.info('TUN auto-disabled due to insufficient permissions')
+    managerLogger.info('TUN auto-disabled due to insufficient permissions on startup')
   } else {
     managerLogger.info('TUN permissions validated successfully')
   }
