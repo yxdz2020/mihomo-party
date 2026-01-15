@@ -43,6 +43,14 @@ export async function patchControledMihomoConfig(patch: Partial<IMihomoConfig>):
   controledMihomoWriteQueue = controledMihomoWriteQueue.then(async () => {
     const { controlDns = true, controlSniff = true } = await getAppConfig()
 
+    // 过滤端口字段中的 NaN 值，防止写入无效配置
+    const portFields = ['mixed-port', 'socks-port', 'port', 'redir-port', 'tproxy-port'] as const
+    for (const field of portFields) {
+      if (field in patch && (typeof patch[field] !== 'number' || Number.isNaN(patch[field]))) {
+        delete patch[field]
+      }
+    }
+
     if (patch.hosts) {
       controledMihomoConfig.hosts = patch.hosts
     }

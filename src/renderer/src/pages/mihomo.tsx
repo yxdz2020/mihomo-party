@@ -130,11 +130,11 @@ const Mihomo: React.FC = () => {
   const { 'store-selected': storeSelected, 'store-fake-ip': storeFakeIp } = profile
 
   const [isManualPortChange, setIsManualPortChange] = useState(false)
-  const [mixedPortInput, setMixedPortInput] = useState(showMixedPort || mixedPort)
-  const [socksPortInput, setSocksPortInput] = useState(showSocksPort || socksPort)
-  const [httpPortInput, setHttpPortInput] = useState(showHttpPort || httpPort)
-  const [redirPortInput, setRedirPortInput] = useState(showRedirPort || redirPort)
-  const [tproxyPortInput, setTproxyPortInput] = useState(showTproxyPort || tproxyPort)
+  const [mixedPortInput, setMixedPortInput] = useState(showMixedPort ?? mixedPort)
+  const [socksPortInput, setSocksPortInput] = useState(showSocksPort ?? socksPort)
+  const [httpPortInput, setHttpPortInput] = useState(showHttpPort ?? httpPort)
+  const [redirPortInput, setRedirPortInput] = useState(showRedirPort ?? redirPort)
+  const [tproxyPortInput, setTproxyPortInput] = useState(showTproxyPort ?? tproxyPort)
   const [externalControllerInput, setExternalControllerInput] = useState(externalController)
   const [secretInput, setSecretInput] = useState(secret)
   const [lanAllowedIpsInput, setLanAllowedIpsInput] = useState(lanAllowedIps)
@@ -702,7 +702,7 @@ const Mihomo: React.FC = () => {
                 size="sm"
                 type="number"
                 className="w-[100px]"
-                value={showMixedPort?.toString()}
+                value={(showMixedPort ?? mixedPort ?? '').toString()}
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
@@ -763,7 +763,7 @@ const Mihomo: React.FC = () => {
                 size="sm"
                 type="number"
                 className="w-[100px]"
-                value={showSocksPort?.toString()}
+                value={(showSocksPort ?? socksPort ?? '').toString()}
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
@@ -796,7 +796,7 @@ const Mihomo: React.FC = () => {
                 onValueChange={(value) => {
                   patchAppConfig({ enableSocksPort: value })
                   if (value) {
-                    const port = appConfig?.showSocksPort || socksPort
+                    const port = appConfig?.showSocksPort ?? socksPort
                     onChangeNeedRestart({ 'socks-port': port })
                   } else {
                     onChangeNeedRestart({ 'socks-port': 0 })
@@ -824,7 +824,7 @@ const Mihomo: React.FC = () => {
                 size="sm"
                 type="number"
                 className="w-[100px]"
-                value={showHttpPort?.toString()}
+                value={(showHttpPort ?? httpPort ?? '').toString()}
                 max={65535}
                 min={0}
                 onValueChange={(v) => {
@@ -857,7 +857,7 @@ const Mihomo: React.FC = () => {
                 onValueChange={(value) => {
                   patchAppConfig({ enableHttpPort: value })
                   if (value) {
-                    const port = appConfig?.showHttpPort || httpPort
+                    const port = appConfig?.showHttpPort ?? httpPort
                     onChangeNeedRestart({ port: port })
                   } else {
                     onChangeNeedRestart({ port: 0 })
@@ -886,7 +886,7 @@ const Mihomo: React.FC = () => {
                   size="sm"
                   type="number"
                   className="w-[100px]"
-                  value={showRedirPort?.toString()}
+                  value={(showRedirPort ?? redirPort ?? '').toString()}
                   max={65535}
                   min={0}
                   onValueChange={(v) => {
@@ -919,7 +919,7 @@ const Mihomo: React.FC = () => {
                   onValueChange={(value) => {
                     patchAppConfig({ enableRedirPort: value })
                     if (value) {
-                      const port = appConfig?.showRedirPort || redirPort
+                      const port = appConfig?.showRedirPort ?? redirPort
                       onChangeNeedRestart({ 'redir-port': port })
                     } else {
                       onChangeNeedRestart({ 'redir-port': 0 })
@@ -949,7 +949,7 @@ const Mihomo: React.FC = () => {
                   size="sm"
                   type="number"
                   className="w-[100px]"
-                  value={showTproxyPort?.toString()}
+                  value={(showTproxyPort ?? tproxyPort ?? '').toString()}
                   max={65535}
                   min={0}
                   onValueChange={(v) => {
@@ -982,7 +982,7 @@ const Mihomo: React.FC = () => {
                   onValueChange={(value) => {
                     patchAppConfig({ enableTproxyPort: value })
                     if (value) {
-                      const port = appConfig?.showTproxyPort || tproxyPort
+                      const port = appConfig?.showTproxyPort ?? tproxyPort
                       onChangeNeedRestart({ 'tproxy-port': port })
                     } else {
                       onChangeNeedRestart({ 'tproxy-port': 0 })
