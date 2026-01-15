@@ -33,6 +33,14 @@ export async function getControledMihomoConfig(force = false): Promise<Partial<I
 
     // 确保配置包含所有必要的默认字段，处理升级场景
     controledMihomoConfig = deepMerge(defaultControledMihomoConfig, controledMihomoConfig)
+
+    // 清理端口字段中的 NaN 值，恢复为默认值
+    const portFields = ['mixed-port', 'socks-port', 'port', 'redir-port', 'tproxy-port'] as const
+    for (const field of portFields) {
+      if (typeof controledMihomoConfig[field] !== 'number' || Number.isNaN(controledMihomoConfig[field])) {
+        controledMihomoConfig[field] = defaultControledMihomoConfig[field]
+      }
+    }
   }
   if (typeof controledMihomoConfig !== 'object')
     controledMihomoConfig = defaultControledMihomoConfig
