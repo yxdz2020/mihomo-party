@@ -196,6 +196,8 @@ jobs:
         run: |
           pnpm install
           pnpm add -D electron@22.3.27
+          # Downgrade packages incompatible with Node.js 16 (Electron 22)
+          pnpm add express@4.21.2 chokidar@3.6.0
           (Get-Content electron-builder.yml) -replace 'windows', 'win7' | Set-Content electron-builder.yml
           # Electron 22 requires CJS format
           (Get-Content package.json) -replace '"type": "module"', '"type": "commonjs"' | Set-Content package.json
