@@ -3,7 +3,7 @@ import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-c
 import BorderSwitch from '@renderer/components/base/border-swtich'
 import { TbDeviceIpadHorizontalBolt } from 'react-icons/tb'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { restartCore, updateTrayIcon, updateTrayIconImmediate } from '@renderer/utils/ipc'
+import { restartCore, updateTrayIconImmediate } from '@renderer/utils/ipc'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import React from 'react'
@@ -99,7 +99,6 @@ const TunSwitcher: React.FC<Props> = (props) => {
     await restartCore()
     window.electron.ipcRenderer.send('updateFloatingWindow')
     window.electron.ipcRenderer.send('updateTrayMenu')
-    await updateTrayIcon()
   }
 
   if (iconOnly) {

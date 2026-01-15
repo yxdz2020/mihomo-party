@@ -138,21 +138,23 @@ const ConnCard: React.FC<Props> = (props) => {
         data.push(info.up + info.down)
         return data
       })
-      if (platform === 'darwin' && showTraffic) {
-        if (drawingRef.current) return
-        drawingRef.current = true
-        try {
-          await drawSvg(info.up, info.down, currentUploadRef, currentDownloadRef)
-          hasShowTrafficRef.current = true
-        } catch {
-          // ignore
-        } finally {
-          drawingRef.current = false
+      if (platform === 'darwin') {
+        if (showTraffic) {
+          if (drawingRef.current) return
+          drawingRef.current = true
+          try {
+            await drawSvg(info.up, info.down, currentUploadRef, currentDownloadRef)
+            hasShowTrafficRef.current = true
+          } catch {
+            // ignore
+          } finally {
+            drawingRef.current = false
+          }
+        } else if (hasShowTrafficRef.current) {
+          // 只在从 showTraffic=true 切换到 false 时恢复一次原始图标
+          window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64)
+          hasShowTrafficRef.current = false
         }
-      } else {
-        if (!hasShowTrafficRef.current) return
-        window.electron.ipcRenderer.send('trayIconUpdate', trayIconBase64)
-        hasShowTrafficRef.current = false
       }
     },
     [showTraffic]
