@@ -44,11 +44,24 @@ function getBindingName() {
 }
 
 function getResourcesPath() {
+  // 开发环境：优先使用 process.cwd()
+  const cwd = process.cwd()
+  if (existsSync(join(cwd, 'extra', 'sidecar'))) {
+    return cwd
+  }
   // Electron 打包后的路径
-  if (process.resourcesPath) {
+  if (process.resourcesPath && existsSync(join(process.resourcesPath, 'sidecar'))) {
     return process.resourcesPath
   }
-  // 开发环境：查找包含 extra/sidecar 的目录
+  // 备选：使用 app.getAppPath() (Electron 特有)
+  try {
+    const { app } = require('electron')
+    const appPath = app.getAppPath()
+    if (existsSync(join(appPath, 'extra', 'sidecar'))) {
+      return appPath
+    }
+  } catch {}
+  // 备选：从 __dirname 向上查找
   let currentDir = __dirname
   while (currentDir !== dirname(currentDir)) {
     if (existsSync(join(currentDir, 'extra', 'sidecar'))) {
@@ -56,14 +69,13 @@ function getResourcesPath() {
     }
     currentDir = dirname(currentDir)
   }
-  return __dirname
+  return cwd
 }
 
 function loadBinding() {
   const bindingName = getBindingName()
   const resourcesPath = getResourcesPath()
 
-  // 可能的路径列表
   const searchPaths = [
     join(resourcesPath, 'sidecar', bindingName),
     join(resourcesPath, 'extra', 'sidecar', bindingName)

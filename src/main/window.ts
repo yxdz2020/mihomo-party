@@ -39,7 +39,7 @@ export async function createWindow(): Promise<void> {
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon: icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.cjs'),
       spellcheck: false,
       sandbox: false,
       devTools: true

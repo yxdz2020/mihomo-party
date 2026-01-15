@@ -39,7 +39,7 @@ async function createFloatingWindow(): Promise<void> {
       closable: safeMode,
       backgroundColor: safeMode ? '#ffffff' : useCompatMode ? '#f0f0f0' : '#00000000',
       webPreferences: {
-        preload: join(__dirname, '../preload/index.js'),
+        preload: join(__dirname, '../preload/index.cjs'),
         spellcheck: false,
         sandbox: false,
         nodeIntegration: false,
