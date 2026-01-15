@@ -1,4 +1,4 @@
-const { existsSync, readFileSync } = require('fs')
+const { existsSync } = require('fs')
 const { join, dirname } = require('path')
 
 const { platform, arch } = process
@@ -7,16 +7,18 @@ let nativeBinding = null
 let loadError = null
 
 function isMusl() {
-  if (!process.report || typeof process.report.getReport !== 'function') {
-    try {
-      const lddPath = require('child_process').execSync('which ldd').toString().trim()
-      return readFileSync(lddPath, 'utf8').includes('musl')
-    } catch {
-      return true
-    }
-  } else {
+  // 优先使用 process.report（Node.js 12+，最可靠）
+  if (process.report && typeof process.report.getReport === 'function') {
     const { glibcVersionRuntime } = process.report.getReport().header
     return !glibcVersionRuntime
+  }
+  // 备选：检查 ldd --version 输出
+  try {
+    const { execSync } = require('child_process')
+    const output = execSync('ldd --version 2>&1 || true').toString()
+    return output.includes('musl')
+  } catch {
+    return false
   }
 }
 
