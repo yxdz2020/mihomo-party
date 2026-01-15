@@ -196,12 +196,9 @@ jobs:
         run: |
           pnpm install
           pnpm add -D electron@22.3.27
-          # Downgrade packages incompatible with Node.js 16 (Electron 22)
-          pnpm add express@4.21.2 chokidar@3.6.0
           (Get-Content electron-builder.yml) -replace 'windows', 'win7' | Set-Content electron-builder.yml
           # Electron 22 requires CJS format
           (Get-Content package.json) -replace '"type": "module"', '"type": "commonjs"' | Set-Content package.json
-          (Get-Content electron.vite.config.ts) -replace 'plugins: \[externalizeDepsPlugin\(\)\]', "plugins: [externalizeDepsPlugin()],`n    build: { rollupOptions: { output: { format: 'cjs' } } }" | Set-Content electron.vite.config.ts
       - name: Update Version for Dev Build
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -213,6 +210,7 @@ jobs:
         env:
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
+          LEGACY_BUILD: 'true'
         run: pnpm build:win --${{ matrix.arch }}
       - name: Add Portable Flag
         run: |
