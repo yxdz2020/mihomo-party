@@ -4,7 +4,7 @@ import { promisify } from 'util'
 import path from 'path'
 import os from 'os'
 import { createWriteStream, existsSync } from 'fs'
-import chokidar from 'chokidar'
+import chokidar, { FSWatcher } from 'chokidar'
 import { app, ipcMain } from 'electron'
 import { mainWindow } from '../window'
 import {
@@ -69,15 +69,38 @@ export {
 export { getDefaultDevice } from './dns'
 
 const execFilePromise = promisify(execFile)
+const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
 
-chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {}).on('unlinkDir', async () => {
-  try {
-    await stopCore(true)
-    await startCore()
-  } catch (e) {
-    safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
+// 核心进程状态
+let child: ChildProcess
+let retry = 10
+let isRestarting = false
+
+// 文件监听器
+let coreWatcher: FSWatcher | null = null
+
+// 初始化核心文件监听
+export function initCoreWatcher(): void {
+  if (coreWatcher) return
+
+  coreWatcher = chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {})
+  coreWatcher.on('unlinkDir', async () => {
+    try {
+      await stopCore(true)
+      await startCore()
+    } catch (e) {
+      safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
+    }
+  })
+}
+
+// 清理核心文件监听
+export function cleanupCoreWatcher(): void {
+  if (coreWatcher) {
+    coreWatcher.close()
+    coreWatcher = null
   }
-})
+}
 
 // 动态生成 IPC 路径
 export const getMihomoIpcPath = (): string => {
@@ -96,14 +119,20 @@ export const getMihomoIpcPath = (): string => {
   return `/tmp/mihomo-party-${uid}-${processId}.sock`
 }
 
-const ctlParam = process.platform === 'win32' ? '-ext-ctl-pipe' : '-ext-ctl-unix'
+// 核心配置接口
+interface CoreConfig {
+  corePath: string
+  workDir: string
+  ipcPath: string
+  logLevel: LogLevel
+  tunEnabled: boolean
+  autoSetDNS: boolean
+  cpuPriority: string
+  detached: boolean
+}
 
-let child: ChildProcess
-let retry = 10
-let isRestarting = false
-
-export async function startCore(detached = false): Promise<Promise<void>[]> {
-  // 合并配置读取，避免多次 await
+// 准备核心配置
+async function prepareCore(detached: boolean): Promise<CoreConfig> {
   const [appConfig, mihomoConfig] = await Promise.all([
     getAppConfig(),
     getControledMihomoConfig()
@@ -116,7 +145,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     mihomoCpuPriority = 'PRIORITY_NORMAL'
   } = appConfig
 
-  const { 'log-level': logLevel, tun } = mihomoConfig
+  const { 'log-level': logLevel = 'info' as LogLevel, tun } = mihomoConfig
 
   // 清理旧进程
   const pidPath = path.join(dataDir(), 'core.pid')
@@ -131,8 +160,6 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     }
   }
 
-  const corePath = mihomoCorePath(core)
-
   // 管理 Smart 内核覆写配置
   await manageSmartOverride()
 
@@ -142,6 +169,7 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   await stopCore()
   await cleanupSocketFile()
 
+  // 设置 DNS
   if (tun?.enable && autoSetDNS) {
     try {
       await setPublicDNS()
@@ -151,39 +179,57 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
   }
 
   // 获取动态 IPC 路径
-  const dynamicIpcPath = getMihomoIpcPath()
-  managerLogger.info(`Using IPC path: ${dynamicIpcPath}`)
+  const ipcPath = getMihomoIpcPath()
+  managerLogger.info(`Using IPC path: ${ipcPath}`)
 
   if (process.platform === 'win32') {
-    await validateWindowsPipeAccess(dynamicIpcPath)
+    await validateWindowsPipeAccess(ipcPath)
   }
 
-  // 内核日志输出
+  return {
+    corePath: mihomoCorePath(core),
+    workDir: diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(),
+    ipcPath,
+    logLevel,
+    tunEnabled: tun?.enable ?? false,
+    autoSetDNS,
+    cpuPriority: mihomoCpuPriority,
+    detached
+  }
+}
+
+// 启动核心进程
+function spawnCoreProcess(config: CoreConfig): ChildProcess {
+  const { corePath, workDir, ipcPath, cpuPriority, detached } = config
+
   const stdout = createWriteStream(coreLogPath(), { flags: 'a' })
   const stderr = createWriteStream(coreLogPath(), { flags: 'a' })
 
-  child = spawn(
-    corePath,
-    ['-d', diffWorkDir ? mihomoProfileWorkDir(current) : mihomoWorkDir(), ctlParam, dynamicIpcPath],
-    {
-      detached,
-      stdio: detached ? 'ignore' : undefined
-    }
-  )
+  const proc = spawn(corePath, ['-d', workDir, ctlParam, ipcPath], {
+    detached,
+    stdio: detached ? 'ignore' : undefined
+  })
 
-  if (process.platform === 'win32' && child.pid) {
-    os.setPriority(child.pid, os.constants.priority[mihomoCpuPriority])
+  if (process.platform === 'win32' && proc.pid) {
+    os.setPriority(proc.pid, os.constants.priority[cpuPriority as keyof typeof os.constants.priority])
   }
 
-  if (detached) {
-    managerLogger.info(
-      `Core process detached successfully on ${process.platform}, PID: ${child.pid}`
-    )
-    child.unref()
-    return [new Promise(() => {})]
+  if (!detached) {
+    proc.stdout?.pipe(stdout)
+    proc.stderr?.pipe(stderr)
   }
 
-  child.on('close', async (code, signal) => {
+  return proc
+}
+
+// 设置核心进程事件监听
+function setupCoreListeners(
+  proc: ChildProcess,
+  logLevel: LogLevel,
+  resolve: (value: Promise<void>[]) => void,
+  reject: (reason: unknown) => void
+): void {
+  proc.on('close', async (code, signal) => {
     managerLogger.info(`Core closed, code: ${code}, signal: ${signal}`)
 
     if (isRestarting) {
@@ -200,77 +246,96 @@ export async function startCore(detached = false): Promise<Promise<void>[]> {
     }
   })
 
-  child.stdout?.pipe(stdout)
-  child.stderr?.pipe(stderr)
+  proc.stdout?.on('data', async (data) => {
+    const str = data.toString()
 
-  return new Promise((resolve, reject) => {
-    child.stdout?.on('data', async (data) => {
-      const str = data.toString()
+    // TUN 权限错误
+    if (str.includes('configure tun interface: operation not permitted')) {
+      patchControledMihomoConfig({ tun: { enable: false } })
+      mainWindow?.webContents.send('controledMihomoConfigUpdated')
+      ipcMain.emit('updateTrayMenu')
+      reject(i18next.t('tun.error.tunPermissionDenied'))
+      return
+    }
 
-      if (str.includes('configure tun interface: operation not permitted')) {
-        patchControledMihomoConfig({ tun: { enable: false } })
-        mainWindow?.webContents.send('controledMihomoConfigUpdated')
-        ipcMain.emit('updateTrayMenu')
-        reject(i18next.t('tun.error.tunPermissionDenied'))
-      }
+    // 控制器监听错误
+    const isControllerError =
+      (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
+      (process.platform === 'win32' && str.includes('External controller pipe listen error'))
 
-      const isControllerError =
-        (process.platform !== 'win32' && str.includes('External controller unix listen error')) ||
-        (process.platform === 'win32' && str.includes('External controller pipe listen error'))
+    if (isControllerError) {
+      managerLogger.error('External controller listen error detected:', str)
 
-      if (isControllerError) {
-        managerLogger.error('External controller listen error detected:', str)
-
-        if (process.platform === 'win32') {
-          managerLogger.info('Attempting Windows pipe cleanup and retry...')
-          try {
-            await cleanupWindowsNamedPipes()
-            await new Promise((r) => setTimeout(r, 2000))
-          } catch (cleanupError) {
-            managerLogger.error('Pipe cleanup failed:', cleanupError)
-          }
+      if (process.platform === 'win32') {
+        managerLogger.info('Attempting Windows pipe cleanup and retry...')
+        try {
+          await cleanupWindowsNamedPipes()
+          await new Promise((r) => setTimeout(r, 2000))
+        } catch (cleanupError) {
+          managerLogger.error('Pipe cleanup failed:', cleanupError)
         }
-
-        reject(i18next.t('mihomo.error.externalControllerListenError'))
       }
 
-      const isApiReady =
-        (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
-        (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
+      reject(i18next.t('mihomo.error.externalControllerListenError'))
+      return
+    }
 
-      if (isApiReady) {
-        resolve([
-          new Promise((innerResolve) => {
-            child.stdout?.on('data', async (innerData) => {
-              if (
-                innerData.toString().toLowerCase().includes('start initial compatible provider default')
-              ) {
-                try {
-                  mainWindow?.webContents.send('groupsUpdated')
-                  mainWindow?.webContents.send('rulesUpdated')
-                  await uploadRuntimeConfig()
-                } catch {
-                  // ignore
-                }
-                await patchMihomoConfig({ 'log-level': logLevel })
-                innerResolve()
+    // API 就绪
+    const isApiReady =
+      (process.platform !== 'win32' && str.includes('RESTful API unix listening at')) ||
+      (process.platform === 'win32' && str.includes('RESTful API pipe listening at'))
+
+    if (isApiReady) {
+      resolve([
+        new Promise((innerResolve) => {
+          proc.stdout?.on('data', async (innerData) => {
+            if (
+              innerData.toString().toLowerCase().includes('start initial compatible provider default')
+            ) {
+              try {
+                mainWindow?.webContents.send('groupsUpdated')
+                mainWindow?.webContents.send('rulesUpdated')
+                await uploadRuntimeConfig()
+              } catch {
+                // ignore
               }
-            })
+              await patchMihomoConfig({ 'log-level': logLevel })
+              innerResolve()
+            }
           })
-        ])
+        })
+      ])
 
-        await waitForCoreReady()
-        await getAxios(true)
-        await startMihomoTraffic()
-        await startMihomoConnections()
-        await startMihomoLogs()
-        await startMihomoMemory()
-        retry = 10
-      }
-    })
+      await waitForCoreReady()
+      await getAxios(true)
+      await startMihomoTraffic()
+      await startMihomoConnections()
+      await startMihomoLogs()
+      await startMihomoMemory()
+      retry = 10
+    }
   })
 }
 
+// 启动核心
+export async function startCore(detached = false): Promise<Promise<void>[]> {
+  const config = await prepareCore(detached)
+  child = spawnCoreProcess(config)
+
+  if (detached) {
+    managerLogger.info(
+      `Core process detached successfully on ${process.platform}, PID: ${child.pid}`
+    )
+    child.unref()
+    return [new Promise(() => {})]
+  }
+
+  return new Promise((resolve, reject) => {
+    setupCoreListeners(child, config.logLevel, resolve, reject)
+  })
+}
+
+// 停止核心
 export async function stopCore(force = false): Promise<void> {
   try {
     if (!force) {
@@ -299,6 +364,7 @@ export async function stopCore(force = false): Promise<void> {
   await cleanupSocketFile()
 }
 
+// 重启核心
 export async function restartCore(): Promise<void> {
   if (isRestarting) {
     managerLogger.info('Core restart already in progress, skipping duplicate request')
@@ -316,6 +382,7 @@ export async function restartCore(): Promise<void> {
   }
 }
 
+// 保持核心运行
 export async function keepCoreAlive(): Promise<void> {
   try {
     await startCore(true)
@@ -327,6 +394,7 @@ export async function keepCoreAlive(): Promise<void> {
   }
 }
 
+// 退出但保持核心运行
 export async function quitWithoutCore(): Promise<void> {
   managerLogger.info(`Starting lightweight mode on platform: ${process.platform}`)
 
@@ -346,6 +414,7 @@ export async function quitWithoutCore(): Promise<void> {
   app.exit()
 }
 
+// 检查配置文件
 async function checkProfile(
   current: string | undefined,
   core: string = 'mihomo',

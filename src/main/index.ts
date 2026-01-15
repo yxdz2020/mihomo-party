@@ -10,7 +10,8 @@ import {
   checkHighPrivilegeCore,
   restartAsAdmin,
   initAdminStatus,
-  checkAdminPrivileges
+  checkAdminPrivileges,
+  initCoreWatcher
 } from './core/manager'
 import { createTray } from './resolve/tray'
 import { init, initBasic, safeShowErrorBox } from './utils/init'
@@ -149,6 +150,7 @@ app.whenReady().then(async () => {
   }
 
   try {
+    initCoreWatcher()
     const [startPromise] = await startCore()
     startPromise.then(async () => {
       await initProfileUpdater()

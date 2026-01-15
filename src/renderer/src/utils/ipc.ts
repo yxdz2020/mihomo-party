@@ -12,189 +12,309 @@ async function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
   return checkIpcError<T>(response)
 }
 
-// Mihomo API
-export const mihomoVersion = (): Promise<IMihomoVersion> => invoke('mihomoVersion')
-export const mihomoCloseConnection = (id: string): Promise<void> =>
-  invoke('mihomoCloseConnection', id)
-export const mihomoCloseAllConnections = (): Promise<void> => invoke('mihomoCloseAllConnections')
-export const mihomoRules = (): Promise<IMihomoRulesInfo> => invoke('mihomoRules')
-export const mihomoProxies = (): Promise<IMihomoProxies> => invoke('mihomoProxies')
-export const mihomoGroups = (): Promise<IMihomoMixedGroup[]> => invoke('mihomoGroups')
-export const mihomoProxyProviders = (): Promise<IMihomoProxyProviders> =>
-  invoke('mihomoProxyProviders')
-export const mihomoUpdateProxyProviders = (name: string): Promise<void> =>
-  invoke('mihomoUpdateProxyProviders', name)
-export const mihomoRuleProviders = (): Promise<IMihomoRuleProviders> =>
-  invoke('mihomoRuleProviders')
-export const mihomoUpdateRuleProviders = (name: string): Promise<void> =>
-  invoke('mihomoUpdateRuleProviders', name)
-export const mihomoChangeProxy = (group: string, proxy: string): Promise<IMihomoProxy> =>
-  invoke('mihomoChangeProxy', group, proxy)
-export const mihomoUnfixedProxy = (group: string): Promise<IMihomoProxy> =>
-  invoke('mihomoUnfixedProxy', group)
-export const mihomoUpgradeGeo = (): Promise<void> => invoke('mihomoUpgradeGeo')
-export const mihomoUpgrade = (): Promise<void> => invoke('mihomoUpgrade')
-export const mihomoUpgradeUI = (): Promise<void> => invoke('mihomoUpgradeUI')
-export const mihomoUpgradeConfig = (): Promise<void> => invoke('mihomoUpgradeConfig')
-export const mihomoProxyDelay = (proxy: string, url?: string): Promise<IMihomoDelay> =>
-  invoke('mihomoProxyDelay', proxy, url)
-export const mihomoGroupDelay = (group: string, url?: string): Promise<IMihomoGroupDelay> =>
-  invoke('mihomoGroupDelay', group, url)
-export const patchMihomoConfig = (patch: Partial<IMihomoConfig>): Promise<void> =>
-  invoke('patchMihomoConfig', patch)
-export const mihomoSmartGroupWeights = (groupName: string): Promise<Record<string, number>> =>
-  invoke('mihomoSmartGroupWeights', groupName)
-export const mihomoSmartFlushCache = (configName?: string): Promise<void> =>
-  invoke('mihomoSmartFlushCache', configName)
-export const getSmartOverrideContent = (): Promise<string | null> =>
-  invoke('getSmartOverrideContent')
+// IPC API 类型定义
+interface IpcApi {
+  // Mihomo API
+  mihomoVersion: () => Promise<IMihomoVersion>
+  mihomoCloseConnection: (id: string) => Promise<void>
+  mihomoCloseAllConnections: () => Promise<void>
+  mihomoRules: () => Promise<IMihomoRulesInfo>
+  mihomoProxies: () => Promise<IMihomoProxies>
+  mihomoGroups: () => Promise<IMihomoMixedGroup[]>
+  mihomoProxyProviders: () => Promise<IMihomoProxyProviders>
+  mihomoUpdateProxyProviders: (name: string) => Promise<void>
+  mihomoRuleProviders: () => Promise<IMihomoRuleProviders>
+  mihomoUpdateRuleProviders: (name: string) => Promise<void>
+  mihomoChangeProxy: (group: string, proxy: string) => Promise<IMihomoProxy>
+  mihomoUnfixedProxy: (group: string) => Promise<IMihomoProxy>
+  mihomoUpgradeGeo: () => Promise<void>
+  mihomoUpgrade: () => Promise<void>
+  mihomoUpgradeUI: () => Promise<void>
+  mihomoUpgradeConfig: () => Promise<void>
+  mihomoProxyDelay: (proxy: string, url?: string) => Promise<IMihomoDelay>
+  mihomoGroupDelay: (group: string, url?: string) => Promise<IMihomoGroupDelay>
+  patchMihomoConfig: (patch: Partial<IMihomoConfig>) => Promise<void>
+  mihomoSmartGroupWeights: (groupName: string) => Promise<Record<string, number>>
+  mihomoSmartFlushCache: (configName?: string) => Promise<void>
+  getSmartOverrideContent: () => Promise<string | null>
+  // AutoRun
+  checkAutoRun: () => Promise<boolean>
+  enableAutoRun: () => Promise<void>
+  disableAutoRun: () => Promise<void>
+  // Config
+  getAppConfig: (force?: boolean) => Promise<IAppConfig>
+  patchAppConfig: (patch: Partial<IAppConfig>) => Promise<void>
+  getControledMihomoConfig: (force?: boolean) => Promise<Partial<IMihomoConfig>>
+  patchControledMihomoConfig: (patch: Partial<IMihomoConfig>) => Promise<void>
+  resetAppConfig: () => Promise<void>
+  // Profile
+  getProfileConfig: (force?: boolean) => Promise<IProfileConfig>
+  setProfileConfig: (config: IProfileConfig) => Promise<void>
+  getCurrentProfileItem: () => Promise<IProfileItem>
+  getProfileItem: (id: string | undefined) => Promise<IProfileItem>
+  getProfileStr: (id: string) => Promise<string>
+  setProfileStr: (id: string, str: string) => Promise<void>
+  addProfileItem: (item: Partial<IProfileItem>) => Promise<void>
+  removeProfileItem: (id: string) => Promise<void>
+  updateProfileItem: (item: IProfileItem) => Promise<void>
+  changeCurrentProfile: (id: string) => Promise<void>
+  addProfileUpdater: (item: IProfileItem) => Promise<void>
+  removeProfileUpdater: (id: string) => Promise<void>
+  // Override
+  getOverrideConfig: (force?: boolean) => Promise<IOverrideConfig>
+  setOverrideConfig: (config: IOverrideConfig) => Promise<void>
+  getOverrideItem: (id: string) => Promise<IOverrideItem | undefined>
+  addOverrideItem: (item: Partial<IOverrideItem>) => Promise<void>
+  removeOverrideItem: (id: string) => Promise<void>
+  updateOverrideItem: (item: IOverrideItem) => Promise<void>
+  getOverride: (id: string, ext: 'js' | 'yaml' | 'log') => Promise<string>
+  setOverride: (id: string, ext: 'js' | 'yaml', str: string) => Promise<void>
+  // File
+  getFileStr: (path: string) => Promise<string>
+  setFileStr: (path: string, str: string) => Promise<void>
+  convertMrsRuleset: (path: string, behavior: string) => Promise<string>
+  getRuntimeConfig: () => Promise<IMihomoConfig>
+  getRuntimeConfigStr: () => Promise<string>
+  getRuleStr: (id: string) => Promise<string>
+  setRuleStr: (id: string, str: string) => Promise<void>
+  getFilePath: (ext: string[]) => Promise<string[] | undefined>
+  readTextFile: (filePath: string) => Promise<string>
+  openFile: (type: 'profile' | 'override', id: string, ext?: 'yaml' | 'js') => Promise<void>
+  // Core
+  restartCore: () => Promise<void>
+  startMonitor: () => Promise<void>
+  quitWithoutCore: () => Promise<void>
+  // System
+  triggerSysProxy: (enable: boolean) => Promise<void>
+  checkTunPermissions: () => Promise<boolean>
+  grantTunPermissions: () => Promise<void>
+  manualGrantCorePermition: () => Promise<void>
+  checkAdminPrivileges: () => Promise<boolean>
+  restartAsAdmin: () => Promise<void>
+  checkMihomoCorePermissions: () => Promise<boolean>
+  checkHighPrivilegeCore: () => Promise<boolean>
+  showTunPermissionDialog: () => Promise<boolean>
+  showErrorDialog: (title: string, message: string) => Promise<void>
+  openUWPTool: () => Promise<void>
+  setupFirewall: () => Promise<void>
+  getInterfaces: () => Promise<Record<string, NetworkInterfaceInfo[]>>
+  setNativeTheme: (theme: 'system' | 'light' | 'dark') => Promise<void>
+  copyEnv: (type: 'bash' | 'cmd' | 'powershell') => Promise<void>
+  // Update
+  checkUpdate: () => Promise<IAppVersion | undefined>
+  downloadAndInstallUpdate: (version: string) => Promise<void>
+  getVersion: () => Promise<string>
+  platform: () => Promise<NodeJS.Platform>
+  fetchMihomoTags: (
+    forceRefresh?: boolean
+  ) => Promise<{ name: string; zipball_url: string; tarball_url: string }[]>
+  installSpecificMihomoCore: (version: string) => Promise<void>
+  clearMihomoVersionCache: () => Promise<void>
+  // Backup
+  webdavBackup: () => Promise<boolean>
+  webdavRestore: (filename: string) => Promise<void>
+  listWebdavBackups: () => Promise<string[]>
+  webdavDelete: (filename: string) => Promise<void>
+  reinitWebdavBackupScheduler: () => Promise<void>
+  exportLocalBackup: () => Promise<boolean>
+  importLocalBackup: () => Promise<boolean>
+  // SubStore
+  startSubStoreFrontendServer: () => Promise<void>
+  stopSubStoreFrontendServer: () => Promise<void>
+  startSubStoreBackendServer: () => Promise<void>
+  stopSubStoreBackendServer: () => Promise<void>
+  downloadSubStore: () => Promise<void>
+  subStorePort: () => Promise<number>
+  subStoreFrontendPort: () => Promise<number>
+  subStoreSubs: () => Promise<ISubStoreSub[]>
+  subStoreCollections: () => Promise<ISubStoreSub[]>
+  // Theme
+  resolveThemes: () => Promise<{ key: string; label: string; content: string }[]>
+  fetchThemes: () => Promise<void>
+  importThemes: (files: string[]) => Promise<void>
+  readTheme: (theme: string) => Promise<string>
+  writeTheme: (theme: string, css: string) => Promise<void>
+  // Tray
+  showTrayIcon: () => Promise<void>
+  closeTrayIcon: () => Promise<void>
+  updateTrayIcon: () => Promise<void>
+  // Window
+  showMainWindow: () => Promise<void>
+  closeMainWindow: () => Promise<void>
+  triggerMainWindow: () => Promise<void>
+  showFloatingWindow: () => Promise<void>
+  closeFloatingWindow: () => Promise<void>
+  showContextMenu: () => Promise<void>
+  setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>
+  isAlwaysOnTop: () => Promise<boolean>
+  openDevTools: () => Promise<void>
+  createHeapSnapshot: () => Promise<void>
+  // Shortcut
+  registerShortcut: (oldShortcut: string, newShortcut: string, action: string) => Promise<boolean>
+  // Misc
+  getGistUrl: () => Promise<string>
+  getImageDataURL: (url: string) => Promise<string>
+  relaunchApp: () => Promise<void>
+  quitApp: () => Promise<void>
+}
 
-// AutoRun
-export const checkAutoRun = (): Promise<boolean> => invoke('checkAutoRun')
-export const enableAutoRun = (): Promise<void> => invoke('enableAutoRun')
-export const disableAutoRun = (): Promise<void> => invoke('disableAutoRun')
+// 使用 Proxy 自动生成 IPC 调用
+const ipc = new Proxy({} as IpcApi, {
+  get:
+    <K extends keyof IpcApi>(_: IpcApi, channel: K) =>
+    (...args: Parameters<IpcApi[K]>) =>
+      invoke(channel, ...args)
+})
 
-// Config
-export const getAppConfig = (force = false): Promise<IAppConfig> => invoke('getAppConfig', force)
-export const patchAppConfig = (patch: Partial<IAppConfig>): Promise<void> =>
-  invoke('patchAppConfig', patch)
-export const getControledMihomoConfig = (force = false): Promise<Partial<IMihomoConfig>> =>
-  invoke('getControledMihomoConfig', force)
-export const patchControledMihomoConfig = (patch: Partial<IMihomoConfig>): Promise<void> =>
-  invoke('patchControledMihomoConfig', patch)
-export const resetAppConfig = (): Promise<void> => invoke('resetAppConfig')
+// 导出所有 IPC 方法
+export const {
+  // Mihomo API
+  mihomoVersion,
+  mihomoCloseConnection,
+  mihomoCloseAllConnections,
+  mihomoRules,
+  mihomoProxies,
+  mihomoGroups,
+  mihomoProxyProviders,
+  mihomoUpdateProxyProviders,
+  mihomoRuleProviders,
+  mihomoUpdateRuleProviders,
+  mihomoChangeProxy,
+  mihomoUnfixedProxy,
+  mihomoUpgradeGeo,
+  mihomoUpgrade,
+  mihomoUpgradeUI,
+  mihomoUpgradeConfig,
+  mihomoProxyDelay,
+  mihomoGroupDelay,
+  patchMihomoConfig,
+  mihomoSmartGroupWeights,
+  mihomoSmartFlushCache,
+  getSmartOverrideContent,
+  // AutoRun
+  checkAutoRun,
+  enableAutoRun,
+  disableAutoRun,
+  // Config
+  getAppConfig,
+  patchAppConfig,
+  getControledMihomoConfig,
+  patchControledMihomoConfig,
+  resetAppConfig,
+  // Profile
+  getProfileConfig,
+  setProfileConfig,
+  getCurrentProfileItem,
+  getProfileItem,
+  getProfileStr,
+  setProfileStr,
+  addProfileItem,
+  removeProfileItem,
+  updateProfileItem,
+  changeCurrentProfile,
+  addProfileUpdater,
+  removeProfileUpdater,
+  // Override
+  getOverrideConfig,
+  setOverrideConfig,
+  getOverrideItem,
+  addOverrideItem,
+  removeOverrideItem,
+  updateOverrideItem,
+  getOverride,
+  setOverride,
+  // File
+  getFileStr,
+  setFileStr,
+  convertMrsRuleset,
+  getRuntimeConfig,
+  getRuntimeConfigStr,
+  getRuleStr,
+  setRuleStr,
+  getFilePath,
+  readTextFile,
+  openFile,
+  // Core
+  restartCore,
+  startMonitor,
+  quitWithoutCore,
+  // System
+  triggerSysProxy,
+  checkTunPermissions,
+  grantTunPermissions,
+  manualGrantCorePermition,
+  checkAdminPrivileges,
+  restartAsAdmin,
+  checkMihomoCorePermissions,
+  checkHighPrivilegeCore,
+  showTunPermissionDialog,
+  showErrorDialog,
+  openUWPTool,
+  setupFirewall,
+  getInterfaces,
+  setNativeTheme,
+  copyEnv,
+  // Update
+  checkUpdate,
+  downloadAndInstallUpdate,
+  getVersion,
+  fetchMihomoTags,
+  installSpecificMihomoCore,
+  clearMihomoVersionCache,
+  // Backup
+  webdavBackup,
+  webdavRestore,
+  listWebdavBackups,
+  webdavDelete,
+  reinitWebdavBackupScheduler,
+  exportLocalBackup,
+  importLocalBackup,
+  // SubStore
+  startSubStoreFrontendServer,
+  stopSubStoreFrontendServer,
+  startSubStoreBackendServer,
+  stopSubStoreBackendServer,
+  downloadSubStore,
+  subStorePort,
+  subStoreFrontendPort,
+  subStoreSubs,
+  subStoreCollections,
+  // Theme
+  resolveThemes,
+  fetchThemes,
+  importThemes,
+  readTheme,
+  writeTheme,
+  // Tray
+  showTrayIcon,
+  closeTrayIcon,
+  updateTrayIcon,
+  // Window
+  showMainWindow,
+  closeMainWindow,
+  triggerMainWindow,
+  showFloatingWindow,
+  closeFloatingWindow,
+  showContextMenu,
+  setAlwaysOnTop,
+  isAlwaysOnTop,
+  openDevTools,
+  createHeapSnapshot,
+  // Shortcut
+  registerShortcut,
+  // Misc
+  getGistUrl,
+  getImageDataURL,
+  relaunchApp,
+  quitApp
+} = ipc
 
-// Profile
-export const getProfileConfig = (force = false): Promise<IProfileConfig> =>
-  invoke('getProfileConfig', force)
-export const setProfileConfig = (config: IProfileConfig): Promise<void> =>
-  invoke('setProfileConfig', config)
-export const getCurrentProfileItem = (): Promise<IProfileItem> => invoke('getCurrentProfileItem')
-export const getProfileItem = (id: string | undefined): Promise<IProfileItem> =>
-  invoke('getProfileItem', id)
-export const getProfileStr = (id: string): Promise<string> => invoke('getProfileStr', id)
-export const setProfileStr = (id: string, str: string): Promise<void> =>
-  invoke('setProfileStr', id, str)
-export const addProfileItem = (item: Partial<IProfileItem>): Promise<void> =>
-  invoke('addProfileItem', item)
-export const removeProfileItem = (id: string): Promise<void> => invoke('removeProfileItem', id)
-export const updateProfileItem = (item: IProfileItem): Promise<void> =>
-  invoke('updateProfileItem', item)
-export const changeCurrentProfile = (id: string): Promise<void> =>
-  invoke('changeCurrentProfile', id)
-export const addProfileUpdater = (item: IProfileItem): Promise<void> =>
-  invoke('addProfileUpdater', item)
-export const removeProfileUpdater = (id: string): Promise<void> =>
-  invoke('removeProfileUpdater', id)
+// platform 需要重命名导出
+export const getPlatform = ipc.platform
 
-// Override
-export const getOverrideConfig = (force = false): Promise<IOverrideConfig> =>
-  invoke('getOverrideConfig', force)
-export const setOverrideConfig = (config: IOverrideConfig): Promise<void> =>
-  invoke('setOverrideConfig', config)
-export const getOverrideItem = (id: string): Promise<IOverrideItem | undefined> =>
-  invoke('getOverrideItem', id)
-export const addOverrideItem = (item: Partial<IOverrideItem>): Promise<void> =>
-  invoke('addOverrideItem', item)
-export const removeOverrideItem = (id: string): Promise<void> => invoke('removeOverrideItem', id)
-export const updateOverrideItem = (item: IOverrideItem): Promise<void> =>
-  invoke('updateOverrideItem', item)
-export const getOverride = (id: string, ext: 'js' | 'yaml' | 'log'): Promise<string> =>
-  invoke('getOverride', id, ext)
-export const setOverride = (id: string, ext: 'js' | 'yaml', str: string): Promise<void> =>
-  invoke('setOverride', id, ext, str)
+// 需要特殊处理的函数
 
-// File
-export const getFileStr = (path: string): Promise<string> => invoke('getFileStr', path)
-export const setFileStr = (path: string, str: string): Promise<void> =>
-  invoke('setFileStr', path, str)
-export const convertMrsRuleset = (path: string, behavior: string): Promise<string> =>
-  invoke('convertMrsRuleset', path, behavior)
-export const getRuntimeConfig = (): Promise<IMihomoConfig> => invoke('getRuntimeConfig')
-export const getRuntimeConfigStr = (): Promise<string> => invoke('getRuntimeConfigStr')
-export const getRuleStr = (id: string): Promise<string> => invoke('getRuleStr', id)
-export const setRuleStr = (id: string, str: string): Promise<void> => invoke('setRuleStr', id, str)
-export const getFilePath = (ext: string[]): Promise<string[] | undefined> =>
-  invoke('getFilePath', ext)
-export const readTextFile = (filePath: string): Promise<string> => invoke('readTextFile', filePath)
-export const openFile = (
-  type: 'profile' | 'override',
-  id: string,
-  ext?: 'yaml' | 'js'
-): Promise<void> => invoke('openFile', type, id, ext)
-
-// Core
-export const restartCore = (): Promise<void> => invoke('restartCore')
-export const startMonitor = (): Promise<void> => invoke('startMonitor')
-export const quitWithoutCore = (): Promise<void> => invoke('quitWithoutCore')
-
-// System
-export const triggerSysProxy = (enable: boolean): Promise<void> => invoke('triggerSysProxy', enable)
-export const checkTunPermissions = (): Promise<boolean> => invoke('checkTunPermissions')
-export const grantTunPermissions = (): Promise<void> => invoke('grantTunPermissions')
-export const manualGrantCorePermition = (): Promise<void> => invoke('manualGrantCorePermition')
-export const checkAdminPrivileges = (): Promise<boolean> => invoke('checkAdminPrivileges')
-export const restartAsAdmin = (): Promise<void> => invoke('restartAsAdmin')
-export const checkMihomoCorePermissions = (): Promise<boolean> =>
-  invoke('checkMihomoCorePermissions')
-export const checkHighPrivilegeCore = (): Promise<boolean> => invoke('checkHighPrivilegeCore')
-export const showTunPermissionDialog = (): Promise<boolean> => invoke('showTunPermissionDialog')
-export const showErrorDialog = (title: string, message: string): Promise<void> =>
-  invoke('showErrorDialog', title, message)
-export const openUWPTool = (): Promise<void> => invoke('openUWPTool')
-export const setupFirewall = (): Promise<void> => invoke('setupFirewall')
-export const getInterfaces = (): Promise<Record<string, NetworkInterfaceInfo[]>> =>
-  invoke('getInterfaces')
-export const setNativeTheme = (theme: 'system' | 'light' | 'dark'): Promise<void> =>
-  invoke('setNativeTheme', theme)
-export const copyEnv = (type: 'bash' | 'cmd' | 'powershell'): Promise<void> =>
-  invoke('copyEnv', type)
-
-// Update
-export const checkUpdate = (): Promise<IAppVersion | undefined> => invoke('checkUpdate')
-export const downloadAndInstallUpdate = (version: string): Promise<void> =>
-  invoke('downloadAndInstallUpdate', version)
-export const getVersion = (): Promise<string> => invoke('getVersion')
-export const getPlatform = (): Promise<NodeJS.Platform> => invoke('platform')
-export const fetchMihomoTags = (
-  forceRefresh = false
-): Promise<{ name: string; zipball_url: string; tarball_url: string }[]> =>
-  invoke('fetchMihomoTags', forceRefresh)
-export const installSpecificMihomoCore = (version: string): Promise<void> =>
-  invoke('installSpecificMihomoCore', version)
-export const clearMihomoVersionCache = (): Promise<void> => invoke('clearMihomoVersionCache')
-
-// Backup
-export const webdavBackup = (): Promise<boolean> => invoke('webdavBackup')
-export const webdavRestore = (filename: string): Promise<void> => invoke('webdavRestore', filename)
-export const listWebdavBackups = (): Promise<string[]> => invoke('listWebdavBackups')
-export const webdavDelete = (filename: string): Promise<void> => invoke('webdavDelete', filename)
-export const reinitWebdavBackupScheduler = (): Promise<void> =>
-  invoke('reinitWebdavBackupScheduler')
-export const exportLocalBackup = (): Promise<boolean> => invoke('exportLocalBackup')
-export const importLocalBackup = (): Promise<boolean> => invoke('importLocalBackup')
-
-// SubStore
-export const startSubStoreFrontendServer = (): Promise<void> =>
-  invoke('startSubStoreFrontendServer')
-export const stopSubStoreFrontendServer = (): Promise<void> => invoke('stopSubStoreFrontendServer')
-export const startSubStoreBackendServer = (): Promise<void> => invoke('startSubStoreBackendServer')
-export const stopSubStoreBackendServer = (): Promise<void> => invoke('stopSubStoreBackendServer')
-export const downloadSubStore = (): Promise<void> => invoke('downloadSubStore')
-export const subStorePort = (): Promise<number> => invoke('subStorePort')
-export const subStoreFrontendPort = (): Promise<number> => invoke('subStoreFrontendPort')
-export const subStoreSubs = (): Promise<ISubStoreSub[]> => invoke('subStoreSubs')
-export const subStoreCollections = (): Promise<ISubStoreSub[]> => invoke('subStoreCollections')
-
-// Theme
-export const resolveThemes = (): Promise<{ key: string; label: string; content: string }[]> =>
-  invoke('resolveThemes')
-export const fetchThemes = (): Promise<void> => invoke('fetchThemes')
-export const importThemes = (files: string[]): Promise<void> => invoke('importThemes', files)
-export const readTheme = (theme: string): Promise<string> => invoke('readTheme', theme)
-export const writeTheme = (theme: string, css: string): Promise<void> =>
-  invoke('writeTheme', theme, css)
-
+// applyTheme: 防抖处理，避免频繁调用
 let applyThemeRunning = false
 let pendingTheme: string | null = null
 
@@ -216,21 +336,7 @@ export async function applyTheme(theme: string): Promise<void> {
   }
 }
 
-// Tray
-export const showTrayIcon = (): Promise<void> => invoke('showTrayIcon')
-export const closeTrayIcon = (): Promise<void> => invoke('closeTrayIcon')
-export const updateTrayIcon = (): Promise<void> => invoke('updateTrayIcon')
-export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: boolean): void {
-  window.electron.ipcRenderer.invoke('updateTrayIconImmediate', sysProxyEnabled, tunEnabled)
-}
-
-// Window
-export const showMainWindow = (): Promise<void> => invoke('showMainWindow')
-export const closeMainWindow = (): Promise<void> => invoke('closeMainWindow')
-export const triggerMainWindow = (): Promise<void> => invoke('triggerMainWindow')
-export const showFloatingWindow = (): Promise<void> => invoke('showFloatingWindow')
-export const closeFloatingWindow = (): Promise<void> => invoke('closeFloatingWindow')
-export const showContextMenu = (): Promise<void> => invoke('showContextMenu')
+// setTitleBarOverlay: 需要静默处理不支持的平台
 export async function setTitleBarOverlay(overlay: TitleBarOverlayOptions): Promise<void> {
   try {
     await invoke<void>('setTitleBarOverlay', overlay)
@@ -238,21 +344,8 @@ export async function setTitleBarOverlay(overlay: TitleBarOverlayOptions): Promi
     // Not supported on this platform
   }
 }
-export const setAlwaysOnTop = (alwaysOnTop: boolean): Promise<void> =>
-  invoke('setAlwaysOnTop', alwaysOnTop)
-export const isAlwaysOnTop = (): Promise<boolean> => invoke('isAlwaysOnTop')
-export const openDevTools = (): Promise<void> => invoke('openDevTools')
-export const createHeapSnapshot = (): Promise<void> => invoke('createHeapSnapshot')
 
-// Shortcut
-export const registerShortcut = (
-  oldShortcut: string,
-  newShortcut: string,
-  action: string
-): Promise<boolean> => invoke('registerShortcut', oldShortcut, newShortcut, action)
-
-// Misc
-export const getGistUrl = (): Promise<string> => invoke('getGistUrl')
-export const getImageDataURL = (url: string): Promise<string> => invoke('getImageDataURL', url)
-export const relaunchApp = (): Promise<void> => invoke('relaunchApp')
-export const quitApp = (): Promise<void> => invoke('quitApp')
+// updateTrayIconImmediate: 同步调用，不等待结果
+export function updateTrayIconImmediate(sysProxyEnabled: boolean, tunEnabled: boolean): void {
+  window.electron.ipcRenderer.invoke('updateTrayIconImmediate', sysProxyEnabled, tunEnabled)
+}
