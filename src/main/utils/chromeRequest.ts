@@ -25,6 +25,25 @@ export interface Response<T = unknown> {
   url: string
 }
 
+// 复用单个 session 用于代理请求
+let proxySession: Electron.Session | null = null
+let currentProxyUrl: string | null = null
+let proxySetupPromise: Promise<void> | null = null
+
+async function getProxySession(proxyUrl: string): Promise<Electron.Session> {
+  if (!proxySession) {
+    proxySession = session.fromPartition('proxy-requests', { cache: false })
+  }
+  if (currentProxyUrl !== proxyUrl) {
+    proxySetupPromise = proxySession.setProxy({ proxyRules: proxyUrl })
+    currentProxyUrl = proxyUrl
+  }
+  if (proxySetupPromise) {
+    await proxySetupPromise
+  }
+  return proxySession
+}
+
 /**
  * Make HTTP request using Chromium's network stack (via electron.net)
  * This provides better compatibility, HTTP/2 support, and system certificate integration
@@ -45,27 +64,17 @@ export async function request<T = unknown>(
   } = options
 
   return new Promise((resolve, reject) => {
-    let sessionToUse: Electron.Session | undefined = session.defaultSession
-    let tempPartition: string | null = null
+    let sessionToUse: Electron.Session = session.defaultSession
 
     // Set up proxy if specified
     const setupProxy = async (): Promise<void> => {
       if (proxy) {
-        // Create temporary session partition to avoid affecting global proxy settings
-        tempPartition = `temp-request-${Date.now()}-${Math.random()}`
-        sessionToUse = session.fromPartition(tempPartition, { cache: false })
         const proxyUrl = `${proxy.protocol}://${proxy.host}:${proxy.port}`
-        await sessionToUse.setProxy({ proxyRules: proxyUrl })
+        sessionToUse = await getProxySession(proxyUrl)
       }
     }
 
     const cleanup = (): void => {
-      // Cleanup temporary session if created
-      if (tempPartition) {
-        // Note: Electron doesn't provide session.destroy(), but temporary sessions
-        // will be garbage collected when no longer referenced
-        sessionToUse = undefined
-      }
     }
 
     setupProxy()
