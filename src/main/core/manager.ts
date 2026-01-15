@@ -86,6 +86,8 @@ export function initCoreWatcher(): void {
   coreWatcher = chokidar.watch(path.join(mihomoCoreDir(), 'meta-update'), {})
   coreWatcher.on('unlinkDir', async () => {
     try {
+      // 等待核心自我更新完成，避免管道连接竞态
+      await new Promise((resolve) => setTimeout(resolve, 2000))
       await stopCore(true)
       await startCore()
     } catch (e) {
