@@ -260,31 +260,29 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
   const args = process.argv.slice(1)
   const restartArgs = forTun ? [...args, '--admin-restart-for-tun'] : args
 
-  try {
-    const escapedExePath = exePath.replace(/'/g, "''")
-    const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
+  const escapedExePath = exePath.replace(/'/g, "''")
+  const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
 
-    const command =
-      restartArgs.length > 0
-        ? `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
-        : `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
+  const command =
+    restartArgs.length > 0
+      ? `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs -Wait:$false; exit 0"`
+      : `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs -Wait:$false; exit 0"`
 
-    managerLogger.info('Restarting as administrator with command', command)
+  managerLogger.info('Restarting as administrator with command', command)
 
+  return new Promise((resolve, reject) => {
     exec(command, { windowsHide: true }, (error, _stdout, stderr) => {
       if (error) {
         managerLogger.error('PowerShell execution error', error)
         managerLogger.error('stderr', stderr)
-      } else {
-        managerLogger.info('PowerShell command executed successfully')
+        reject(new Error(`Failed to restart as administrator: ${error.message}`))
+        return
       }
+      managerLogger.info('PowerShell command executed successfully, quitting app')
+      setTimeout(() => app.quit(), 500)
+      resolve()
     })
-
-    app.quit()
-  } catch (error) {
-    managerLogger.error('Failed to restart as administrator', error)
-    throw new Error(`Failed to restart as administrator: ${error}`)
-  }
+  })
 }
 
 export async function requestTunPermissions(): Promise<void> {
