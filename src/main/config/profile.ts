@@ -27,6 +27,7 @@ export async function getProfileConfig(force = false): Promise<IProfileConfig> {
     profileConfig = parse(data) || { items: [] }
   }
   if (typeof profileConfig !== 'object') profileConfig = { items: [] }
+  if (!Array.isArray(profileConfig.items)) profileConfig.items = []
   return structuredClone(profileConfig)
 }
 

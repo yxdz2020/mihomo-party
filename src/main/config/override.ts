@@ -14,6 +14,7 @@ export async function getOverrideConfig(force = false): Promise<IOverrideConfig>
     overrideConfig = parse(data) || { items: [] }
   }
   if (typeof overrideConfig !== 'object') overrideConfig = { items: [] }
+  if (!Array.isArray(overrideConfig.items)) overrideConfig.items = []
   return overrideConfig
 }
 

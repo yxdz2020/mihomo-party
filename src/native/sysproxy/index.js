@@ -1,5 +1,5 @@
 const { existsSync, readFileSync } = require('fs')
-const { join } = require('path')
+const { join, dirname } = require('path')
 
 const { platform, arch } = process
 
@@ -43,27 +43,41 @@ function getBindingName() {
   throw new Error(`Unsupported platform: ${platform}-${arch}`)
 }
 
+function getResourcesPath() {
+  // Electron 打包后的路径
+  if (process.resourcesPath) {
+    return process.resourcesPath
+  }
+  // 开发环境：从 __dirname 向上查找项目根目录
+  let currentDir = __dirname
+  while (currentDir !== dirname(currentDir)) {
+    if (existsSync(join(currentDir, 'package.json'))) {
+      return currentDir
+    }
+    currentDir = dirname(currentDir)
+  }
+  return __dirname
+}
+
 function loadBinding() {
   const bindingName = getBindingName()
+  const resourcesPath = getResourcesPath()
 
-  // 查找项目根目录的 sidecar 和 extra/sidecar
-  let currentDir = __dirname
-  while (currentDir !== require('path').dirname(currentDir)) {
-    const paths = [
-      join(currentDir, 'sidecar', bindingName),
-      join(currentDir, 'extra', 'sidecar', bindingName)
-    ]
-    for (const sidecarPath of paths) {
-      if (existsSync(sidecarPath)) {
-        try {
-          nativeBinding = require(sidecarPath)
-          return nativeBinding
-        } catch (e) {
-          loadError = e
-        }
+  // 可能的路径列表
+  const searchPaths = [
+    join(resourcesPath, 'sidecar', bindingName),
+    join(resourcesPath, 'extra', 'sidecar', bindingName)
+  ]
+
+  for (const sidecarPath of searchPaths) {
+    if (existsSync(sidecarPath)) {
+      try {
+        nativeBinding = require(sidecarPath)
+        return nativeBinding
+      } catch (e) {
+        loadError = e
       }
     }
-    currentDir = require('path').dirname(currentDir)
   }
 
   if (loadError) {
