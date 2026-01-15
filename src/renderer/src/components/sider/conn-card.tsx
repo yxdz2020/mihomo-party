@@ -60,6 +60,8 @@ const ConnCard: React.FC<Props> = (props) => {
   const currentDownloadRef = useRef<number | undefined>(undefined)
   const hasShowTrafficRef = useRef(false)
   const drawingRef = useRef(false)
+  // 保存待绘制的流量数据，避免跳过更新导致图标闪烁
+  const pendingTrafficRef = useRef<{ up: number; down: number } | null>(null)
 
   // Chart.js 配置
   const chartData = useMemo(() => {
@@ -140,10 +142,17 @@ const ConnCard: React.FC<Props> = (props) => {
       })
       if (platform === 'darwin') {
         if (showTraffic) {
+          // 保存最新流量数据，确保绘制完成后使用最新值
+          pendingTrafficRef.current = { up: info.up, down: info.down }
           if (drawingRef.current) return
           drawingRef.current = true
           try {
-            await drawSvg(info.up, info.down, currentUploadRef, currentDownloadRef)
+            // 循环处理待绘制数据，直到没有新数据
+            while (pendingTrafficRef.current) {
+              const { up, down } = pendingTrafficRef.current
+              pendingTrafficRef.current = null
+              await drawSvg(up, down, currentUploadRef, currentDownloadRef)
+            }
             hasShowTrafficRef.current = true
           } catch {
             // ignore
