@@ -187,7 +187,18 @@ async function initFiles(): Promise<void> {
       targets.map(async (targetPath) => {
         const shouldCopy = !existsSync(targetPath) || (await isSourceNewer(sourcePath, targetPath))
         if (shouldCopy) {
-          await cp(sourcePath, targetPath, { recursive: true, force: true })
+          // 先删除目标，force: true 会忽略 ENOENT，避免 cp 内部 unlink 的问题
+          try {
+            await rm(targetPath, { recursive: true, force: true })
+          } catch (error: unknown) {
+            // EPERM: 文件被占用，跳过本次复制
+            if ((error as NodeJS.ErrnoException).code === 'EPERM') {
+              await initLogger.warn(`Skipping ${file}: file is in use`)
+              return
+            }
+            throw error
+          }
+          await cp(sourcePath, targetPath, { recursive: true })
         }
       })
     )
