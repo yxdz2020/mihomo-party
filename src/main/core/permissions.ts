@@ -261,7 +261,6 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
     const { stopCore } = await import('./manager')
     managerLogger.info('Stopping core before admin restart...')
     await stopCore(true)
-    // 等待 Core 完全停止
     await new Promise((resolve) => setTimeout(resolve, 500))
   } catch (error) {
     managerLogger.warn('Failed to stop core before restart:', error)
@@ -274,27 +273,18 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
   const escapedExePath = exePath.replace(/'/g, "''")
   const argsString = restartArgs.map((arg) => arg.replace(/'/g, "''")).join("', '")
 
+  // 使用 Start-Sleep 延迟启动，确保旧进程完全退出后再启动新进程
   const command =
     restartArgs.length > 0
-      ? `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs -Wait:$false; exit 0"`
-      : `powershell -NoProfile -Command "Start-Process -FilePath '${escapedExePath}' -Verb RunAs -Wait:$false; exit 0"`
+      ? `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -ArgumentList '${argsString}' -Verb RunAs"`
+      : `powershell -NoProfile -Command "Start-Sleep -Milliseconds 1000; Start-Process -FilePath '${escapedExePath}' -Verb RunAs"`
 
   managerLogger.info('Restarting as administrator with command', command)
 
-  return new Promise((resolve, reject) => {
-    exec(command, { windowsHide: true }, (error, _stdout, stderr) => {
-      if (error) {
-        managerLogger.error('PowerShell execution error', error)
-        managerLogger.error('stderr', stderr)
-        reject(new Error(`Failed to restart as administrator: ${error.message}`))
-        return
-      }
-      managerLogger.info('PowerShell command executed successfully, quitting app')
-      // 立即退出，避免竞态
-      app.quit()
-      resolve()
-    })
-  })
+  // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
+  exec(command, { windowsHide: true })
+  managerLogger.info('PowerShell command started, quitting app immediately')
+  app.exit(0)
 }
 
 export async function requestTunPermissions(): Promise<void> {

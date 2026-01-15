@@ -189,8 +189,17 @@ async function initFiles(): Promise<void> {
           await cp(sourcePath, targetPath, { recursive: true, force: true })
         } catch (error: unknown) {
           const code = (error as NodeJS.ErrnoException).code
-          if (code === 'EPERM' || code === 'EBUSY') {
-            await initLogger.warn(`Skipping ${file}: file is in use`)
+          // EPERM/EBUSY: 文件被占用；ENOENT: unlink 时目标不存在（Windows cp force 模式的边界情况）
+          if (code === 'EPERM' || code === 'EBUSY' || code === 'ENOENT') {
+            await initLogger.warn(`Skipping ${file}: ${code}`)
+            // 如果目标文件已存在，跳过即可；否则尝试不带 force 复制
+            if (!existsSync(targetPath)) {
+              try {
+                await cp(sourcePath, targetPath, { recursive: true })
+              } catch {
+                await initLogger.warn(`Retry copy ${file} also failed`)
+              }
+            }
             return
           }
           throw error
