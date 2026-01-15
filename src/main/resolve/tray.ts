@@ -253,6 +253,9 @@ export const buildContextMenu = async (): Promise<Menu> => {
               }
             } catch (error) {
               await trayLogger.warn('Permission check failed in tray', error)
+              item.checked = false
+              ipcMain.emit('updateTrayMenu')
+              return
             }
 
             await patchControledMihomoConfig({ tun: { enable }, dns: { enable: true } })

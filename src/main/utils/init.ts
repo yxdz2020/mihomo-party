@@ -189,14 +189,11 @@ async function initFiles(): Promise<void> {
           await cp(sourcePath, targetPath, { recursive: true, force: true })
         } catch (error: unknown) {
           const code = (error as NodeJS.ErrnoException).code
-          if (code === 'EPERM' || code === 'EBUSY') {
-            // 文件被占用，如果目标已存在则跳过
-            if (existsSync(targetPath)) {
-              await initLogger.warn(`Skipping ${file}: file is in use`)
-              return
-            }
+          // 文件被占用或权限问题，如果目标已存在则跳过
+          if ((code === 'EPERM' || code === 'EBUSY' || code === 'EACCES') && existsSync(targetPath)) {
+            await initLogger.warn(`Skipping ${file}: file is in use or permission denied`)
+            return
           }
-          // 其他错误或目标不存在时，向上抛出让 criticalFiles 检查处理
           throw error
         }
       })

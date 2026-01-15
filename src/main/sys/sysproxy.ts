@@ -97,10 +97,15 @@ async function enableSysProxy(): Promise<void> {
     }
   } else {
     // Windows / Linux 直接使用 sysproxy-rs
-    if (mode === 'auto') {
-      triggerAutoProxy(true, `http://${proxyHost}:${pacPort}/pac`)
-    } else {
-      triggerManualProxy(true, proxyHost, port, bypass.join(','))
+    try {
+      if (mode === 'auto') {
+        triggerAutoProxy(true, `http://${proxyHost}:${pacPort}/pac`)
+      } else {
+        triggerManualProxy(true, proxyHost, port, bypass.join(','))
+      }
+    } catch (error) {
+      await proxyLogger.error('Failed to enable system proxy', error)
+      throw error
     }
   }
 }
@@ -114,8 +119,13 @@ async function disableSysProxy(): Promise<void> {
     )
   } else {
     // Windows / Linux 直接使用 sysproxy-rs
-    triggerAutoProxy(false, '')
-    triggerManualProxy(false, '', 0, '')
+    try {
+      triggerAutoProxy(false, '')
+      triggerManualProxy(false, '', 0, '')
+    } catch (error) {
+      await proxyLogger.error('Failed to disable system proxy', error)
+      throw error
+    }
   }
 }
 

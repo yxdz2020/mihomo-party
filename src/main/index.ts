@@ -87,13 +87,13 @@ async function checkHighPrivilegeCoreEarly(): Promise<void> {
     if (choice === 0) {
       try {
         await restartAsAdmin(false)
-        process.exit(0)
+        app.exit(0)
       } catch (error) {
         safeShowErrorBox('common.error.adminRequired', `${error}`)
-        process.exit(1)
+        app.exit(1)
       }
     } else {
-      process.exit(0)
+      app.exit(0)
     }
   } catch (e) {
     mainLogger.error('Failed to check high privilege core', e)
@@ -151,12 +151,14 @@ app.whenReady().then(async () => {
 
   try {
     initCoreWatcher()
-    const [startPromise] = await startCore()
-    startPromise.then(async () => {
-      await initProfileUpdater()
-      await initWebdavBackupScheduler()
-      await checkAdminRestartForTun()
-    })
+    const startPromises = await startCore()
+    if (startPromises.length > 0) {
+      startPromises[0].then(async () => {
+        await initProfileUpdater()
+        await initWebdavBackupScheduler()
+        await checkAdminRestartForTun()
+      })
+    }
   } catch (e) {
     safeShowErrorBox('mihomo.error.coreStartFailed', `${e}`)
   }

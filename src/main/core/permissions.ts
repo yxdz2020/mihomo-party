@@ -282,7 +282,11 @@ export async function restartAsAdmin(forTun: boolean = true): Promise<void> {
   managerLogger.info('Restarting as administrator with command', command)
 
   // 先启动 PowerShell（它会等待 1 秒），然后立即退出当前进程
-  exec(command, { windowsHide: true })
+  exec(command, { windowsHide: true }, (error) => {
+    if (error) {
+      managerLogger.error('Failed to start PowerShell for admin restart', error)
+    }
+  })
   managerLogger.info('PowerShell command started, quitting app immediately')
   app.exit(0)
 }
