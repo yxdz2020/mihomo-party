@@ -56,6 +56,8 @@ pkg:
     alignment: bottomleft
     file: build/background.png
 linux:
+  executableName: mihomo-party
+  icon: build/icon.png
   desktop:
     entry:
       Name: Clash Party
@@ -63,7 +65,8 @@ linux:
       Comment: A GUI client based on Mihomo
       MimeType: 'x-scheme-handler/clash;x-scheme-handler/mihomo'
       Keywords: proxy;clash;mihomo;vpn;
-      StartupWMClass: clash-party
+      StartupWMClass: mihomo-party
+      Icon: mihomo-party
   target:
     - deb
     - rpm
