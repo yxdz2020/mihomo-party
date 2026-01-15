@@ -178,27 +178,22 @@ async function initFiles(): Promise<void> {
     const sourcePath = path.join(resourcesFilesDir(), file)
     if (!existsSync(sourcePath)) return
 
-    const targets = [
-      path.join(mihomoWorkDir(), file),
-      path.join(mihomoTestDir(), file)
-    ]
+    const targets = [path.join(mihomoWorkDir(), file), path.join(mihomoTestDir(), file)]
 
     await Promise.all(
       targets.map(async (targetPath) => {
         const shouldCopy = !existsSync(targetPath) || (await isSourceNewer(sourcePath, targetPath))
-        if (shouldCopy) {
-          // 先删除目标，force: true 会忽略 ENOENT，避免 cp 内部 unlink 的问题
-          try {
-            await rm(targetPath, { recursive: true, force: true })
-          } catch (error: unknown) {
-            // EPERM: 文件被占用，跳过本次复制
-            if ((error as NodeJS.ErrnoException).code === 'EPERM') {
-              await initLogger.warn(`Skipping ${file}: file is in use`)
-              return
-            }
-            throw error
+        if (!shouldCopy) return
+
+        try {
+          await cp(sourcePath, targetPath, { recursive: true, force: true })
+        } catch (error: unknown) {
+          const code = (error as NodeJS.ErrnoException).code
+          if (code === 'EPERM' || code === 'EBUSY') {
+            await initLogger.warn(`Skipping ${file}: file is in use`)
+            return
           }
-          await cp(sourcePath, targetPath, { recursive: true })
+          throw error
         }
       })
     )
