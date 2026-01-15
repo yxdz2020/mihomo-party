@@ -316,11 +316,57 @@ const resolveEnableLoopback = () =>
     file: 'enableLoopback.exe',
     downloadURL: `https://github.com/Kuingsmile/uwp-tool/releases/download/latest/enableLoopback.exe`
   })
-const resolveSysproxy = () =>
-  resolveResource({
-    file: 'sysproxy.exe',
-    downloadURL: `https://github.com/mihomo-party-org/sysproxy/releases/download/${arch}/sysproxy.exe`
-  })
+/* ======= sysproxy-rs ======= */
+const SYSPROXY_RS_VERSION = 'v0.1.0'
+const SYSPROXY_RS_URL_PREFIX = `https://github.com/mihomo-party-org/sysproxy-rs-opti/releases/download/${SYSPROXY_RS_VERSION}`
+
+function getSysproxyNodeName() {
+  const isMusl = (() => {
+    if (platform !== 'linux') return false
+    try {
+      const lddPath = require('child_process').execSync('which ldd').toString().trim()
+      return fs.readFileSync(lddPath, 'utf8').includes('musl')
+    } catch {
+      return true
+    }
+  })()
+
+  switch (platform) {
+    case 'win32':
+      if (arch === 'x64') return 'sysproxy.win32-x64-msvc.node'
+      if (arch === 'arm64') return 'sysproxy.win32-arm64-msvc.node'
+      if (arch === 'ia32') return 'sysproxy.win32-ia32-msvc.node'
+      break
+    case 'darwin':
+      if (arch === 'x64') return 'sysproxy.darwin-x64.node'
+      if (arch === 'arm64') return 'sysproxy.darwin-arm64.node'
+      break
+    case 'linux':
+      if (isMusl) {
+        if (arch === 'x64') return 'sysproxy.linux-x64-musl.node'
+        if (arch === 'arm64') return 'sysproxy.linux-arm64-musl.node'
+      } else {
+        if (arch === 'x64') return 'sysproxy.linux-x64-gnu.node'
+        if (arch === 'arm64') return 'sysproxy.linux-arm64-gnu.node'
+      }
+      break
+  }
+  throw new Error(`Unsupported platform for sysproxy-rs: ${platform}-${arch}`)
+}
+
+const resolveSysproxy = async () => {
+  const nodeName = getSysproxyNodeName()
+  const sidecarDir = path.join(cwd, 'extra', 'sidecar')
+  const targetPath = path.join(sidecarDir, nodeName)
+
+  fs.mkdirSync(sidecarDir, { recursive: true })
+  if (fs.existsSync(targetPath)) {
+    fs.rmSync(targetPath)
+  }
+
+  await downloadFile(`${SYSPROXY_RS_URL_PREFIX}/${nodeName}`, targetPath)
+  console.log(`[INFO]: ${nodeName} finished`)
+}
 
 const resolveMonitor = async () => {
   const tempDir = path.join(TEMP_DIR, 'TrafficMonitor')
@@ -429,8 +475,7 @@ const tasks = [
   {
     name: 'sysproxy',
     func: resolveSysproxy,
-    retry: 5,
-    winOnly: true
+    retry: 5
   },
   {
     name: 'monitor',

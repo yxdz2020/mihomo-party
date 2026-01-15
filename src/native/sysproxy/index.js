@@ -78,3 +78,5 @@ module.exports.triggerManualProxy = binding.triggerManualProxy
 module.exports.triggerAutoProxy = binding.triggerAutoProxy
 module.exports.getSystemProxy = binding.getSystemProxy
 module.exports.getAutoProxy = binding.getAutoProxy
+module.exports.setSystemProxy = binding.setSystemProxy
+module.exports.setAutoProxy = binding.setAutoProxy

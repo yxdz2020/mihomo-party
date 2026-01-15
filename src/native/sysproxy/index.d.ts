@@ -22,3 +22,7 @@ export function triggerAutoProxy(enable: boolean, url: string): void
 export function getSystemProxy(): SysproxyInfo
 
 export function getAutoProxy(): AutoproxyInfo
+
+export function setSystemProxy(proxy: SysproxyInfo): void
+
+export function setAutoProxy(proxy: AutoproxyInfo): void
