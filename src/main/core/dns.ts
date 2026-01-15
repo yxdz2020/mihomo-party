@@ -1,9 +1,11 @@
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { net } from 'electron'
+import axios from 'axios'
 import { getAppConfig, patchAppConfig } from '../config'
 
 const execPromise = promisify(exec)
+const helperSocketPath = '/tmp/mihomo-party-helper.sock'
 
 let setPublicDNSTimer: NodeJS.Timeout | null = null
 let recoverDNSTimer: NodeJS.Timeout | null = null
@@ -41,10 +43,18 @@ async function getOriginDNS(): Promise<void> {
 
 async function setDNS(dns: string): Promise<void> {
   const service = await getDefaultService()
-  // networksetup 需要 root 权限，通过 osascript 请求管理员权限执行
-  const shell = `networksetup -setdnsservers "${service}" ${dns}`
-  const command = `do shell script "${shell}" with administrator privileges`
-  await execPromise(`osascript -e '${command}'`)
+  try {
+    await axios.post(
+      'http://localhost/dns',
+      { service, dns },
+      { socketPath: helperSocketPath }
+    )
+  } catch {
+    // fallback to osascript if helper not available
+    const shell = `networksetup -setdnsservers "${service}" ${dns}`
+    const command = `do shell script "${shell}" with administrator privileges`
+    await execPromise(`osascript -e '${command}'`)
+  }
 }
 
 export async function setPublicDNS(): Promise<void> {
