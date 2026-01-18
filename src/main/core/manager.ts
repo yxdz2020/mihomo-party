@@ -134,7 +134,7 @@ interface CoreConfig {
 }
 
 // 准备核心配置
-async function prepareCore(detached: boolean): Promise<CoreConfig> {
+async function prepareCore(detached: boolean, skipStop = false): Promise<CoreConfig> {
   const [appConfig, mihomoConfig] = await Promise.all([
     getAppConfig(),
     getControledMihomoConfig()
@@ -168,7 +168,9 @@ async function prepareCore(detached: boolean): Promise<CoreConfig> {
   // generateProfile 返回实际使用的 current
   const current = await generateProfile()
   await checkProfile(current, core, diffWorkDir)
-  await stopCore()
+  if (!skipStop) {
+    await stopCore()
+  }
   await cleanupSocketFile()
 
   // 设置 DNS
@@ -320,8 +322,8 @@ function setupCoreListeners(
 }
 
 // 启动核心
-export async function startCore(detached = false): Promise<Promise<void>[]> {
-  const config = await prepareCore(detached)
+export async function startCore(detached = false, skipStop = false): Promise<Promise<void>[]> {
+  const config = await prepareCore(detached, skipStop)
   child = spawnCoreProcess(config)
 
   if (detached) {
@@ -374,11 +376,34 @@ export async function restartCore(): Promise<void> {
   }
 
   isRestarting = true
+  let retryCount = 0
+  const maxRetries = 3
+
   try {
-    await startCore()
-  } catch (e) {
-    managerLogger.error('restart core failed', e)
-    throw e
+    // 先显式停止核心，确保状态干净
+    await stopCore()
+
+    // 尝试启动核心，失败时重试
+    while (retryCount < maxRetries) {
+      try {
+        // skipStop=true 因为我们已经在上面停止了核心
+        await startCore(false, true)
+        return // 成功启动，退出函数
+      } catch (e) {
+        retryCount++
+        managerLogger.error(`restart core failed (attempt ${retryCount}/${maxRetries})`, e)
+
+        if (retryCount >= maxRetries) {
+          throw e
+        }
+
+        // 重试前等待一段时间
+        await new Promise((resolve) => setTimeout(resolve, 1000 * retryCount))
+        // 确保清理干净再重试
+        await stopCore()
+        await cleanupSocketFile()
+      }
+    }
   } finally {
     isRestarting = false
   }
