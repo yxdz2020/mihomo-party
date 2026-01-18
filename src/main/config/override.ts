@@ -48,8 +48,8 @@ export async function addOverrideItem(item: Partial<IOverrideItem>): Promise<voi
     await updateOverrideItem(newItem)
   } else {
     config.items.push(newItem)
+    await setOverrideConfig(config)
   }
-  await setOverrideConfig(config)
 }
 
 export async function removeOverrideItem(id: string): Promise<void> {
