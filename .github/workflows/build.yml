@@ -205,6 +205,8 @@ jobs:
           GITHUB_EVENT_NAME: workflow_dispatch
         run: node scripts/update-version.mjs
       - name: Prepare
+        env:
+          LEGACY_BUILD: 'true'
         run: pnpm prepare --${{ matrix.arch }}
       - name: Build
         env:

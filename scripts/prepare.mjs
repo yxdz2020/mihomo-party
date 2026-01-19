@@ -332,11 +332,13 @@ function getSysproxyNodeName() {
     }
   })()
 
+  const isWin7Build = process.env.LEGACY_BUILD === 'true'
+
   switch (platform) {
     case 'win32':
-      if (arch === 'x64') return 'sysproxy.win32-x64-msvc.node'
+      if (arch === 'x64') return isWin7Build ? 'sysproxy.win32-x64-msvc-win7.node' : 'sysproxy.win32-x64-msvc.node'
       if (arch === 'arm64') return 'sysproxy.win32-arm64-msvc.node'
-      if (arch === 'ia32') return 'sysproxy.win32-ia32-msvc.node'
+      if (arch === 'ia32') return isWin7Build ? 'sysproxy.win32-ia32-msvc-win7.node' : 'sysproxy.win32-ia32-msvc.node'
       break
     case 'darwin':
       if (arch === 'x64') return 'sysproxy.darwin-x64.node'
