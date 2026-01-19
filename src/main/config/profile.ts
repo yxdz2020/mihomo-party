@@ -65,26 +65,33 @@ export async function getProfileItem(id: string | undefined): Promise<IProfileIt
 
 export async function changeCurrentProfile(id: string): Promise<void> {
   // 使用队列确保 profile 切换串行执行，避免竞态条件
-  changeProfileQueue = changeProfileQueue.then(async () => {
-    const { current } = await getProfileConfig()
-    if (current === id) return
+  let taskError: unknown = null
+  changeProfileQueue = changeProfileQueue
+    .catch(() => {
+    })
+    .then(async () => {
+      const { current } = await getProfileConfig()
+      if (current === id) return
 
-    try {
-      await updateProfileConfig((config) => {
-        config.current = id
-        return config
-      })
-      await restartCore()
-    } catch (e) {
-      // 回滚配置
-      await updateProfileConfig((config) => {
-        config.current = current
-        return config
-      })
-      throw e
-    }
-  })
+      try {
+        await updateProfileConfig((config) => {
+          config.current = id
+          return config
+        })
+        await restartCore()
+      } catch (e) {
+        // 回滚配置
+        await updateProfileConfig((config) => {
+          config.current = current
+          return config
+        })
+        taskError = e
+      }
+    })
   await changeProfileQueue
+  if (taskError) {
+    throw taskError
+  }
 }
 
 export async function updateProfileItem(item: IProfileItem): Promise<void> {
@@ -247,6 +254,14 @@ export async function createProfile(item: Partial<IProfileItem>): Promise<IProfi
         result = await fetchAndValidateSubscription({
           ...baseOptions,
           useProxy: true,
+          timeout: subscriptionTimeout
+        })
+      } else if (newItem.substore) {
+        // SubStore requests (especially collections) need more time as they fetch and merge multiple subscriptions
+        // Use the full subscriptionTimeout since SubStore is a local server and doesn't need smart fallback
+        result = await fetchAndValidateSubscription({
+          ...baseOptions,
+          useProxy: false,
           timeout: subscriptionTimeout
         })
       } else {
