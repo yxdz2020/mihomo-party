@@ -20,6 +20,7 @@ import { toast } from '@renderer/components/base/toast'
 import { showError } from '@renderer/utils/error-display'
 import SettingCard from '@renderer/components/base/base-setting-card'
 import SettingItem from '@renderer/components/base/base-setting-item'
+import { isValidListenAddress, getError, isValid } from '@renderer/utils/validate'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import { useControledMihomoConfig } from '@renderer/hooks/use-controled-mihomo-config'
 import { platform } from '@renderer/utils/init'
@@ -28,7 +29,9 @@ import {
   IoMdCloudDownload,
   IoMdInformationCircleOutline,
   IoMdRefresh,
-  IoMdShuffle
+  IoMdShuffle,
+  IoMdEye,
+  IoMdEyeOff
 } from 'react-icons/io'
 import PubSub from 'pubsub-js'
 import {
@@ -136,7 +139,12 @@ const Mihomo: React.FC = () => {
   const [redirPortInput, setRedirPortInput] = useState(showRedirPort ?? redirPort)
   const [tproxyPortInput, setTproxyPortInput] = useState(showTproxyPort ?? tproxyPort)
   const [externalControllerInput, setExternalControllerInput] = useState(externalController)
+  const [externalControllerError, setExternalControllerError] = useState<string | null>(() => {
+    const result = isValidListenAddress(externalController)
+    return isValid(result) ? null : (getError(result) ?? '格式错误')
+  })
   const [secretInput, setSecretInput] = useState(secret)
+  const [isSecretVisible, setIsSecretVisible] = useState(false)
   const [lanAllowedIpsInput, setLanAllowedIpsInput] = useState(lanAllowedIps)
   const [lanDisallowedIpsInput, setLanDisallowedIpsInput] = useState(lanDisallowedIps)
   const [authenticationInput, setAuthenticationInput] = useState(authentication)
@@ -994,11 +1002,12 @@ const Mihomo: React.FC = () => {
           )}
           <SettingItem title={t('mihomo.externalController')} divider>
             <div className="flex">
-              {externalControllerInput !== externalController && (
+              {externalControllerInput !== externalController && !externalControllerError && (
                 <Button
                   size="sm"
                   color="primary"
                   className="mr-2"
+                  isDisabled={!!externalControllerError}
                   onPress={() => {
                     onChangeNeedRestart({
                       'external-controller': externalControllerInput
@@ -1009,17 +1018,48 @@ const Mihomo: React.FC = () => {
                 </Button>
               )}
 
-              <Input
-                size="sm"
-                className="w-[200px]"
-                value={externalControllerInput}
-                onValueChange={(v) => {
-                  setExternalControllerInput(v)
-                }}
-              />
+              <Tooltip
+                content={externalControllerError}
+                placement="right"
+                isOpen={!!externalControllerError}
+                showArrow={true}
+                color="danger"
+                offset={10}
+              >
+                <Input
+                  size="sm"
+                  className={`w-[200px] ${externalControllerError ? 'border-red-500 ring-1 ring-red-500 rounded-lg' : ''}`}
+                  value={externalControllerInput}
+                  onValueChange={(v) => {
+                    setExternalControllerInput(v)
+                    const result = isValidListenAddress(v)
+                    setExternalControllerError(isValid(result) ? null : (getError(result) ?? '格式错误'))
+                  }}
+                />
+              </Tooltip>
             </div>
           </SettingItem>
-          <SettingItem title={t('mihomo.externalControllerSecret')} divider>
+          <SettingItem
+            title={t('mihomo.externalControllerSecret')}
+            actions={
+              <Button
+                size="sm"
+                isIconOnly
+                title={t('common.generateSecret')}
+                variant="light"
+                onPress={() => {
+                  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                  const randomSecret = Array.from({ length: 8 }, () => 
+                    chars[Math.floor(Math.random() * chars.length)]
+                  ).join('');
+                  setSecretInput(randomSecret);
+                }}
+              >
+                <IoMdRefresh className="text-lg" />
+              </Button>
+            }
+            divider
+          >
             <div className="flex">
               {secretInput !== secret && (
                 <Button
@@ -1036,12 +1076,25 @@ const Mihomo: React.FC = () => {
 
               <Input
                 size="sm"
-                type="password"
+                type={isSecretVisible ? 'text' : 'password'}
                 className="w-[200px]"
                 value={secretInput}
                 onValueChange={(v) => {
                   setSecretInput(v)
                 }}
+                startContent={
+                  <button
+                    type="button"
+                    onClick={() => setIsSecretVisible(prev => !prev)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    {isSecretVisible ? (
+                      <IoMdEyeOff className="w-4 h-4" />
+                    ) : (
+                      <IoMdEye className="w-4 h-4" />
+                    )}
+                  </button>
+                }
               />
             </div>
           </SettingItem>
